@@ -1,0 +1,59 @@
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\UtilisateurController;
+use App\Http\Controllers\GroupeController;
+use App\Http\Controllers\FonctionnaliteController;
+use App\Http\Controllers\TypeBeneficiaireController;
+
+Route::post('/login', [AuthController::class, 'login']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+    
+    // Routes utilisateurs
+    Route::get('/utilisateurs', [UtilisateurController::class, 'index'])
+        ->middleware('fonctionnalite:0001');
+
+    Route::get('/utilisateurs/{id}', [UtilisateurController::class, 'show'])
+        ->middleware('fonctionnalite:0001');
+
+    Route::post('/utilisateurs', [UtilisateurController::class, 'store'])
+        ->middleware('fonctionnalite:0001');
+
+    Route::put('/utilisateurs/{id}', [UtilisateurController::class, 'update'])
+        ->middleware('fonctionnalite:0001');
+
+    Route::delete('/utilisateurs/{id}', [UtilisateurController::class, 'destroy'])
+        ->middleware('fonctionnalite:0001');
+    
+    Route::patch('/utilisateurs/{id}/toggle-status', [UtilisateurController::class, 'toggleStatus']);
+
+    // Routes groupes
+    Route::get('/groupes', [GroupeController::class, 'index'])->middleware('fonctionnalite:0002');
+    Route::get('/groupes/{id}', [GroupeController::class, 'show'])->middleware('fonctionnalite:0002');
+    Route::post('/groupes', [GroupeController::class, 'store'])->middleware('fonctionnalite:0002');
+    Route::put('/groupes/{id}', [GroupeController::class, 'update'])->middleware('fonctionnalite:0002');
+    Route::delete('/groupes/{id}', [GroupeController::class, 'destroy'])->middleware('fonctionnalite:0002');
+
+    // Routes fonctionnalités
+    Route::get('/fonctionnalites', [FonctionnaliteController::class, 'index'])->middleware('fonctionnalite:0003');
+    Route::get('/fonctionnalites/{id}', [FonctionnaliteController::class, 'show'])->middleware('fonctionnalite:0003');
+    Route::post('/fonctionnalites', [FonctionnaliteController::class, 'store'])->middleware('fonctionnalite:0003');
+    Route::put('/fonctionnalites/{id}', [FonctionnaliteController::class, 'update'])->middleware('fonctionnalite:0003');
+    Route::delete('/fonctionnalites/{id}', [FonctionnaliteController::class, 'destroy'])->middleware('fonctionnalite:0003');
+
+    // Routes pour les droits d'accès
+    Route::get('/groupes/{grpCode}/fonctionnalites', [GroupeController::class, 'getFonctionnalites']);
+    Route::post('/groupes/{grpCode}/fonctionnalites', [GroupeController::class, 'updateFonctionnalites']);
+
+    // Routes types bénéficiaires
+    Route::get('/typeBeneficiaires', [TypeBeneficiaireController::class, 'index'])->middleware('fonctionnalite:0004');
+    Route::get('/typeBeneficiaires/{id}', [TypeBeneficiaireController::class, 'show'])->middleware('fonctionnalite:0004');
+    Route::post('/typeBeneficiaires', [TypeBeneficiaireController::class, 'store'])->middleware('fonctionnalite:0004');
+    Route::put('/typeBeneficiaires/{id}', [TypeBeneficiaireController::class, 'update'])->middleware('fonctionnalite:0004');
+    Route::delete('/typeBeneficiaires/{id}', [TypeBeneficiaireController::class, 'destroy'])->middleware('fonctionnalite:0004');
+});

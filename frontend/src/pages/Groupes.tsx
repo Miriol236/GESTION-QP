@@ -1,0 +1,292 @@
+import { useEffect, useState } from "react";
+import { DataTable } from "@/components/common/DataTable";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Users } from "lucide-react";
+import ConfirmDeleteDialog from "@/components/common/ConfirmDeleteDialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import axios from "axios";
+import { API_URL } from "@/config/api";
+
+export default function Groupe() {
+  const [groupes, setGroupes] = useState<any[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingGroupe, setEditingGroupe] = useState<any>(null);
+  const [groupeToDelete, setGroupeToDelete] = useState<any>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  // Gestion des droits
+  const [openRightsModal, setOpenRightsModal] = useState(false);
+  const [fonctionnalites, setFonctionnalites] = useState<any[]>([]);
+  const [selectedFonctionnalites, setSelectedFonctionnalites] = useState<string[]>([]);
+  const [currentGroupe, setCurrentGroupe] = useState<any | null>(null);
+
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchGroupes();
+    fetchFonctionnalites();
+  }, []);
+
+  // === Récupération des groupes ===
+  const fetchGroupes = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_URL}/groupes`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setGroupes(res.data); //  Corrigé ici
+    } catch (error) {
+      console.error("Erreur lors du chargement des groupes :", error);
+    }
+  };
+
+  // === Récupération des fonctionnalités ===
+  const fetchFonctionnalites = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_URL}/fonctionnalites`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setFonctionnalites(res.data);
+    } catch (error) {
+      console.error("Erreur lors du chargement des fonctionnalités :", error);
+    }
+  };
+
+  // === Colonnes du tableau ===
+  const columns = [
+    {
+      key: "GRP_NOM",
+      title: "Nom du Groupe",
+      render: (value) => (
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4 text-primary" />
+          <span className="font-medium">{value}</span>
+        </div>
+      ),
+    },
+    {
+      key: "GRP_DATE_CREER",
+      title: "Date de création",
+      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
+    },
+    {
+        key:"GRP_CREER_PAR",
+        title: "Créer par",
+    },
+    {
+      key: "GRP_DATE_MODIFIER",
+      title: "Date de modification",
+      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
+    },
+    {
+        key: "GRP_MODIFIER_PAR",
+        title: "Modifier par",
+        render: (Value) => Value? Value : "_",
+    },
+    {
+        key: "GRP_VERSION",
+        title: "Version modifiée",
+        render: (Value) => Value? Value : "_",
+    },
+  ];
+
+  // === Ajouter ou modifier un groupe ===
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const token = localStorage.getItem("token");
+
+    const payload = {
+      GRP_NOM: formData.get("GRP_NOM"),
+    };
+
+    try {
+      if (editingGroupe) {
+        await axios.put(`${API_URL}/groupes/${editingGroupe.GRP_CODE}`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        toast({ title: "Groupe modifié avec succès" });
+      } else {
+        await axios.post(`${API_URL}/groupes`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        toast({ title: "Groupe ajouté avec succès" });
+      }
+      fetchGroupes();
+      setIsDialogOpen(false);
+      setEditingGroupe(null);
+    } catch (err: any) {
+      toast({
+        title: "Erreur",
+        description: err?.response?.data?.message || "Échec de l'enregistrement",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // === Suppression d’un groupe ===
+  const handleConfirmDelete = async () => {
+    if (!groupeToDelete) return;
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API_URL}/groupes/${groupeToDelete.GRP_CODE}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast({ title: "Groupe supprimé avec succès" });
+      fetchGroupes();
+    } catch (err: any) {
+      toast({
+        title: "Erreur",
+        description: err?.response?.data?.message || "Suppression échouée",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
+  // === Gestion des droits d’un groupe ===
+  const handleManageRoles = async (groupe: any) => {
+    setCurrentGroupe(groupe);
+    setOpenRightsModal(true);
+
+    try {
+      const token = localStorage.getItem("token");
+
+      // Charger toutes les fonctionnalités disponibles
+      const allFonctionnalites = await axios.get(`${API_URL}/fonctionnalites`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setFonctionnalites(allFonctionnalites.data);
+
+      // Charger les fonctionnalités déjà attribuées à ce groupe
+      const assignedFonctionnalites = await axios.get(
+        `${API_URL}/groupes/${groupe.GRP_CODE}/fonctionnalites`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Corrigé : bonne clé selon ton backend
+      setSelectedFonctionnalites(assignedFonctionnalites.data.fonctionnalites_associees);
+    } catch (err) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les fonctionnalités.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Cocher/décocher une fonctionnalité
+  const toggleFonctionnalite = (fonCode: string) => {
+    setSelectedFonctionnalites((prev) =>
+      prev.includes(fonCode)
+        ? prev.filter((id) => id !== fonCode)
+        : [...prev, fonCode]
+    );
+  };
+
+  // Sauvegarde des droits
+  const handleSaveFonctionnalites = async () => {
+    if (!currentGroupe) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${API_URL}/groupes/${currentGroupe.GRP_CODE}/fonctionnalites`,
+        { fonctionnalites: selectedFonctionnalites },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast({ title: "Droits mis à jour avec succès" });
+      setOpenRightsModal(false);
+    } catch (err) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder les droits.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+        Gestion des Groupes
+      </h1>
+
+      <DataTable
+        title={`Enregistrements (${groupes.length})`}
+        columns={columns}
+        data={groupes}
+        onAdd={() => { setEditingGroupe(null); setIsDialogOpen(true); }}
+        onEdit={(u) => { setEditingGroupe(u); setIsDialogOpen(true); }}
+        onDelete={(u) => { setGroupeToDelete(u); setIsDeleteDialogOpen(true); }}
+        onManageRoles={handleManageRoles}
+        addButtonText="Nouveau groupe"
+        searchPlaceholder="Rechercher un groupe..."
+      />
+
+      {/* Modal ajout/modification */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingGroupe ? "Modifier le groupe" : "Nouveau groupe"}</DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label>Nom du groupe <span className="text-red-500">*</span></Label>
+              <Input name="GRP_NOM" defaultValue={editingGroupe?.GRP_NOM || ""} required />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button type="submit">
+                {editingGroupe ? "Modifier" : "Ajouter"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal gestion des droits */}
+      <Dialog open={openRightsModal} onOpenChange={setOpenRightsModal}>
+        <DialogContent className="max-w-lg">
+          <DialogTitle className="text-blue-600 font-semibold">
+            Gérer les droits : <span className="text-gray-900">{currentGroupe?.GRP_NOM}</span>
+          </DialogTitle>
+          <div className="space-y-3 py-4 max-h-[400px] overflow-y-auto">
+            {fonctionnalites.map((fon) => (
+              <div key={fon.FON_CODE} className="flex items-center gap-2">
+                <Checkbox
+                  checked={selectedFonctionnalites.includes(fon.FON_CODE)}
+                  onCheckedChange={() => toggleFonctionnalite(fon.FON_CODE)}
+                />
+                <span>{fon.FON_NOM}</span>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenRightsModal(false)}>Annuler</Button>
+            <Button onClick={handleSaveFonctionnalites}>Sauvegarder</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation suppression */}
+      <ConfirmDeleteDialog
+        open={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        itemName={groupeToDelete?.GRP_NOM}
+      />
+    </div>
+  );
+}
