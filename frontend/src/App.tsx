@@ -13,6 +13,8 @@ import NotFound from "./pages/NotFound";
 import Utilisateurs from "./pages/Utilisateurs";
 import Fonctionnalites from "./pages/Fonctionnalites";
 import Groupe from "./pages/Groupes";
+import TypeBeneficiaires from "./pages/TypeBeneficiaires";
+import Grades from "./pages/Grades";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +40,8 @@ const App = () => (
               <Route path="/utilisateurs" element={<Utilisateurs />} />
               <Route path="/fonctionnalites" element={<Fonctionnalites />} />
               <Route path="/groupes" element={<Groupe />} />
+              <Route path="/typeBeneficiaires" element={<TypeBeneficiaires />} />
+              <Route path="/grades" element={<Grades />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

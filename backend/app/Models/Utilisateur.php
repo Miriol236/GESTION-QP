@@ -31,6 +31,7 @@ class Utilisateur extends Authenticatable
         'UTI_VERSION',
         'UTI_STATUT',
         'GRP_CODE',
+        'REG_CODE',
         'GOOGLE_ID',
         'FACEBOOK_ID',
     ];

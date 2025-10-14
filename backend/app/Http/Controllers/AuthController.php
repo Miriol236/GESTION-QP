@@ -95,6 +95,7 @@ class AuthController extends Controller
                 'message' => 'Connexion réussie',
                 'access_token' => $token,
                 'user' => $user,
+                'GRP_NOM' => $user->groupe->GRP_NOM ?? null,
                 'fonctionnalites' => $fonctionnalites,
             ]);
         }
@@ -124,7 +125,8 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        $user = $request->user()->load('groupe');
+        return response()->json($user);
     }
 
     /**

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Fonction extends Model
 {
     protected $table = 'T_FONCTIONS';
-    protected $primarykey = 'FON_CODE'; // clé primaire personnalisée
+    protected $primaryKey = 'FON_CODE'; // clé primaire personnalisée
     public $incrementing = false; // pas d'auto-incrément
     protected $keyType = 'string';
     public $timestamps = false;
@@ -29,7 +29,7 @@ class Fonction extends Model
             }
 
             // Formate le code sur 4 chiffres
-            $model->$FON_CODE = str_pad($num, 4, '0', STR_PAD_LEFT);
+            $model->FON_CODE = str_pad($num, 4, '0', STR_PAD_LEFT);
         });
     }
 

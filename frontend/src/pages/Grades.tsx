@@ -13,98 +13,97 @@ import ConfirmDeleteDialog from "@/components/common/ConfirmDeleteDialog";
 import axios from "axios";
 import { API_URL } from "@/config/api";
 
-export default function Fonctionnalites() {
-  const [fonctionnalites, setFonctionnalites] = useState([]);
+export default function Grades() {
+  const [grades, setGrades] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingFonctionnalite, setEditingFonctionnalite] = useState(null);
-  const [fonctionnaliteToDelete, setFonctionnaliteToDelete] = useState<any>(null);
+  const [editingGrade, setEditingGrade] = useState(null);
+  const [gradeToDelete, setGradeToDelete] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   //  Chargement initial
   useEffect(() => {
-    fetchFonctionnalites();
+    fetchGrades();
   }, []);
 
-  // Récupération des fonctionnalités
-  const fetchFonctionnalites = async () => {
+  // Récupération des grades
+  const fetchGrades = async () => {
     try {
-      setIsLoading(true);
-      const token = localStorage.getItem("token");
-      const res = await axios.get(`${API_URL}/fonctionnalites`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setFonctionnalites(res.data);
-    } catch (error) {
-      console.error("Erreur lors du chargement des fonctionnalités :", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        setIsLoading(true);
+        const token = localStorage.getItem("token");
+        const res = await axios.get(`${API_URL}/grades`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        setGrades(res.data);
+        } catch (error) {
+        console.error("Erreur lors du chargement des grades :", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
   const columns: Column[]  = [
     {
-      key: "FON_NOM",
+      key: "GRD_LIBELLE",
       title: "Libellé",
       render: (value) => (
         <div className="flex items-center gap-2">
-          <AlignVerticalJustifyStartIcon className="h-4 w-4 text-primary" />
           <span className="font-medium">{value}</span>
         </div>
       ),
     },
     {
-      key: "FON_DATE_CREER",
+      key: "GRD_DATE_CREER",
       title: "Date de création",
       render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
     },
     {
-        key:"FON_CREER_PAR",
+        key:"GRD_CREER_PAR",
         title: "Créer par",
     },
     {
-      key: "FON_DATE_MODIFIER",
+      key: "GRD_DATE_MODIFIER",
       title: "Date de modification",
       render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
     },
     {
-        key: "FON_MODIFIER_PAR",
+        key: "GRD_MODIFIER_PAR",
         title: "Modifier par",
         render: (Value) => Value? Value : "_",
     },
     {
-        key: "FON_VERSION",
+        key: "GRD_VERSION",
         title: "Version modifiée",
         render: (Value) => Value? Value : "_",
     },
   ];
 
-  //  Ajouter ou modifier une fonctionnalité
+  //  Ajouter ou modifier un grade
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     const token = localStorage.getItem("token");
 
     const payload = {
-      FON_NOM: formData.get("FON_NOM"),
+      GRD_LIBELLE: formData.get("GRD_LIBELLE"),
     };
 
     try {
-      if (editingFonctionnalite) {
-        await axios.put(`${API_URL}/fonctionnalites/${editingFonctionnalite.FON_CODE}`, payload, {
+      if (editingGrade) {
+        await axios.put(`${API_URL}/grades/${editingGrade.GRD_CODE}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Fonctionnalité modifiée avec succès" });
+        toast({ title: "Grade modifié avec succès" });
       } else {
-        await axios.post(`${API_URL}/fonctionnalites`, payload, {
+        await axios.post(`${API_URL}/grades`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Fonctionnalité ajoutée avec succès" });
+        toast({ title: "Grade ajouté avec succès" });
       }
-      fetchFonctionnalites();
+      fetchGrades();
       setIsDialogOpen(false);
-      setEditingFonctionnalite(null);
+      setEditingGrade(null);
     } catch (err: any) {
       toast({
         title: "Erreur",
@@ -116,14 +115,14 @@ export default function Fonctionnalites() {
 
   // Suppression
   const handleConfirmDelete = async () => {
-    if (!fonctionnaliteToDelete) return;
+    if (!gradeToDelete) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`${API_URL}/fonctionnalites/${fonctionnaliteToDelete.FON_CODE}`, {
+      await axios.delete(`${API_URL}/grades/${gradeToDelete.GRD_CODE}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast({ title: "Fonctionnalité supprimée avec succès" });
-      fetchFonctionnalites();
+      toast({ title: "Grade supprimé avec succès" });
+      fetchGrades();
     } catch (err: any) {
       toast({ title: "Erreur", description: err?.response?.data?.message || "Suppression échouée", variant: "destructive" });
     } finally {
@@ -131,25 +130,25 @@ export default function Fonctionnalites() {
     }
   };
 
-  if (isLoading) {
+  if(isLoading) {
     return <TableSkeleton />;
   }
 
   return (
     <div className="space-y-6 animate-fade-in">
       <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-        Gestion des Fonctionnalités
+        Gestion des Grades
       </h1>
 
       <DataTable
-        title={`Enregistrements (${fonctionnalites.length})`}
+        title={`Enregistrements (${grades.length})`}
         columns={columns}
-        data={fonctionnalites}
-        onAdd={() => { setEditingFonctionnalite(null); setIsDialogOpen(true); }}
-        onEdit={(u) => { setEditingFonctionnalite(u); setIsDialogOpen(true); }}
-        onDelete={(u) => { setFonctionnaliteToDelete(u); setIsDeleteDialogOpen(true); }}
-        addButtonText="Nouvelle fonctionnalité"
-        searchPlaceholder="Rechercher une fonctionnalité..."
+        data={grades}
+        onAdd={() => { setEditingGrade(null); setIsDialogOpen(true); }}
+        onEdit={(u) => { setEditingGrade(u); setIsDialogOpen(true); }}
+        onDelete={(u) => { setGradeToDelete(u); setIsDeleteDialogOpen(true); }}
+        addButtonText="Nouvel grade"
+        searchPlaceholder="Rechercher un grade..."
       />
 
       {/* Dialog ajout/modification */}
@@ -157,20 +156,20 @@ export default function Fonctionnalites() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editingFonctionnalite ? "Modifier la fonctionnalité" : "Nouvelle fonctionnalité"}
+              {editingGrade ? "Modifier le grade" : "Nouvel grade"}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Libellé <span className="text-red-500">*</span></Label>
-              <Input name="FON_NOM" defaultValue={editingFonctionnalite?.FON_NOM || ""} required />
+              <Input name="GRD_LIBELLE" defaultValue={editingGrade?.GRD_LIBELLE || ""} required />
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
               <Button type="submit" variant="default">
-                {editingFonctionnalite ? "Modifier" : "Ajouter"}
+                {editingGrade ? "Modifier" : "Ajouter"}
               </Button>
             </div>
           </form>
@@ -182,7 +181,7 @@ export default function Fonctionnalites() {
         open={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleConfirmDelete}
-        itemName={fonctionnaliteToDelete?.FON_NOM}
+        itemName={gradeToDelete?.GRD_LIBELLE}
       />
     </div>
   );

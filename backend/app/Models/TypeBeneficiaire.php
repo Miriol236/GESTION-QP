@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class TypeBeneficiaire extends Model
 {
     protected $table = "T_TYPE_BENEFICIAIRES";
-    protected $primarykey = 'TYP_CODE'; // Clé primaire
+    protected $primaryKey = 'TYP_CODE'; // Clé primaire
     public $incrementing = false; // Pas d'auto-incrément
     protected $keyType = 'string';
     public $timestamps = false;

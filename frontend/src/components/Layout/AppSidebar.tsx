@@ -41,9 +41,9 @@ const menuItems = [
     title: "Paramètres",
     icon: Settings,
     children: [
-      { title: "Types de paiements", url: "/parametres/types-paiements" },
-      { title: "Types de bénéficiaires", url: "/parametres/types-beneficiaires" },
-      { title: "Banques associées", url: "/parametres/banques-associees" },
+      { title: "Types de bénéficiaires", url: "typeBeneficiaires" },
+      { title: "Fonctions", url: "/fonctions" },
+      { title: "Grades", url: "/grades" },
     ],
   },
 
@@ -76,10 +76,10 @@ export function AppSidebar() {
         <div className="flex items-center justify-center h-16 border-b border-sidebar-border">
           {!isCollapsed ? (
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+              {/* <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">ONI</span>
-              </div>
-              <span className="font-semibold text-sidebar-foreground">Quotes-Parts</span>
+              </div> */}
+              <span className="font-bold text-sidebar-foreground">Gestion des Quotes-Parts</span>
             </div>
           ) : (
             <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">

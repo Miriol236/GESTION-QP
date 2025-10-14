@@ -36,8 +36,8 @@ export function Header() {
                 <User className="h-4 w-4 text-primary-foreground" />
               </div>
               <div className="text-left hidden md:block">
-                <p className="text-sm font-medium">{user?.name}</p>
-                <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
+                <p className="text-sm font-medium">{user?.UTI_PRENOM} {user?.UTI_NOM}</p>
+                <p className="text-xs text-muted-foreground capitalize">{user?.groupe?.GRP_NOM ?? "-"}</p>
               </div>
             </Button>
           </DropdownMenuTrigger>

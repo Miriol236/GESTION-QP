@@ -75,7 +75,8 @@ class UtilisateurController extends Controller
      *             @OA\Property(property="UTI_PASSWORD", type="string"),
      *             @OA\Property(property="UTI_SEXE", type="string", nullable=true),
      *             @OA\Property(property="UTI_AVATAR", type="string", nullable=true),
-     *             @OA\Property(property="GRP_CODE", type="string")
+     *             @OA\Property(property="GRP_CODE", type="string"),
+     *             @OA\Property(property="REG_CODE", type="string")
      *         )
      *     ),
      *     @OA\Response(response=201, description="Utilisateur créé avec succès"),
@@ -91,7 +92,8 @@ class UtilisateurController extends Controller
             'UTI_USERNAME' => 'required|string|unique:T_UTILISATEURS,UTI_USERNAME',
             'UTI_PASSWORD' => 'required|string|min:6',
             'UTI_SEXE' => 'nullable|string|max:1',
-            'GRP_CODE' => 'required|string'
+            'GRP_CODE' => 'required|string',
+            'REG_CODE' => 'required|string'
         ], [
             'UTI_USERNAME.unique' => 'Ce username existe déjà.',
         ]);
@@ -117,6 +119,7 @@ class UtilisateurController extends Controller
         $utilisateur->UTI_CREER_PAR = auth()->check() ? auth()->user()->UTI_NOM." ".auth()->user()->UTI_PRENOM : 'SYSTEM';
         $utilisateur->UTI_STATUT = true;
         $utilisateur->GRP_CODE = $request->GRP_CODE;
+        $utilisateur->REG_CODE = $request->REG_CODE;
         $utilisateur->save();
 
         return response()->json(['message' => 'Utilisateur créé avec succès'], 201);
@@ -183,6 +186,8 @@ class UtilisateurController extends Controller
             'UTI_MODIFIER_PAR' => auth()->check() ? auth()->user()->UTI_NOM." ".auth()->user()->UTI_PRENOM : 'SYSTEM',
             'UTI_DATE_MODIFIER' => now(),
             'UTI_VERSION' => $nouvelleVersion,
+            'GRP_CODE' => $request->GRP_CODE ?? $utilisateur->GRP_CODE,
+            'REG_CODE' => $request->REG_CODE ?? $utilisateur->GRP_CODE,
         ]);
 
         return response()->json(['message' => 'Utilisateur mis à jour avec succès']);
@@ -212,6 +217,10 @@ class UtilisateurController extends Controller
 
         if (!$utilisateur) {
             return response()->json(['message' => 'Utilisateur non trouvé'], 404);
+        }
+
+        if ($utilisateur->GRP_CODE == '0001' || $utilisateur->GRP_NOM == 'ADMINISTRATEUR') {
+            return response()->json(['message' => 'Impossible de supprimer un administrateur.'], 403);
         }
 
         $utilisateur->delete();

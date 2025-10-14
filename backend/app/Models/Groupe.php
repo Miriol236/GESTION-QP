@@ -51,4 +51,9 @@ class Groupe extends Model
             'FON_CODE'
         );
     }
+
+    public function utilisateurs()
+    {
+        return $this->hasMany(Utilisateur::class, 'GRP_CODE', 'GRP_CODE');
+    }
 }

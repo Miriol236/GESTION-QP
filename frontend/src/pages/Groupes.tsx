@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { DataTable } from "@/components/common/DataTable";
+import { TableSkeleton } from "@/components/loaders/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,9 @@ export default function Groupe() {
   const [editingGroupe, setEditingGroupe] = useState<any>(null);
   const [groupeToDelete, setGroupeToDelete] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingFonctionnalites, setIsLoadingFonctionnalites] = useState(false);
+
 
   // Gestion des droits
   const [openRightsModal, setOpenRightsModal] = useState(false);
@@ -34,6 +38,7 @@ export default function Groupe() {
   // === Récupération des groupes ===
   const fetchGroupes = async () => {
     try {
+      setIsLoading(true);
       const token = localStorage.getItem("token");
       const res = await axios.get(`${API_URL}/groupes`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -41,12 +46,15 @@ export default function Groupe() {
       setGroupes(res.data); //  Corrigé ici
     } catch (error) {
       console.error("Erreur lors du chargement des groupes :", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // === Récupération des fonctionnalités ===
   const fetchFonctionnalites = async () => {
     try {
+      setIsLoading(true);
       const token = localStorage.getItem("token");
       const res = await axios.get(`${API_URL}/fonctionnalites`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -54,6 +62,8 @@ export default function Groupe() {
       setFonctionnalites(res.data);
     } catch (error) {
       console.error("Erreur lors du chargement des fonctionnalités :", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -154,6 +164,7 @@ export default function Groupe() {
   const handleManageRoles = async (groupe: any) => {
     setCurrentGroupe(groupe);
     setOpenRightsModal(true);
+    setIsLoadingFonctionnalites(true);
 
     try {
       const token = localStorage.getItem("token");
@@ -178,6 +189,8 @@ export default function Groupe() {
         description: "Impossible de charger les fonctionnalités.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoadingFonctionnalites(false);
     }
   };
 
@@ -212,6 +225,10 @@ export default function Groupe() {
       });
     }
   };
+
+  if (isLoading) {
+    return <TableSkeleton />;
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -258,20 +275,28 @@ export default function Groupe() {
 
       {/* Modal gestion des droits */}
       <Dialog open={openRightsModal} onOpenChange={setOpenRightsModal}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogTitle className="text-blue-600 font-semibold">
             Gérer les droits : <span className="text-gray-900">{currentGroupe?.GRP_NOM}</span>
           </DialogTitle>
           <div className="space-y-3 py-4 max-h-[400px] overflow-y-auto">
-            {fonctionnalites.map((fon) => (
-              <div key={fon.FON_CODE} className="flex items-center gap-2">
-                <Checkbox
-                  checked={selectedFonctionnalites.includes(fon.FON_CODE)}
-                  onCheckedChange={() => toggleFonctionnalite(fon.FON_CODE)}
-                />
-                <span>{fon.FON_NOM}</span>
+            {isLoadingFonctionnalites ? (
+              // Loader visuel pendant le chargement
+              <div className="flex flex-col items-center justify-center py-10">
+                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="mt-3 text-sm text-muted-foreground">Chargement des fonctionnalités...</p>
               </div>
-            ))}
+            ) : (
+              fonctionnalites.map((fon) => (
+                <div key={fon.FON_CODE} className="flex items-center gap-2">
+                  <Checkbox
+                    checked={selectedFonctionnalites.includes(fon.FON_CODE)}
+                    onCheckedChange={() => toggleFonctionnalite(fon.FON_CODE)}
+                  />
+                  <span>{fon.FON_NOM}</span>
+                </div>
+              ))
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenRightsModal(false)}>Annuler</Button>

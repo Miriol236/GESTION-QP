@@ -13,43 +13,42 @@ import ConfirmDeleteDialog from "@/components/common/ConfirmDeleteDialog";
 import axios from "axios";
 import { API_URL } from "@/config/api";
 
-export default function Fonctionnalites() {
-  const [fonctionnalites, setFonctionnalites] = useState([]);
+export default function Fonctions() {
+  const [fonctions, setFonctions] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingFonctionnalite, setEditingFonctionnalite] = useState(null);
-  const [fonctionnaliteToDelete, setFonctionnaliteToDelete] = useState<any>(null);
+  const [editingFonction, setEditingFonction] = useState(null);
+  const [fonctionToDelete, setFonctionToDelete] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   //  Chargement initial
   useEffect(() => {
-    fetchFonctionnalites();
+    fetchFonctions();
   }, []);
 
-  // Récupération des fonctionnalités
-  const fetchFonctionnalites = async () => {
+  // Récupération des fonctions
+  const fetchFonctions = async () => {
     try {
-      setIsLoading(true);
-      const token = localStorage.getItem("token");
-      const res = await axios.get(`${API_URL}/fonctionnalites`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setFonctionnalites(res.data);
-    } catch (error) {
-      console.error("Erreur lors du chargement des fonctionnalités :", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        setIsLoading(true);
+        const token = localStorage.getItem("token");
+        const res = await axios.get(`${API_URL}/fonctions`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        setFonctions(res.data);
+        } catch (error) {
+        console.error("Erreur lors du chargement des fonctions :", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
   const columns: Column[]  = [
     {
-      key: "FON_NOM",
+      key: "FON_LIBELLE",
       title: "Libellé",
       render: (value) => (
         <div className="flex items-center gap-2">
-          <AlignVerticalJustifyStartIcon className="h-4 w-4 text-primary" />
           <span className="font-medium">{value}</span>
         </div>
       ),
@@ -80,31 +79,31 @@ export default function Fonctionnalites() {
     },
   ];
 
-  //  Ajouter ou modifier une fonctionnalité
+  //  Ajouter ou modifier une fonction
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     const token = localStorage.getItem("token");
 
     const payload = {
-      FON_NOM: formData.get("FON_NOM"),
+      FON_LIBELLE: formData.get("FON_LIBELLE"),
     };
 
     try {
-      if (editingFonctionnalite) {
-        await axios.put(`${API_URL}/fonctionnalites/${editingFonctionnalite.FON_CODE}`, payload, {
+      if (editingFonction) {
+        await axios.put(`${API_URL}/fonctions/${editingFonction.FON_CODE}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Fonctionnalité modifiée avec succès" });
+        toast({ title: "Fonction modifiée avec succès" });
       } else {
-        await axios.post(`${API_URL}/fonctionnalites`, payload, {
+        await axios.post(`${API_URL}/fonctions`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Fonctionnalité ajoutée avec succès" });
+        toast({ title: "Fonction ajoutée avec succès" });
       }
-      fetchFonctionnalites();
+      fetchFonctions();
       setIsDialogOpen(false);
-      setEditingFonctionnalite(null);
+      setEditingFonction(null);
     } catch (err: any) {
       toast({
         title: "Erreur",
@@ -116,14 +115,14 @@ export default function Fonctionnalites() {
 
   // Suppression
   const handleConfirmDelete = async () => {
-    if (!fonctionnaliteToDelete) return;
+    if (!fonctionToDelete) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`${API_URL}/fonctionnalites/${fonctionnaliteToDelete.FON_CODE}`, {
+      await axios.delete(`${API_URL}/fonctions/${fonctionToDelete.FON_CODE}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast({ title: "Fonctionnalité supprimée avec succès" });
-      fetchFonctionnalites();
+      toast({ title: "Fonction supprimée avec succès" });
+      fetchFonctions();
     } catch (err: any) {
       toast({ title: "Erreur", description: err?.response?.data?.message || "Suppression échouée", variant: "destructive" });
     } finally {
@@ -131,25 +130,25 @@ export default function Fonctionnalites() {
     }
   };
 
-  if (isLoading) {
+  if(isLoading) {
     return <TableSkeleton />;
   }
 
   return (
     <div className="space-y-6 animate-fade-in">
       <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-        Gestion des Fonctionnalités
+        Gestion des Fonctions
       </h1>
 
       <DataTable
-        title={`Enregistrements (${fonctionnalites.length})`}
+        title={`Enregistrements (${fonctions.length})`}
         columns={columns}
-        data={fonctionnalites}
-        onAdd={() => { setEditingFonctionnalite(null); setIsDialogOpen(true); }}
-        onEdit={(u) => { setEditingFonctionnalite(u); setIsDialogOpen(true); }}
-        onDelete={(u) => { setFonctionnaliteToDelete(u); setIsDeleteDialogOpen(true); }}
-        addButtonText="Nouvelle fonctionnalité"
-        searchPlaceholder="Rechercher une fonctionnalité..."
+        data={fonctions}
+        onAdd={() => { setEditingFonction(null); setIsDialogOpen(true); }}
+        onEdit={(u) => { setEditingFonction(u); setIsDialogOpen(true); }}
+        onDelete={(u) => { setFonctionToDelete(u); setIsDeleteDialogOpen(true); }}
+        addButtonText="Nouvelle fonction"
+        searchPlaceholder="Rechercher une fonction..."
       />
 
       {/* Dialog ajout/modification */}
@@ -157,20 +156,20 @@ export default function Fonctionnalites() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editingFonctionnalite ? "Modifier la fonctionnalité" : "Nouvelle fonctionnalité"}
+              {editingFonction ? "Modifier la fonction" : "Nouvelle fonction"}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Libellé <span className="text-red-500">*</span></Label>
-              <Input name="FON_NOM" defaultValue={editingFonctionnalite?.FON_NOM || ""} required />
+              <Input name="FON_LIBELLE" defaultValue={editingFonction?.FON_LIBELLE || ""} required />
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
               <Button type="submit" variant="default">
-                {editingFonctionnalite ? "Modifier" : "Ajouter"}
+                {editingFonction ? "Modifier" : "Ajouter"}
               </Button>
             </div>
           </form>
@@ -182,7 +181,7 @@ export default function Fonctionnalites() {
         open={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleConfirmDelete}
-        itemName={fonctionnaliteToDelete?.FON_NOM}
+        itemName={fonctionToDelete?.FON_LIBELLE}
       />
     </div>
   );

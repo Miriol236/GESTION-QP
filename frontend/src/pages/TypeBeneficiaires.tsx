@@ -13,31 +13,31 @@ import ConfirmDeleteDialog from "@/components/common/ConfirmDeleteDialog";
 import axios from "axios";
 import { API_URL } from "@/config/api";
 
-export default function Fonctionnalites() {
-  const [fonctionnalites, setFonctionnalites] = useState([]);
+export default function TypeBeneficiaires() {
+  const [typeBeneficiaires, setTypeBeneficiaires] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingFonctionnalite, setEditingFonctionnalite] = useState(null);
-  const [fonctionnaliteToDelete, setFonctionnaliteToDelete] = useState<any>(null);
+  const [editingTypeBeneficiaire, setEditingTypeBeneficiaire] = useState(null);
+  const [typeBeneficiaireToDelete, setTypeBeneficiaireToDelete] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   //  Chargement initial
   useEffect(() => {
-    fetchFonctionnalites();
+    fetchTypeBeneficiaires();
   }, []);
 
-  // Récupération des fonctionnalités
-  const fetchFonctionnalites = async () => {
+  // Récupération des types bénéficiaires
+  const fetchTypeBeneficiaires = async () => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem("token");
-      const res = await axios.get(`${API_URL}/fonctionnalites`, {
+      const res = await axios.get(`${API_URL}/typeBeneficiaires`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setFonctionnalites(res.data);
+      setTypeBeneficiaires(res.data);
     } catch (error) {
-      console.error("Erreur lors du chargement des fonctionnalités :", error);
+      console.error("Erreur lors du chargement des types bénéficiaires :", error);
     } finally {
       setIsLoading(false);
     }
@@ -45,66 +45,65 @@ export default function Fonctionnalites() {
 
   const columns: Column[]  = [
     {
-      key: "FON_NOM",
+      key: "TYP_LIBELLE",
       title: "Libellé",
       render: (value) => (
         <div className="flex items-center gap-2">
-          <AlignVerticalJustifyStartIcon className="h-4 w-4 text-primary" />
           <span className="font-medium">{value}</span>
         </div>
       ),
     },
     {
-      key: "FON_DATE_CREER",
+      key: "TYP_DATE_CREER",
       title: "Date de création",
       render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
     },
     {
-        key:"FON_CREER_PAR",
+        key:"TYP_CREER_PAR",
         title: "Créer par",
     },
     {
-      key: "FON_DATE_MODIFIER",
+      key: "TYP_DATE_MODIFIER",
       title: "Date de modification",
       render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
     },
     {
-        key: "FON_MODIFIER_PAR",
+        key: "TYP_MODIFIER_PAR",
         title: "Modifier par",
         render: (Value) => Value? Value : "_",
     },
     {
-        key: "FON_VERSION",
+        key: "TYP_VERSION",
         title: "Version modifiée",
         render: (Value) => Value? Value : "_",
     },
   ];
 
-  //  Ajouter ou modifier une fonctionnalité
+  //  Ajouter ou modifier un type de bénéficiaires
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     const token = localStorage.getItem("token");
 
     const payload = {
-      FON_NOM: formData.get("FON_NOM"),
+      TYP_LIBELLE: formData.get("TYP_LIBELLE"),
     };
 
     try {
-      if (editingFonctionnalite) {
-        await axios.put(`${API_URL}/fonctionnalites/${editingFonctionnalite.FON_CODE}`, payload, {
+      if (editingTypeBeneficiaire) {
+        await axios.put(`${API_URL}/typeBeneficiaires/${editingTypeBeneficiaire.TYP_CODE}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Fonctionnalité modifiée avec succès" });
+        toast({ title: "Type de bénéficiaires modifié avec succès" });
       } else {
-        await axios.post(`${API_URL}/fonctionnalites`, payload, {
+        await axios.post(`${API_URL}/typeBeneficiaires`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Fonctionnalité ajoutée avec succès" });
+        toast({ title: "Type de bénéficiaires ajouté avec succès" });
       }
-      fetchFonctionnalites();
+      fetchTypeBeneficiaires();
       setIsDialogOpen(false);
-      setEditingFonctionnalite(null);
+      setEditingTypeBeneficiaire(null);
     } catch (err: any) {
       toast({
         title: "Erreur",
@@ -116,14 +115,14 @@ export default function Fonctionnalites() {
 
   // Suppression
   const handleConfirmDelete = async () => {
-    if (!fonctionnaliteToDelete) return;
+    if (!typeBeneficiaireToDelete) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`${API_URL}/fonctionnalites/${fonctionnaliteToDelete.FON_CODE}`, {
+      await axios.delete(`${API_URL}/typeBeneficiaires/${typeBeneficiaireToDelete.TYP_CODE}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast({ title: "Fonctionnalité supprimée avec succès" });
-      fetchFonctionnalites();
+      toast({ title: "Type de bénéficiaires supprimé avec succès" });
+      fetchTypeBeneficiaires();
     } catch (err: any) {
       toast({ title: "Erreur", description: err?.response?.data?.message || "Suppression échouée", variant: "destructive" });
     } finally {
@@ -138,18 +137,18 @@ export default function Fonctionnalites() {
   return (
     <div className="space-y-6 animate-fade-in">
       <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-        Gestion des Fonctionnalités
+        Gestion des Types de bénéficiaires
       </h1>
 
       <DataTable
-        title={`Enregistrements (${fonctionnalites.length})`}
+        title={`Enregistrements (${typeBeneficiaires.length})`}
         columns={columns}
-        data={fonctionnalites}
-        onAdd={() => { setEditingFonctionnalite(null); setIsDialogOpen(true); }}
-        onEdit={(u) => { setEditingFonctionnalite(u); setIsDialogOpen(true); }}
-        onDelete={(u) => { setFonctionnaliteToDelete(u); setIsDeleteDialogOpen(true); }}
-        addButtonText="Nouvelle fonctionnalité"
-        searchPlaceholder="Rechercher une fonctionnalité..."
+        data={typeBeneficiaires}
+        onAdd={() => { setEditingTypeBeneficiaire(null); setIsDialogOpen(true); }}
+        onEdit={(u) => { setEditingTypeBeneficiaire(u); setIsDialogOpen(true); }}
+        onDelete={(u) => { setTypeBeneficiaireToDelete(u); setIsDeleteDialogOpen(true); }}
+        addButtonText="Nouveau type de bénéficiaires"
+        searchPlaceholder="Rechercher un type de bénéficiaires..."
       />
 
       {/* Dialog ajout/modification */}
@@ -157,20 +156,20 @@ export default function Fonctionnalites() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editingFonctionnalite ? "Modifier la fonctionnalité" : "Nouvelle fonctionnalité"}
+              {editingTypeBeneficiaire ? "Modifier le type de bénéficiaires" : "Nouveau type de bénéficiaires"}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Libellé <span className="text-red-500">*</span></Label>
-              <Input name="FON_NOM" defaultValue={editingFonctionnalite?.FON_NOM || ""} required />
+              <Input name="TYP_LIBELLE" defaultValue={editingTypeBeneficiaire?.TYP_LIBELLE || ""} required />
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
               <Button type="submit" variant="default">
-                {editingFonctionnalite ? "Modifier" : "Ajouter"}
+                {editingTypeBeneficiaire ? "Modifier" : "Ajouter"}
               </Button>
             </div>
           </form>
@@ -182,7 +181,7 @@ export default function Fonctionnalites() {
         open={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleConfirmDelete}
-        itemName={fonctionnaliteToDelete?.FON_NOM}
+        itemName={typeBeneficiaireToDelete?.TYP_LIBELLE}
       />
     </div>
   );

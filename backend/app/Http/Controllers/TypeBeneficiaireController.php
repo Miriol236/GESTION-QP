@@ -71,8 +71,8 @@ class TypeBeneficiaireController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"TYP_NOM"},
-     *             @OA\Property(property="TYP_NOM", type="string")
+     *             required={"TYP_LIBELLE"},
+     *             @OA\Property(property="TYP_LIBELLE", type="string")
      *         )
      *     ),
      *     @OA\Response(response=201, description="Type bénéficiaires créé avec succès"),
@@ -83,19 +83,19 @@ class TypeBeneficiaireController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'TYP_NOM' => 'required|string|max:100',
+            'TYP_LIBELLE' => 'required|string|max:100',
         ]);
 
-        $exists = TypeBeneficiaire::where('TYP_NOM', $request->TYP_NOM)->exists();
+        $exists = TypeBeneficiaire::where('TYP_LIBELLE', $request->TYP_LIBELLE)->exists();
 
         if ($exists) {
             return response()->json(['message' => 'Un type avec ce nom existe déjà.'], 409);
         }
 
         $type = new TypeBeneficiaire();
-        $type->TYP_NOM = $request->TYP_NOM;
+        $type->TYP_LIBELLE = $request->TYP_LIBELLE;
         $type->TYP_DATE_CREER = now();
-        $type->TYP_CREER_PAR = auth()->check() ? auth()->user()->UTI_NOM : 'SYSTEM';
+        $type->TYP_CREER_PAR = auth()->check() ? auth()->user()->UTI_NOM." ".auth()->user()->UTI_PRENOM : 'SYSTEM';
         $type->save();
 
         return response()->json(['message' => 'Type créé avec succès !'], 201);
@@ -117,7 +117,7 @@ class TypeBeneficiaireController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             @OA\Property(property="TYP_NOM", type="string")
+     *             @OA\Property(property="TYP_LIBELLE", type="string")
      *         )
      *     ),
      *     @OA\Response(response=200, description="Type bénéficiaires mis à jour avec succès"),
@@ -134,7 +134,7 @@ class TypeBeneficiaireController extends Controller
             return response()->json(['message' => 'Type non trouvé'], 404);
         }
 
-        $exists = TypeBeneficiaire::where('TYP_NOM', $request->TYP_NOM)
+        $exists = TypeBeneficiaire::where('TYP_LIBELLE', $request->TYP_LIBELLE)
             ->where('TYP_CODE', '!=', $code)
             ->exists();
 
@@ -145,9 +145,9 @@ class TypeBeneficiaireController extends Controller
         $derniereVersion = ($type->TYP_VERSION ?? 0) + 1;
 
         $type->update([
-            'TYP_NOM' => $request->TYP_NOM ?? $type->TYP_NOM,
+            'TYP_LIBELLE' => $request->TYP_LIBELLE ?? $type->TYP_LIBELLE,
             'TYP_DATE_MODIFIER' => now(),
-            'TYP_MODIFIER_PAR' => auth()->check() ? auth()->user()->UTI_NOM : 'SYSTEM',
+            'TYP_MODIFIER_PAR' => auth()->check() ? auth()->user()->UTI_NOM." ".auth()->user()->UTI_PRENOM : 'SYSTEM',
             'TYP_VERSION' => $derniereVersion,
         ]);
 

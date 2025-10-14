@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { DataTable, type Column } from "@/components/common/DataTable";
+import UserSkeleton from "@/components/loaders/UserSkeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -22,6 +23,7 @@ export default function Utilisateurs() {
   const [utilisateurToDelete, setUtilisateurToDelete] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedSexe, setSelectedSexe] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   //  Chargement initial
@@ -42,6 +44,7 @@ export default function Utilisateurs() {
   // Récupération des utilisateurs
   const fetchUtilisateurs = async () => {
     try {
+      setIsLoading(true);
       const token = localStorage.getItem("token");
       const res = await axios.get(`${API_URL}/utilisateurs`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -49,6 +52,8 @@ export default function Utilisateurs() {
       setUtilisateurs(res.data);
     } catch (error) {
       console.error("Erreur lors du chargement des utilisateurs :", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -220,12 +225,16 @@ export default function Utilisateurs() {
       });
       toast({ title: "Utilisateur supprimé avec succès" });
       fetchUtilisateurs();
-    } catch {
-      toast({ title: "Erreur", description: "Suppression échouée", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err?.response?.data?.message || "Suppression échouée", variant: "destructive" });
     } finally {
       setIsDeleteDialogOpen(false);
     }
   };
+
+  if (isLoading) {
+    return <UserSkeleton />;
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">

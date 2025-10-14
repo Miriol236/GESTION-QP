@@ -7,6 +7,8 @@ use App\Http\Controllers\UtilisateurController;
 use App\Http\Controllers\GroupeController;
 use App\Http\Controllers\FonctionnaliteController;
 use App\Http\Controllers\TypeBeneficiaireController;
+use App\Http\Controllers\FonctionController;
+use App\Http\Controllers\GradeController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -56,4 +58,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/typeBeneficiaires', [TypeBeneficiaireController::class, 'store'])->middleware('fonctionnalite:0004');
     Route::put('/typeBeneficiaires/{id}', [TypeBeneficiaireController::class, 'update'])->middleware('fonctionnalite:0004');
     Route::delete('/typeBeneficiaires/{id}', [TypeBeneficiaireController::class, 'destroy'])->middleware('fonctionnalite:0004');
+
+    // Routes fonctions
+    Route::get('/fonctions', [FonctionController::class, 'index'])->middleware('fonctionnalite:0005');
+    Route::get('/fonctions/{id}', [FonctionController::class, 'show'])->middleware('fonctionnalite:0005');
+    Route::post('/fonctions', [FonctionController::class, 'store'])->middleware('fonctionnalite:0005');
+    Route::put('/fonctions/{id}', [FonctionController::class, 'update'])->middleware('fonctionnalite:0005');
+    Route::delete('/fonctions/{id}', [FonctionController::class, 'destroy'])->middleware('fonctionnalite:0005');
+
+    // Routes grades
+    Route::get('/grades', [GradeController::class, 'index'])->middleware('fonctionnalite:0006');
+    Route::get('/grades/{id}', [GradeController::class, 'show'])->middleware('fonctionnalite:0006');
+    Route::post('/grades', [GradeController::class, 'store'])->middleware('fonctionnalite:0006');
+    Route::put('/grades/{id}', [GradeController::class, 'update'])->middleware('fonctionnalite:0006');
+    Route::delete('/grades/{id}', [GradeController::class, 'destroy'])->middleware('fonctionnalite:0006');
 });
