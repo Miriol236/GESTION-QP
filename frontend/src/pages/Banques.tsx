@@ -3,12 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export default function Banques() {
   return (
     <div className="space-y-6">
-      <div>
+      {/* <div>
         <h1 className="text-3xl font-bold text-foreground">Banques</h1>
         <p className="text-muted-foreground mt-1">
           Gestion des banques et des guichets
         </p>
-      </div>
+      </div> */}
       <Card>
         <CardHeader>
           <CardTitle>Module en développement</CardTitle>
@@ -18,7 +18,7 @@ export default function Banques() {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Le module de gestion des banques est en cours de développement.
+            Le module est en cours de développement.
           </p>
         </CardContent>
       </Card>

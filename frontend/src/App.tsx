@@ -14,7 +14,10 @@ import Utilisateurs from "./pages/Utilisateurs";
 import Fonctionnalites from "./pages/Fonctionnalites";
 import Groupe from "./pages/Groupes";
 import TypeBeneficiaires from "./pages/TypeBeneficiaires";
+import Fonctions from "./pages/Fonctions";
 import Grades from "./pages/Grades";
+import Echeances from "./pages/Echeances";
+import Regies from "./pages/Regies";
 
 const queryClient = new QueryClient();
 
@@ -33,15 +36,16 @@ const App = () => (
               <Route path="/beneficiaires" element={<Beneficiaires />} />
               <Route path="/banques" element={<Banques />} />
               <Route path="/paiements" element={<Banques />} />
-              <Route path="/echeances" element={<Banques />} />
-              <Route path="/regies" element={<Banques />} />
               <Route path="/elements" element={<Banques />} />
               <Route path="/parametres" element={<Banques />} />
               <Route path="/utilisateurs" element={<Utilisateurs />} />
               <Route path="/fonctionnalites" element={<Fonctionnalites />} />
               <Route path="/groupes" element={<Groupe />} />
               <Route path="/typeBeneficiaires" element={<TypeBeneficiaires />} />
+              <Route path="/fonctions" element={<Fonctions />} />
               <Route path="/grades" element={<Grades />} />
+              <Route path="/echeances" element={<Echeances />} />
+              <Route path="/regies" element={<Regies />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

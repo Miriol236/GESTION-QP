@@ -9,17 +9,25 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Edit, Trash2, Eye, Tags } from "lucide-react";
+import { 
+  Search, Plus, Edit, Trash2, Eye, Tags, 
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  ChevronUp, ChevronDown, ArrowUpDown // Ajouté ArrowUpDown pour l'icône de tri
+} from "lucide-react"; // Import mis à jour
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+// Définition du type de direction de tri
+type SortDirection = "asc" | "desc";
 
 export interface Column {
   key: string;
   title: string;
-  sortable?: boolean;
+  sortable?: boolean; // Utilisé pour activer/désactiver le tri
   render?: (value: any, row: any) => React.ReactNode;
 }
 
 export interface DataTableProps {
+  // ... (DataTableProps reste inchangé)
   title?: string;
   columns: Column[];
   data: any[];
@@ -51,7 +59,24 @@ export function DataTable({
   addButtonText = "Ajouter",
 }: DataTableProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
+  
+  // Nouveaux états pour la gestion du tri
+  const [sortKey, setSortKey] = React.useState<string | null>(null);
+  const [sortDirection, setSortDirection] = React.useState<SortDirection>("asc");
 
+  // Logique de tri
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+    // Remettre à la première page après un changement de tri
+    setCurrentPage(1);
+  };
+
+  // 1. Filtrage (Recherche globale)
   const filteredData = React.useMemo(() => {
     if (!searchTerm) return data;
     return data.filter((row) =>
@@ -61,8 +86,62 @@ export function DataTable({
     );
   }, [data, searchTerm]);
 
+  // 2. Tri des données filtrées
+  const sortedData = React.useMemo(() => {
+    if (!sortKey) return filteredData;
+
+    return [...filteredData].sort((a, b) => {
+      const aValue = a[sortKey];
+      const bValue = b[sortKey];
+
+      // Gestion des valeurs nulles/indéfinies et conversion en chaîne pour comparaison
+      const valA = String(aValue ?? "").toLowerCase();
+      const valB = String(bValue ?? "").toLowerCase();
+
+      let comparison = 0;
+      if (valA > valB) {
+        comparison = 1;
+      } else if (valA < valB) {
+        comparison = -1;
+      }
+
+      return sortDirection === "desc" ? comparison * -1 : comparison;
+    });
+  }, [filteredData, sortKey, sortDirection]);
+
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+
+  // Calcul des données à afficher sur la page actuelle
+  const paginatedData = React.useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    // Ajustement de la page si les données triées/filtrées changent
+    const maxPage = Math.ceil(sortedData.length / rowsPerPage);
+    if (currentPage > maxPage && maxPage > 0) {
+      setCurrentPage(maxPage);
+    } else if (currentPage > maxPage && maxPage === 0) {
+      setCurrentPage(1);
+    }
+    return sortedData.slice(start, end);
+  }, [sortedData, currentPage, rowsPerPage]);
+
+
+  // Fonction utilitaire pour choisir l'icône de tri
+  const getSortIcon = (key: string) => {
+    if (sortKey !== key) {
+      return <ArrowUpDown className="h-4 w-4 text-muted-foreground ml-1" />;
+    }
+    return sortDirection === "asc" ? (
+      <ChevronUp className="h-4 w-4 ml-1" />
+    ) : (
+      <ChevronDown className="h-4 w-4 ml-1" />
+    );
+  };
+
   return (
     <Card className="shadow-card hover-lift">
+      {/* CardHeader (inchangé) */}
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           {title && (
@@ -83,7 +162,7 @@ export function DataTable({
               </div>
             )}
             {onAdd && (
-              <Button onClick={onAdd} variant="premium" className="gap-2">
+              <Button onClick={onAdd} variant="default" className="gap-2">
                 <Plus className="h-4 w-4" />
                 {addButtonText}
               </Button>
@@ -91,14 +170,28 @@ export function DataTable({
           </div>
         </div>
       </CardHeader>
+
       <CardContent>
+
+        {/* Tableau principal */}
         <div className="rounded-lg border bg-card">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
                 {columns.map((column) => (
-                  <TableHead key={column.key} className="font-semibold">
-                    {column.title}
+                  <TableHead key={column.key}>
+                    {column.sortable ? (
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleSort(column.key)}
+                        className="p-0 h-auto font-semibold hover:bg-transparent"
+                      >
+                        {column.title}
+                        {getSortIcon(column.key)}
+                      </Button>
+                    ) : (
+                      <span className="font-semibold">{column.title}</span>
+                    )}
                   </TableHead>
                 ))}
                 {(onEdit || onDelete || onView || onToggleStatus || onManageRoles) && (
@@ -116,7 +209,7 @@ export function DataTable({
                     <div className="animate-pulse-glow">Chargement...</div>
                   </TableCell>
                 </TableRow>
-              ) : filteredData.length === 0 ? (
+              ) : sortedData.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={columns.length + (onEdit || onDelete || onView ? 1 : 0)}
@@ -126,7 +219,7 @@ export function DataTable({
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredData.map((row, index) => (
+                paginatedData.map((row, index) => (
                   <TableRow
                     key={index}
                     className="hover:bg-muted/30 transition-smooth"
@@ -202,6 +295,76 @@ export function DataTable({
           </Table>
         </div>
       </CardContent>
+      {/* Pagination (utilisant sortedData.length) */}
+        <div className="flex items-center justify-between mb-4 px-2">
+          {/* Indicateur de page */}
+          <p className="text-sm text-muted-foreground">
+            Page {currentPage} sur {Math.ceil(sortedData.length / rowsPerPage) || 1}
+          </p>
+
+          {/* Sélecteur du nombre de lignes (inchangé) */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Lignes :</span>
+            <select
+              value={rowsPerPage}
+              onChange={(e) => {
+                setRowsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="border rounded-md px-2 py-1 text-sm"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+            </select>
+          </div>
+
+          {/* Boutons de navigation (inchangés) */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(1)}
+              title="Première page"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              title="Page précédente"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={currentPage === Math.ceil(sortedData.length / rowsPerPage) || sortedData.length === 0}
+              onClick={() =>
+                setCurrentPage((prev) =>
+                  Math.min(prev + 1, Math.ceil(sortedData.length / rowsPerPage))
+                )
+              }
+              title="Page suivante"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={currentPage === Math.ceil(sortedData.length / rowsPerPage) || sortedData.length === 0}
+              onClick={() =>
+                setCurrentPage(Math.ceil(sortedData.length / rowsPerPage))
+              }
+              title="Dernière page"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
     </Card>
   );
 }

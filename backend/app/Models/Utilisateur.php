@@ -54,7 +54,7 @@ class Utilisateur extends Authenticatable
                 $num = 1;
             }
 
-            // Formate le code sur 4 chiffre
+            // Formate le code sur 4 chiffres
             $model->UTI_CODE = str_pad($num, 4, '0', STR_PAD_LEFT);
         });
     }

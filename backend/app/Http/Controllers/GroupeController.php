@@ -95,7 +95,7 @@ class GroupeController extends Controller
         $groupe = new Groupe();
         $groupe->GRP_NOM = $request->GRP_NOM;
         $groupe->GRP_DATE_CREER = now();
-        $groupe->GRP_CREER_PAR = auth()->check() ? auth()->user()->UTI_NOM : 'SYSTEM';
+        $groupe->GRP_CREER_PAR = auth()->check() ? auth()->user()->UTI_NOM." ".auth()->user()->UTI_PRENOM : 'SYSTEM';
         $groupe->save();
 
         return response()->json(['message' => 'Groupe créé avec succès !'], 201);
@@ -147,7 +147,7 @@ class GroupeController extends Controller
         $groupe->update([
             'GRP_NOM' => $request->GRP_NOM ?? $groupe->GRP_NOM,
             'GRP_DATE_MODIFIER' => now(),
-            'GRP_MODIFIER_PAR' => auth()->check() ? auth()->user()->UTI_NOM : 'SYSTEM',
+            'GRP_MODIFIER_PAR' => auth()->check() ? auth()->user()->UTI_NOM." ".auth()->user()->UTI_PRENOM : 'SYSTEM',
             'GRP_VERSION' => $derniereVersion,
         ]);
 

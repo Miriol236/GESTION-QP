@@ -9,6 +9,8 @@ use App\Http\Controllers\FonctionnaliteController;
 use App\Http\Controllers\TypeBeneficiaireController;
 use App\Http\Controllers\FonctionController;
 use App\Http\Controllers\GradeController;
+use App\Http\Controllers\EcheanceController;
+use App\Http\Controllers\RegieController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -72,4 +74,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/grades', [GradeController::class, 'store'])->middleware('fonctionnalite:0006');
     Route::put('/grades/{id}', [GradeController::class, 'update'])->middleware('fonctionnalite:0006');
     Route::delete('/grades/{id}', [GradeController::class, 'destroy'])->middleware('fonctionnalite:0006');
+
+    // Routes grades
+    Route::get('/echeances', [EcheanceController::class, 'index'])->middleware('fonctionnalite:0007');
+    Route::get('/echeances/{id}', [EcheanceController::class, 'show'])->middleware('fonctionnalite:0007');
+    Route::post('/echeances', [EcheanceController::class, 'store'])->middleware('fonctionnalite:0007');
+    Route::put('/echeances/{id}', [EcheanceController::class, 'update'])->middleware('fonctionnalite:0007');
+    Route::delete('/echeances/{id}', [EcheanceController::class, 'destroy'])->middleware('fonctionnalite:0007');
+
+    // Routes régies
+    Route::get('/regies', [RegieController::class, 'index'])->middleware('fonctionnalite:0008');
+    Route::get('/regies/{id}', [RegieController::class, 'show'])->middleware('fonctionnalite:0008');
+    Route::post('/regies', [RegieController::class, 'store'])->middleware('fonctionnalite:0008');
+    Route::put('/regies/{id}', [RegieController::class, 'update'])->middleware('fonctionnalite:0008');
+    Route::delete('/regies/{id}', [RegieController::class, 'destroy'])->middleware('fonctionnalite:0008');
 });

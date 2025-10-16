@@ -32,7 +32,7 @@ const menuItems = [
   { title: "Bénéficiaires", url: "/beneficiaires", icon: Users },
   { title: "Banques", url: "/banques", icon: Building2 },
   { title: "Paiements", url: "/paiements", icon: CreditCard },
-  { title: "Échéances", url: "/echeances", icon: Calendar },
+  { title: "Échéances", url: "/", icon: Calendar },
   { title: "Régies", url: "/regies", icon: Wallet },
   { title: "Éléments", url: "/elements", icon: FileText },
 
@@ -44,6 +44,8 @@ const menuItems = [
       { title: "Types de bénéficiaires", url: "typeBeneficiaires" },
       { title: "Fonctions", url: "/fonctions" },
       { title: "Grades", url: "/grades" },
+      { title: "Echéances", url: "/echeances" },
+      { title: "Régies", url: "/regies" },
     ],
   },
 
@@ -83,7 +85,7 @@ export function AppSidebar() {
             </div>
           ) : (
             <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">ONI</span>
+              <span className="text-white font-bold text-sm">QP</span>
             </div>
           )}
         </div>

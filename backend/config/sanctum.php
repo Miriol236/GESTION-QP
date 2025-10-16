@@ -47,7 +47,7 @@ return [
     |
     */
 
-    'expiration' => 1440, // en minutes => 24h d'inactivité
+    'expiration' => 60, // en minutes => 1h d'inactivité
 
     /*
     |--------------------------------------------------------------------------

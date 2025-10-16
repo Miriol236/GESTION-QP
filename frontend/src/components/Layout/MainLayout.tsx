@@ -3,6 +3,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Header } from "./Header";
 import { useAuth } from "@/contexts/AuthContext";
+import Footer from "./Footer";
 
 export function MainLayout() {
   const { user, isLoading } = useAuth();
@@ -34,6 +35,7 @@ export function MainLayout() {
           <main className="flex-1 p-6 bg-background overflow-auto">
             <Outlet />
           </main>
+          <Footer/>
         </div>
       </div>
     </SidebarProvider>

@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('T_REGIES', function (Blueprint $table) {
             $table->string('REG_CODE', 10)->primary();
             $table->string('REG_LIBELLE');
+            $table->string('REG_SIGLE', 10);
+            $table->string('REG_SIGLE_CODE', 3)->unique();
             $table->date('REG_DATE_CREER');
             $table->string('REG_CREER_PAR');
             $table->date('REG_DATE_MODIFIER')->nullable();

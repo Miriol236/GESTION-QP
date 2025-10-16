@@ -96,6 +96,7 @@ class UtilisateurController extends Controller
             'REG_CODE' => 'required|string'
         ], [
             'UTI_USERNAME.unique' => 'Ce username existe déjà.',
+            'UTI_PASSWORD.min' => 'Le mot de passe prend minimum 6 caractères.',
         ]);
 
         $exists = Utilisateur::where('UTI_NOM', $request->UTI_NOM)

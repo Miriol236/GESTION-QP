@@ -28,8 +28,8 @@ class Fonction extends Model
                 $num = 1;
             }
 
-            // Formate le code sur 4 chiffres
-            $model->FON_CODE = str_pad($num, 4, '0', STR_PAD_LEFT);
+            // Formate le code sur 5 chiffres
+            $model->FON_CODE = str_pad($num, 5, '0', STR_PAD_LEFT);
         });
     }
 
