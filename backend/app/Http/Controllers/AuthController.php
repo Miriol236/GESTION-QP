@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Utilisateur;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @OA\Info(
@@ -77,7 +78,7 @@ class AuthController extends Controller
         ];
 
         if (Auth::attempt($credentials)) {
-            $user = Auth::user()->load('groupe.fonctionnalites');
+            $user = Auth::user()->load('groupe.fonctionnalites', 'regie');
 
             if ($user->UTI_STATUT != 1) {
                 return response()->json(['message' => 'Compte inactif, veuillez contacter l\'administrateur.'], 403);
@@ -96,6 +97,8 @@ class AuthController extends Controller
                 'access_token' => $token,
                 'user' => $user,
                 'GRP_NOM' => $user->groupe->GRP_NOM ?? null,
+                'REG_LIBELLE' => $user->regie->REG_LIBELLE ?? null,
+                'REG_SIGLE' => $user->regie->REG_SIGLE ?? null,
                 'fonctionnalites' => $fonctionnalites,
             ]);
         }
@@ -125,7 +128,7 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        $user = $request->user()->load('groupe');
+        $user = $request->user()->load('groupe', 'regie');
         return response()->json($user);
     }
 
@@ -151,4 +154,27 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Déconnexion réussie']);
     }
+
+    public function getUserFonctionnalites()
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Utilisateur non authentifié'], 401);
+        }
+
+        // Vérifie que l’utilisateur a bien un groupe
+        if (empty($user->GRP_CODE)) {
+            return response()->json([]);
+        }
+
+        // Récupère les FON_CODE liés à son groupe
+        $fonctionnalites = DB::table('T_GROUPE_FONCTIONNALITE')
+            ->join('T_FONCTIONNALITES', 'T_FONCTIONNALITES.FON_CODE', '=', 'T_GROUPE_FONCTIONNALITE.FON_CODE')
+            ->where('T_GROUPE_FONCTIONNALITE.GRP_CODE', $user->GRP_CODE)
+            ->pluck('T_FONCTIONNALITES.FON_CODE');
+
+        return response()->json($fonctionnalites);
+    }
+
 }

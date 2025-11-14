@@ -84,4 +84,9 @@ class Utilisateur extends Authenticatable
     {
         return $this->belongsTo(Groupe::class, 'GRP_CODE', 'GRP_CODE');
     }
+
+    public function regie()
+    {
+        return $this->belongsTo(Regie::class, 'REG_CODE', 'REG_CODE');
+    }
 }

@@ -9,10 +9,12 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { 
-  Search, Plus, Edit, Trash2, Eye, Tags, 
+  Search, Plus, Power, Edit, Trash2, Eye, Tags, Check,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  ChevronUp, ChevronDown, ArrowUpDown // Ajouté ArrowUpDown pour l'icône de tri
+  ChevronUp, ChevronDown, ArrowUpDown, Printer // Ajouté ArrowUpDown pour l'icône de tri
 } from "lucide-react"; // Import mis à jour
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -34,13 +36,32 @@ export interface DataTableProps {
   searchable?: boolean;
   searchPlaceholder?: string;
   onAdd?: () => void;
+  onDeleteAll?: (rows: any[]) => void;
   onEdit?: (row: any) => void;
   onDelete?: (row: any) => void;
   onView?: (row: any) => void;
   onToggleStatus?: (row: any) => void;
+  onStatut?: (row: any) => void;
   onManageRoles?: (row: any) => void;
+  onPrint?: () => void;
+  // Callback when the user validates virement for selected rows (receives selected rows)
+  onValidateVirement?: (rows: any[]) => void;
+  // Callback when the user requests a status update for selected rows (receives selected rows)
+  onStatusUpdate?: (rows: any[]) => void;
+  // Callback to view selected rows in bulk
+  onViews?: (rows: any[]) => void;
   loading?: boolean;
   addButtonText?: string;
+  // Optional filter items to show a small combo next to title
+  filterItems?: any[];
+  // Optional function to get a display string for an item
+  filterDisplay?: (item: any) => string;
+  // Called when an item is selected (or null when cleared)
+  onFilterSelect?: (item: any | null) => void;
+  // placeholder label for the filter combo
+  filterPlaceholder?: string;
+  // Key to use as stable row id for selection (defaults to first column key)
+  rowKey?: string;
 }
 
 export function DataTable({
@@ -50,15 +71,29 @@ export function DataTable({
   searchable = true,
   searchPlaceholder = "Rechercher...",
   onAdd,
+  onDeleteAll,
   onEdit,
   onDelete,
   onView,
   onToggleStatus,
+  onStatut,
   onManageRoles,
+  onPrint,
+  onValidateVirement,
+  onStatusUpdate,
+  onViews,
   loading = false,
   addButtonText = "Ajouter",
+  filterItems = [],
+  filterDisplay,
+  onFilterSelect,
+  filterPlaceholder = "Filtrer...",
+  rowKey,
 }: DataTableProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [selectedFilter, setSelectedFilter] = React.useState<any | null>(null);
+  // stable key used to identify rows
+  const stableRowKey = React.useMemo(() => rowKey ?? (columns && columns.length > 0 ? columns[0].key : "id"), [rowKey, columns]);
   
   // Nouveaux états pour la gestion du tri
   const [sortKey, setSortKey] = React.useState<string | null>(null);
@@ -139,32 +174,160 @@ export function DataTable({
     );
   };
 
+  // Selected ids (strings) to track selection reliably across renders
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+
+  // Fonction pour cocher/décocher une ligne (utilise stableRowKey)
+  const toggleRowSelection = (row: any) => {
+    const id = String(row?.[stableRowKey] ?? JSON.stringify(row));
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) return prev.filter((p) => p !== id);
+      return [...prev, id];
+    });
+  };
+
+  // Tout sélectionner / désélectionner sur la page courante
+  const toggleSelectAll = () => {
+    const pageIds = paginatedData.map((r) => String(r?.[stableRowKey] ?? JSON.stringify(r)));
+    const allSelected = pageIds.every((id) => selectedIds.includes(id));
+    if (allSelected) {
+      // remove page ids
+      setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+    } else {
+      // add missing page ids
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  // Vérifie si une ligne est sélectionnée
+  const isRowSelected = (row: any) => {
+    const id = String(row?.[stableRowKey] ?? JSON.stringify(row));
+    return selectedIds.includes(id);
+  };
+
+  // Derived selected rows (full objects) from the full data set
+  const selectedRows = React.useMemo(() => {
+    const setIds = new Set(selectedIds);
+    return data.filter((r) => setIds.has(String(r?.[stableRowKey] ?? JSON.stringify(r))));
+  }, [selectedIds, data, stableRowKey]);
+
+
   return (
     <Card className="shadow-card hover-lift">
       {/* CardHeader (inchangé) */}
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           {title && (
-            <CardTitle className="text-xl font-semibold text-foreground">
-              {title}
-            </CardTitle>
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-lg font-semibold text-foreground">{title}</CardTitle>
+              {filterItems && filterItems.length > 0 && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="px-2 py-1">
+                      {selectedFilter ? (filterDisplay ? filterDisplay(selectedFilter) : String(selectedFilter)) : filterPlaceholder}
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-[220px]">
+                    <Command>
+                      <CommandInput placeholder={`Rechercher ${filterPlaceholder.toLowerCase()}...`} />
+                      <CommandList>
+                        <CommandEmpty>Aucun résultat</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem onSelect={() => {
+                            setSelectedFilter(null);
+                            onFilterSelect && onFilterSelect(null);
+                          }}>
+                            Afficher tout
+                          </CommandItem>
+                          {filterItems.map((it: any, idx: number) => (
+                            <CommandItem key={idx} onSelect={() => { setSelectedFilter(it); onFilterSelect && onFilterSelect(it); }}>
+                              <Check className={`mr-2 h-4 w-4 ${selectedFilter === it ? 'opacity-100 text-blue-600' : 'opacity-0'}`} />
+                              {filterDisplay ? filterDisplay(it) : String(it)}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
           )}
           <div className="flex items-center gap-4">
             {searchable && (
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder={searchPlaceholder}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-64"
-                />
-              </div>
+              <div className="relative w-full sm:w-auto">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={searchPlaceholder}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 w-full sm:w-64"
+                  />
+                </div>
             )}
+
+            {/*  Bouton "Supprimer la sélection" */}
+            {onDeleteAll && selectedRows.length >= 2 && (
+              <Button
+                onClick={() => onDeleteAll(selectedRows)}
+                variant="destructive"
+                className="gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Supprimer la sélection ({selectedRows.length})</span>
+              </Button>
+            )}
+
+            {/*  Bouton "Valider virement" (vert) — visible si au moins une ligne sélectionnée */}
+            {onValidateVirement && selectedRows.length >= 1 && (
+              <Button
+                onClick={() => onValidateVirement(selectedRows)}
+                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <Check className="h-4 w-4" />
+                <span className="hidden sm:inline">Valider virement ({selectedRows.length})</span>
+              </Button>
+            )}
+
+            {/*  Bouton "Mettre à jour statut" (jaune) — visible si au moins une ligne sélectionnée */}
+            {onStatusUpdate && selectedRows.length >= 1 && (
+              <Button
+                onClick={() => onStatusUpdate(selectedRows)}
+                className="gap-2 bg-amber-400 hover:bg-amber-500 text-black"
+              >
+                <Power className="h-4 w-4" />
+                <span className="hidden sm:inline">Mettre à jour statut ({selectedRows.length})</span>
+              </Button>
+            )}
+
+            {/*  Bouton "Voir sélection" (bleu) — visible seulement si exactement 1 ligne sélectionnée */}
+            {onViews && selectedRows.length === 1 && (
+              <Button
+                onClick={() => onViews(selectedRows)}
+                className="gap-2 bg-sky-600 hover:bg-sky-700 text-white"
+              >
+                <Eye className="h-4 w-4" />
+                <span className="hidden sm:inline">Voir détails</span>
+              </Button>
+            )}
+
+            {/*  Bouton "Imprimer" */}
+            {onPrint && (
+              <Button
+                onClick={onPrint}
+                variant="secondary"
+                className="gap-2"
+              >
+                <Printer className="h-4 w-4" />
+                <span className="hidden sm:inline">Imprimer</span>
+              </Button>
+            )}
+
             {onAdd && (
               <Button onClick={onAdd} variant="default" className="gap-2">
                 <Plus className="h-4 w-4" />
-                {addButtonText}
+                <span className="hidden sm:inline">{addButtonText}</span>
               </Button>
             )}
           </div>
@@ -174,125 +337,222 @@ export function DataTable({
       <CardContent>
 
         {/* Tableau principal */}
-        <div className="rounded-lg border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                {columns.map((column) => (
-                  <TableHead key={column.key}>
-                    {column.sortable ? (
-                      <Button
-                        variant="ghost"
-                        onClick={() => handleSort(column.key)}
-                        className="p-0 h-auto font-semibold hover:bg-transparent"
-                      >
-                        {column.title}
-                        {getSortIcon(column.key)}
-                      </Button>
-                    ) : (
-                      <span className="font-semibold">{column.title}</span>
-                    )}
-                  </TableHead>
-                ))}
-                {(onEdit || onDelete || onView || onToggleStatus || onManageRoles) && (
-                  <TableHead className="font-semibold">Actions</TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length + (onEdit || onDelete || onView ? 1 : 0)}
-                    className="text-center py-8"
-                  >
-                    <div className="animate-pulse-glow">Chargement...</div>
-                  </TableCell>
-                </TableRow>
-              ) : sortedData.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length + (onEdit || onDelete || onView ? 1 : 0)}
-                    className="text-center py-8 text-muted-foreground"
-                  >
-                    Aucune donnée trouvée
-                  </TableCell>
-                </TableRow>
+        <div className="rounded-md border overflow-hidden">
+          {/* Mobile: cards view */}
+          <div className="sm:hidden">
+            {loading ? (
+              <div className="p-4 text-center">Chargement...</div>
+            ) : sortedData.length === 0 ? (
+              <div className="p-4 text-center text-muted-foreground">Aucune donnée trouvée</div>
               ) : (
-                paginatedData.map((row, index) => (
-                  <TableRow
-                    key={index}
-                    className="hover:bg-muted/30 transition-smooth"
-                  >
-                    {columns.map((column) => (
-                      <TableCell key={column.key}>
-                        {column.render
-                          ? column.render(row[column.key], row)
-                          : row[column.key]}
-                      </TableCell>
-                    ))}
-                    {(onEdit || onDelete || onView || onToggleStatus || onManageRoles) && (
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {onView && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => onView(row)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {onEdit && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => onEdit(row)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {onDelete && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => onDelete(row)}
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {onToggleStatus && (
-                            <Button
-                              variant={row.UTI_STATUT ? "destructive" : "default"} // Rouge si actif
-                              size="sm"
-                              onClick={() => onToggleStatus(row)}
-                              className="h-8 px-2"
-                            >
-                              {row.UTI_STATUT ? "Désactiver" : "Activer"}
-                            </Button>
-                          )}
-                          {onManageRoles && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => onManageRoles(row)}
-                              className="h-8 px-2 text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                            >
-                              <Tags className="h-4 w-4" />
-                              <span className="text-sm">Gérer les droits</span>
-                            </Button>
-                          )}
+              <div
+                className="flex flex-col gap-3 p-2 max-h-[60vh] overflow-y-auto touch-pan-y pb-4"
+                style={{ WebkitOverflowScrolling: "touch" }}
+              >
+                {paginatedData.map((row, index) => (
+                  <div key={index} className={`p-3 bg-white rounded-md border ${isRowSelected(row) ? 'ring-2 ring-blue-200' : ''}`} onClick={() => toggleRowSelection(row)}>
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={isRowSelected(row)}
+                          onChange={(e) => { e.stopPropagation(); toggleRowSelection(row); }}
+                          className="mt-1"
+                        />
+                        <div>
+                          {columns.map((col) => (
+                            <div key={col.key} className="text-sm">
+                              <div className="text-xs text-muted-foreground">{col.title}</div>
+                              <div className="font-medium">{col.render ? col.render(row[col.key], row) : String(row[col.key] ?? '—')}</div>
+                            </div>
+                          ))}
                         </div>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        {onView && (
+                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onView(row); }}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {onEdit && (
+                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onEdit(row); }}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {onDelete && (
+                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDelete(row); }}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop / tablet: table view */}
+          <div className="hidden sm:block max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            <table className="w-full border-collapse">
+              <thead className="sticky top-0 z-10 bg-gray-200/90 backdrop-blur-sm shadow-md text-gray-800">
+                <tr>
+                  <th className="px-4 py-2">
+                    <input
+                      type="checkbox"
+                      checked={
+                        paginatedData.length > 0 && paginatedData.every((r) => isRowSelected(r))
+                      }
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
+                  {columns.map((column) => (
+                    <th key={column.key} className="px-4 py-2 text-left text-sm font-semibold">
+                      {column.sortable ? (
+                        <Button
+                          variant="ghost"
+                          onClick={() => handleSort(column.key)}
+                          className="p-0 h-auto font-semibold hover:bg-transparent"
+                        >
+                          {column.title}
+                          {getSortIcon(column.key)}
+                        </Button>
+                      ) : (
+                        column.title
+                      )}
+                    </th>
+                  ))}
+                  {(onEdit || onDelete || onView || onToggleStatus || onManageRoles || onStatut) && (
+                    <th className="px-4 py-2 text-left text-sm font-semibold">ACTIONS</th>
+                  )}
+                </tr>
+              </thead>
+
+              <tbody>
+                { /* Desktop table rows */ }
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={columns.length + (onEdit || onDelete || onView ? 1 : 0)}
+                      className="text-center py-6"
+                    >
+                      <div className="animate-pulse-glow">Chargement...</div>
+                    </td>
+                  </tr>
+                ) : sortedData.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={columns.length + (onEdit || onDelete || onView ? 1 : 0)}
+                      className="text-center py-6 text-muted-foreground"
+                    >
+                      Aucune donnée trouvée
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedData.map((row, index) => (
+                    <tr
+                      key={index}
+                      onClick={() => toggleRowSelection(row)}
+                      className={`cursor-pointer border-t transition-all ${
+                        isRowSelected(row)
+                          ? "bg-blue-50 hover:bg-blue-50"
+                          : "odd:bg-gray-50 hover:bg-gray-100"
+                      }`}
+                    >
+                      <td className="px-3 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isRowSelected(row)}
+                          onChange={() => toggleRowSelection(row)}
+                        />
+                      </td>
+                      {columns.map((column) => (
+                        <td key={column.key} className="px-3 py-2 text-sm">
+                          {column.render
+                            ? column.render(row[column.key], row)
+                            : row[column.key]}
+                        </td>
+                      ))}
+
+                      {(onEdit || onDelete || onView || onToggleStatus || onManageRoles || onStatut) && (
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            {onView && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onView(row)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {onEdit && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onEdit(row)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {onDelete && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onDelete(row)}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {onToggleStatus && (
+                              <Button
+                                variant={row.UTI_STATUT ? "destructive" : "default"}
+                                size="sm"
+                                onClick={() => onToggleStatus(row)}
+                                className="h-8 px-2"
+                              >
+                                {row.UTI_STATUT ? "Désactiver" : "Activer"}
+                              </Button>
+                            )}
+                            {onManageRoles && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onManageRoles(row)}
+                                className="h-8 px-2 text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                              >
+                                <Tags className="h-4 w-4" />
+                                <span className="text-sm hidden lg:inline">Gérer les droits</span>
+                              </Button>
+                            )}
+                            {/* Activer/Désactiver */}
+                            {onStatut && (
+                              <Button
+                                variant={row.ECH_STATUT ? "secondary" : "outline"}
+                                size="sm"
+                                onClick={() => onStatut(row)}
+                                className="h-8 w-8 p-0"
+                                title={row.ECH_STATUT ? "Désactiver" : "Activer"}
+                              >
+                                <Power
+                                  className={`h-4 w-4 ${
+                                    row.ECH_STATUT ? "text-green-600" : "text-gray-500"
+                                  }`}
+                                />
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </CardContent>
       {/* Pagination (utilisant sortedData.length) */}

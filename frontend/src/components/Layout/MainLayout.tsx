@@ -1,7 +1,7 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
-import { Header } from "./Header";
+import Header from "./Header";
 import { useAuth } from "@/contexts/AuthContext";
 import Footer from "./Footer";
 
@@ -28,14 +28,22 @@ export function MainLayout() {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="flex h-screen w-full overflow-hidden">
+        {/* Sidebar fixe à gauche */}
         <AppSidebar />
-        <div className="flex-1 flex flex-col">
-          <Header />
-          <main className="flex-1 p-6 bg-background overflow-auto">
+
+        {/* Conteneur principal */}
+        <div className="flex flex-col flex-1">
+          {/* Header fixe (ne bouge pas) */}
+          <Header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur-md shadow-sm" />
+
+          {/* Contenu défilable */}
+          <main className="flex-1 overflow-auto p-6 bg-background">
             <Outlet />
           </main>
-          <Footer/>
+
+          {/* Footer fixe (ne bouge pas) */}
+          <Footer className="border-t bg-background/80 backdrop-blur-md" />
         </div>
       </div>
     </SidebarProvider>

@@ -29,7 +29,7 @@ export default function Echeances() {
 
   // Récupération des échéances
   const fetchEcheances = async () => {
-    try {
+      try {
         setIsLoading(true);
         const token = localStorage.getItem("token");
         const res = await axios.get(`${API_URL}/echeances`, {
@@ -40,13 +40,13 @@ export default function Echeances() {
         console.error("Erreur lors du chargement des échéances :", error);
         } finally {
             setIsLoading(false);
-        }
-    };
+      }
+  };
 
   const columns: Column[]  = [
     {
-      key: "ECH_LIBELLE",
-      title: "Libellé",
+      key: "ECH_CODE",
+      title: "CODE",
       render: (value) => (
         <div className="flex items-center gap-2">
           <span className="font-medium">{value}</span>
@@ -54,27 +54,40 @@ export default function Echeances() {
       ),
     },
     {
+      key: "ECH_LIBELLE",
+      title: "LIBELLE",
+      render: (value) => (
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{value}</span>
+        </div>
+      ),
+    },
+    {
+      key: "ECH_STATUT",
+      title: "STATUT",
+      render: (value: boolean) => (
+        <Badge variant={value ? "default" : "secondary"} className={value ? "bg-green-500/20 text-green-700" : ""}>
+          {value ? "En cours" : "___"}
+        </Badge>
+      ),
+    },
+    {
       key: "ECH_DATE_CREER",
-      title: "Date de création",
+      title: "DATE DE CREATION",
       render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
     },
     {
         key:"ECH_CREER_PAR",
-        title: "Créer par",
+        title: "CREER PAR",
     },
     {
       key: "ECH_DATE_MODIFIER",
-      title: "Date de modification",
+      title: "DATE DE MODIFICATION",
       render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
     },
     {
         key: "ECH_MODIFIER_PAR",
-        title: "Modifier par",
-        render: (Value) => Value? Value : "_",
-    },
-    {
-        key: "ECH_VERSION",
-        title: "Version modifiée",
+        title: "MODIFIER PAR",
         render: (Value) => Value? Value : "_",
     },
   ];
@@ -94,11 +107,18 @@ export default function Echeances() {
         await axios.put(`${API_URL}/echeances/${editingEcheance.ECH_CODE}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
+
+        // Émettre un événement global pour prévenir le Header
+        window.dispatchEvent(new Event("echeanceUpdated"));
+
         toast({ title: "Echéance modifiée avec succès" });
       } else {
         await axios.post(`${API_URL}/echeances`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
+
+        // Émettre un événement global pour prévenir le Header
+        window.dispatchEvent(new Event("echeanceUpdated"));
         toast({ title: "Echéance ajoutée avec succès" });
       }
       fetchEcheances();
@@ -121,6 +141,10 @@ export default function Echeances() {
       await axios.delete(`${API_URL}/echeances/${echeanceToDelete.ECH_CODE}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      // Émettre un événement global pour prévenir le Header
+      window.dispatchEvent(new Event("echeanceUpdated"));
+
       toast({ title: "Echéance supprimée avec succès" });
       fetchEcheances();
     } catch (err: any) {
@@ -130,13 +154,30 @@ export default function Echeances() {
     }
   };
 
+  const handleActivateEcheance = async (echeanceActivate) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(`${API_URL}/echeances/${echeanceActivate.ECH_CODE}/activer`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Émettre un événement global pour prévenir le Header
+      window.dispatchEvent(new Event("echeanceUpdated"));
+
+      toast({ title: "Echéance activée avec succès" });
+      fetchEcheances(); // Recharge la liste
+    } catch (error : any) {
+      toast({ title: "Erreur", description: error?.response?.data?.message || "Impossible d'activer", variant: "destructive" });
+    }
+  };
+
   if(isLoading) {
     return <TableSkeleton />;
   }
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+      <h1 className="text-xl font-bold text-primary">
         Gestion des Echéances
       </h1>
 
@@ -145,6 +186,7 @@ export default function Echeances() {
         columns={columns}
         data={echeances}
         onAdd={() => { setEditingEcheance(null); setIsDialogOpen(true); }}
+        onStatut={(u) => { handleActivateEcheance(u); }}
         onEdit={(u) => { setEditingEcheance(u); setIsDialogOpen(true); }}
         onDelete={(u) => { setEcheanceToDelete(u); setIsDeleteDialogOpen(true); }}
         addButtonText="Nouvelle échéance"
@@ -156,7 +198,7 @@ export default function Echeances() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editingEcheance ? "Modifier l'Echéance" : "Nouvelle échéance"}
+              {editingEcheance ? "MODIFIER L'ECHEANCE" : "NOUVELLE ECHEANCE"}
             </DialogTitle>
           </DialogHeader>
 

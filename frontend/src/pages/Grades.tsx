@@ -46,7 +46,7 @@ export default function Grades() {
   const columns: Column[]  = [
     {
       key: "GRD_LIBELLE",
-      title: "Libellé",
+      title: "LIBELLE",
       render: (value) => (
         <div className="flex items-center gap-2">
           <span className="font-medium">{value}</span>
@@ -55,26 +55,26 @@ export default function Grades() {
     },
     {
       key: "GRD_DATE_CREER",
-      title: "Date de création",
+      title: "DATE DE CREATION",
       render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
     },
     {
         key:"GRD_CREER_PAR",
-        title: "Créer par",
+        title: "CREER PAR",
     },
     {
       key: "GRD_DATE_MODIFIER",
-      title: "Date de modification",
+      title: "DATE DE MODIFICATION",
       render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
     },
     {
         key: "GRD_MODIFIER_PAR",
-        title: "Modifier par",
+        title: "MODIFIER PAR",
         render: (Value) => Value? Value : "_",
     },
     {
         key: "GRD_VERSION",
-        title: "Version modifiée",
+        title: "VERSION MODIFIEE",
         render: (Value) => Value? Value : "_",
     },
   ];
@@ -136,7 +136,7 @@ export default function Grades() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+      <h1 className="text-xl font-bold text-primary">
         Gestion des Grades
       </h1>
 
@@ -147,7 +147,7 @@ export default function Grades() {
         onAdd={() => { setEditingGrade(null); setIsDialogOpen(true); }}
         onEdit={(u) => { setEditingGrade(u); setIsDialogOpen(true); }}
         onDelete={(u) => { setGradeToDelete(u); setIsDeleteDialogOpen(true); }}
-        addButtonText="Nouvel grade"
+        addButtonText="Nouveau grade"
         searchPlaceholder="Rechercher un grade..."
       />
 
@@ -156,7 +156,7 @@ export default function Grades() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editingGrade ? "Modifier le grade" : "Nouvel grade"}
+              {editingGrade ? "MODIFIER LE GRADE" : "NOUVEAU GRADE"}
             </DialogTitle>
           </DialogHeader>
 

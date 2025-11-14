@@ -46,7 +46,7 @@ export default function TypeBeneficiaires() {
   const columns: Column[]  = [
     {
       key: "TYP_LIBELLE",
-      title: "Libellé",
+      title: "LIBELLE",
       render: (value) => (
         <div className="flex items-center gap-2">
           <span className="font-medium">{value}</span>
@@ -55,26 +55,26 @@ export default function TypeBeneficiaires() {
     },
     {
       key: "TYP_DATE_CREER",
-      title: "Date de création",
+      title: "DATE DE CREATION",
       render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
     },
     {
         key:"TYP_CREER_PAR",
-        title: "Créer par",
+        title: "CREER PAR",
     },
     {
       key: "TYP_DATE_MODIFIER",
-      title: "Date de modification",
+      title: "DATE DE MODIFICATION",
       render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
     },
     {
         key: "TYP_MODIFIER_PAR",
-        title: "Modifier par",
+        title: "MODIFIER PAR",
         render: (Value) => Value? Value : "_",
     },
     {
         key: "TYP_VERSION",
-        title: "Version modifiée",
+        title: "VERSION MODIFIEE",
         render: (Value) => Value? Value : "_",
     },
   ];
@@ -136,7 +136,7 @@ export default function TypeBeneficiaires() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+      <h1 className="text-xl font-bold text-primary">
         Gestion des Types de bénéficiaires
       </h1>
 
@@ -156,7 +156,7 @@ export default function TypeBeneficiaires() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editingTypeBeneficiaire ? "Modifier le type de bénéficiaires" : "Nouveau type de bénéficiaires"}
+              {editingTypeBeneficiaire ? "MODIFIER LE TYPE DE BENEFICIAIRE" : "NOUVEAU TYPE DE BENEFICIAIRE"}
             </DialogTitle>
           </DialogHeader>
 

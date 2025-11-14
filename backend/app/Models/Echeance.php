@@ -26,6 +26,7 @@ class Echeance extends Model
     protected $fillable = [
         'ECH_CODE',
         'ECH_LIBELLE',
+        'ECH_STATUT',
         'ECH_DATE_CREER',
         'ECH_CREER_PAR',
         'ECH_DATE_MODIFIER',

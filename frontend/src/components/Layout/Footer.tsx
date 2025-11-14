@@ -1,11 +1,20 @@
 import React from "react";
+import { cn } from "@/lib/utils";
 
-export default function Footer() {
+export default function Footer({ className = "" }: { className?: string }) {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="w-full border-t bg-muted/40 py-4 text-center text-sm text-muted-foreground">
-      © {year} Développé par Office National d’Informatique — Tous droits réservés.
+    <footer
+      className={cn(
+        "h-12 flex items-center justify-center text-sm text-muted-foreground bg-muted/30",
+        className
+      )}
+    >
+      © {year} — Développé par{" "}
+      <span className="font-medium text-foreground ml-1">
+        Office National d’Informatique
+      </span> - Tous droits réservés
     </footer>
   );
 }

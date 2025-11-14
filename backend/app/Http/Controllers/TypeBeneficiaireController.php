@@ -33,6 +33,15 @@ class TypeBeneficiaireController extends Controller
         return response()->json($types);
     }
 
+    public function indexPublic()
+    {
+        return response()->json(
+            \App\Models\TypeBeneficiaire::select('TYP_CODE', 'TYP_LIBELLE')
+                ->orderBy('TYP_LIBELLE')
+                ->get()
+        );
+    }
+
     /**
      * @OA\Get(
      *     path="/api/typeBeneficiaires/{code}",

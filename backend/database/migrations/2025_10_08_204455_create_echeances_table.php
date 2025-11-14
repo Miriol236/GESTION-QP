@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('T_ECHEANCES', function (Blueprint $table) {
             $table->string('ECH_CODE', 10)->primary();
             $table->string('ECH_LIBELLE');
-            $table->date('ECH_DATE_CREER');
-            $table->string('ECH_CREER_PAR');
+            $table->date('ECH_DATE_CREER')->nullable();
+            $table->string('ECH_CREER_PAR')->nullable();
             $table->date('ECH_DATE_MODIFIER')->nullable();
             $table->string('ECH_MODIFIER_PAR')->nullable();
             $table->integer('ECH_VERSION')->nullable();

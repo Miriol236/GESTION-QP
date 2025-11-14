@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import axios from "axios";
+import { API_URL } from "@/config/api";
 
 interface User {
   UTI_CODE: string;
@@ -37,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         try {
           // Vérifie si le token est encore valide
-          const { data } = await axios.get("http://127.0.0.1:8000/api/me");
+          const { data } = await axios.get(`${API_URL}/me`);
           setUser(data);
           if (storedFonctionnalites)
             setFonctionnalites(JSON.parse(storedFonctionnalites));
@@ -56,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string) => {
     setIsLoading(true);
-    const { data } = await axios.post("http://127.0.0.1:8000/api/login", {
+    const { data } = await axios.post(`${API_URL}/login`, {
       username,
       password,
     });

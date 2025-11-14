@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('T_BENEFICIAIRES', function (Blueprint $table) {
-            $table->string('BEN_CODE', 10)->primary();
-            $table->string('BEN_MATRICULE', 10)->unique();
+            $table->string('BEN_CODE', 12)->primary();
+            $table->string('BEN_MATRICULE', 10)->nullable();
             $table->string('BEN_NOM');
             $table->string('BEN_PRENOM');
             $table->string('BEN_SEXE');
@@ -23,11 +23,13 @@ return new class extends Migration
             $table->string('BEN_MODIFIER_PAR')->nullable();
             $table->integer('BEN_VERSION')->nullable();
             $table->string('TYP_CODE', 10);
-            $table->string('FON_CODE', 10);
-            $table->string('GRD_CODE', 10);
+            $table->string('FON_CODE', 10)->nullable();
+            $table->string('GRD_CODE', 10)->nullable();
+            $table->string('REG_CODE', 10);
             $table->foreign('TYP_CODE')->references('TYP_CODE')->on('T_TYPE_BENEFICIAIRES');
             $table->foreign('FON_CODE')->references('FON_CODE')->on('T_FONCTIONS');
             $table->foreign('GRD_CODE')->references('GRD_CODE')->on('T_GRADES');
+            $table->foreign('REG_CODE')->references('REG_CODE')->on('T_REGIES');
         });
     }
 

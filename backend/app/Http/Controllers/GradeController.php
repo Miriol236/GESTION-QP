@@ -5,6 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Grade;
 
+/**
+ * @OA\Tag(
+ *     name="Grades",
+ *     description="Gestion des grades"
+ * )
+ */
+
 class GradeController extends Controller
 {
     
@@ -26,6 +33,16 @@ class GradeController extends Controller
         $grades = Grade::all();
         return response()->json($grades);
     }
+
+    public function indexPublic()
+    {
+        return response()->json(
+            \App\Models\Grade::select('GRD_CODE', 'GRD_LIBELLE')
+                ->orderBy('GRD_LIBELLE')
+                ->get()
+        );
+    }
+
 
     /**
      * @OA\Get(

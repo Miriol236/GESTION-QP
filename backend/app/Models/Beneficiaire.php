@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
+
 
 class Beneficiaire extends Model
 {
@@ -26,6 +28,7 @@ class Beneficiaire extends Model
         'TYP_CODE',
         'FON_CODE',
         'GRD_CODE',
+        'REG_CODE',
     ];
 
     /**
@@ -37,18 +40,48 @@ class Beneficiaire extends Model
     {
         parent::boot();
 
-        static::creating(function ($model) {
-            // Récupérer le dernier code existant
-            $last = static::orderBy('BEN_CODE', 'desc')->first();
+        static::creating(function ($beneficiaire) {
+            //  1. Récupérer l'utilisateur connecté
+            $user = Auth::user();
 
-            if ($last && is_numeric($last->BEN_CODE)) {
-                $num = intval($last->BEN_CODE) + 1;
-            } else {
-                $num = 1;
+            if (!$user || !$user->regie) {
+                throw new \Exception("Impossible de générer le code : l'utilisateur n'a pas de régie associée.");
             }
 
-            // Formater le code en 4 chiffres
-            $model->BEN_CODE = str_pad($num, 4, '0', STR_PAD_LEFT);
+            //  2. Récupérer le sigle de la régie
+            $regSigle = strtoupper($user->regie->REG_SIGLE_CODE);
+
+            //  3. Récupérer l'année courante
+            $year = date('Y');
+
+            //  4. Récupérer le dernier code pour cette régie et cette année
+            $lastBenef = self::where('BEN_CODE', 'LIKE', "{$year}{$regSigle}%")
+                ->orderBy('BEN_CODE', 'desc')
+                ->first();
+
+            //  5. Extraire le dernier numéro
+            if ($lastBenef) {
+                $lastNumber = intval(substr($lastBenef->BEN_CODE, strlen($year . $regSigle)));
+            } else {
+                $lastNumber = 0;
+            }
+
+            //  6. Incrémenter et formater sur 5 chiffres
+            $newNumber = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
+
+            //  7. Générer le code final
+            $beneficiaire->BEN_CODE = "{$year}{$regSigle}{$newNumber}";
         });
+    }
+
+    //  Relation : un bénéficiaire appartient à une régie
+    public function regie()
+    {
+        return $this->belongsTo(Regie::class, 'REG_CODE', 'REG_CODE');
+    }
+
+    public function domiciliations()
+    {
+        return $this->hasMany(\App\Models\Domicilier::class, 'BEN_CODE', 'BEN_CODE');
     }
 }

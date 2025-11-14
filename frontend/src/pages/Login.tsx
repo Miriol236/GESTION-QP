@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Lock, User, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
+import { API_URL } from "@/config/api";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -26,7 +27,7 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post("http://127.0.0.1:8000/api/login", {
+      const response = await axios.post(`${API_URL}/login`, {
         username,
         password,
       });
@@ -58,18 +59,18 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary-light via-background to-secondary relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300 relative overflow-hidden">
 
       {/*  Texte défilant en haut ----> animate-marquee */}
       <div className="absolute top-6 w-full overflow-hidden">
-        <div className="whitespace-nowrap text-center text-3xl font-bold text-primary">
+        <div className="text-2xl font-bold text-center font-serif text-primary">
           Bienvenue sur la plateforme de Gestion des Quotes-Parts 
         </div>
       </div>
 
       {/*  Contenu principal */}
       <div className="w-full max-w-md px-4 mt-12">
-        <Card className="shadow-lg border border-gray-200">
+        <Card className="shadow-lg border border-gray-300 bg-white">
           <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-semibold">Authentification</CardTitle>
           <div className="mx-auto w-24 h-24 bg-gradient-primary rounded-full flex items-center justify-center mb-4">

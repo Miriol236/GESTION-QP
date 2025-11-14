@@ -8,7 +8,7 @@ import { MainLayout } from "@/components/Layout/MainLayout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Beneficiaires from "./pages/Beneficiaires";
-import Banques from "./pages/Banques";
+import ListeBeneficiaires from "./pages/ListeBeneficiaires";
 import NotFound from "./pages/NotFound";
 import Utilisateurs from "./pages/Utilisateurs";
 import Fonctionnalites from "./pages/Fonctionnalites";
@@ -18,6 +18,10 @@ import Fonctions from "./pages/Fonctions";
 import Grades from "./pages/Grades";
 import Echeances from "./pages/Echeances";
 import Regies from "./pages/Regies";
+import Banques from "./pages/Banques";
+import Guichets from "./pages/Guichets";
+import Elements from "./pages/Elements";
+import Paiements from "./pages/Paiements";
 
 const queryClient = new QueryClient();
 
@@ -34,10 +38,8 @@ const App = () => (
             <Route element={<MainLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/beneficiaires" element={<Beneficiaires />} />
-              <Route path="/banques" element={<Banques />} />
-              <Route path="/paiements" element={<Banques />} />
-              <Route path="/elements" element={<Banques />} />
-              <Route path="/parametres" element={<Banques />} />
+              <Route path="/liste-beneficiaires" element={<ListeBeneficiaires />} />
+              <Route path="/paiements" element={<Paiements />} />
               <Route path="/utilisateurs" element={<Utilisateurs />} />
               <Route path="/fonctionnalites" element={<Fonctionnalites />} />
               <Route path="/groupes" element={<Groupe />} />
@@ -46,6 +48,9 @@ const App = () => (
               <Route path="/grades" element={<Grades />} />
               <Route path="/echeances" element={<Echeances />} />
               <Route path="/regies" element={<Regies />} />
+              <Route path="/banques" element={<Banques />} />
+              <Route path="/guichets" element={<Guichets />} />
+              <Route path="/elements" element={<Elements />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

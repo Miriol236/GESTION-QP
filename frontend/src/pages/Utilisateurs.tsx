@@ -18,6 +18,8 @@ export default function Utilisateurs() {
   const [utilisateurs, setUtilisateurs] = useState<any[]>([]);
   const [groupes, setGroupes] = useState<any[]>([]);
   const [selectedGroupe, setSelectedGroupe] = useState("");
+  const [regies, setRegies] = useState<any[]>([]);
+  const [selectedRegie, setSelectedRegie] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUtilisateur, setEditingUtilisateur] = useState<any>(null);
   const [utilisateurToDelete, setUtilisateurToDelete] = useState<any>(null);
@@ -30,6 +32,7 @@ export default function Utilisateurs() {
   useEffect(() => {
     fetchUtilisateurs();
     fetchGroupes();
+    fetchRegie();
   }, []);
 
   // Quand on ouvre le modal pour modifier, on remplit les valeurs
@@ -67,6 +70,18 @@ export default function Utilisateurs() {
       setGroupes(res.data);
     } catch (error) {
       console.error("Erreur lors du chargement des groupes :", error);
+    }
+  };
+
+   const fetchRegie = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_URL}/regies`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setRegies(res.data);
+    } catch (error) {
+      console.error("Erreur lors du chargement des régies :", error);
     }
   };
 
@@ -108,7 +123,7 @@ export default function Utilisateurs() {
   const columns: Column[] = [
     {
       key: "UTI_NOM",
-      title: "Utilisateur",
+      title: "UTILISATEUR",
       render: (_, row) => (
         <div>
           <div className="flex items-center gap-2">
@@ -126,23 +141,35 @@ export default function Utilisateurs() {
     },
     {
       key: "UTI_SEXE",
-      title: "Sexe",
+      title: "SEXE",
     },
     {
       key: "GRP_CODE",
-      title: "Groupe",
+      title: "GROUPE",
       render: (value: string) => {
         const grp = groupes.find(g => g.GRP_CODE === value);
         return (
-          <Badge variant="secondary" className="bg-primary/10 text-primary">
+          <Badge variant="secondary" className="bg-primary/10 font-semibold text-primary">
             {grp ? grp.GRP_NOM : "—"}
           </Badge>
         );
       },
     },
     {
+      key: "REG_CODE",
+      title: "REGIE",
+      render: (value: string) => {
+        const reg = regies.find(r => r.REG_CODE === value);
+        return (
+          <Badge  className="bg-primary/10 font-semibold text-primary">
+            {reg ? reg.REG_SIGLE : "—"}
+          </Badge>
+        );
+      },
+    },
+    {
       key: "UTI_STATUT",
-      title: "Statut",
+      title: "STATUT",
       render: (value: boolean) => (
         <Badge variant={value ? "default" : "secondary"} className={value ? "bg-green-500/20 text-green-700" : ""}>
           {value ? "Actif" : "Inactif"}
@@ -151,28 +178,28 @@ export default function Utilisateurs() {
     },
     {
       key: "UTI_DATE_CREER",
-      title: "Date de création",
+      title: "DATE DE CREATION",
       render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
     },
     {
         key:"UTI_CREER_PAR",
-        title: "Créer par",
+        title: "CREER PAR",
     },
     {
       key: "UTI_DATE_MODIFIER",
-      title: "Date de modification",
+      title: "DATE DE MODIFICATION",
       render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
     },
     {
         key: "UTI_MODIFIER_PAR",
-        title: "Modifier par",
+        title: "MODIFIER PAR",
         render: (Value) => Value? Value : "_",
     },
-    {
-        key: "UTI_VERSION",
-        title: "Version modifiée",
-        render: (Value) => Value? Value : "_",
-    },
+    // {
+    //     key: "UTI_VERSION",
+    //     title: "VERSION MODIFIEE",
+    //     render: (Value) => Value? Value : "_",
+    // },
   ];
 
   //  Ajouter ou modifier un utilisateur
@@ -188,6 +215,7 @@ export default function Utilisateurs() {
       UTI_USERNAME: formData.get("UTI_USERNAME"),
       UTI_PASSWORD: formData.get("UTI_PASSWORD"),
       GRP_CODE: selectedGroupe,
+      REG_CODE: selectedRegie,
     };
 
     try {
@@ -206,6 +234,7 @@ export default function Utilisateurs() {
       setIsDialogOpen(false);
       setEditingUtilisateur(null);
       setSelectedGroupe("");
+      setSelectedRegie("");
     } catch (err: any) {
       toast({
         title: "Erreur",
@@ -238,7 +267,7 @@ export default function Utilisateurs() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+      <h1 className="text-xl font-bold text-primary">
         Gestion des utilisateurs
       </h1>
 
@@ -247,7 +276,7 @@ export default function Utilisateurs() {
         columns={columns}
         data={utilisateurs}
         onAdd={() => { setEditingUtilisateur(null); setIsDialogOpen(true); }}
-        onEdit={(u) => { setEditingUtilisateur(u); setSelectedGroupe(u.GRP_CODE); setIsDialogOpen(true); }}
+        onEdit={(u) => { setEditingUtilisateur(u); setSelectedGroupe(u.GRP_CODE); setSelectedRegie(u.REG_CODE); setIsDialogOpen(true); }}
         onDelete={(u) => { setUtilisateurToDelete(u); setIsDeleteDialogOpen(true); }}
         onToggleStatus={handleToggleStatus}
         addButtonText="Nouvel utilisateur"
@@ -259,7 +288,7 @@ export default function Utilisateurs() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editingUtilisateur ? "Modifier l'utilisateur" : "Nouvel utilisateur"}
+              {editingUtilisateur ? "MODIFIER L'UTILISATEUR" : "NOUVEAU UTILISATEUR"}
             </DialogTitle>
           </DialogHeader>
 
@@ -318,6 +347,24 @@ export default function Utilisateurs() {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label>Régie</Label>
+              <Select
+                value={selectedRegie || undefined}
+                onValueChange={setSelectedRegie}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="-- Sélectionner une régie --" />
+                </SelectTrigger>
+                <SelectContent>
+                  {regies.map((reg) => (
+                    <SelectItem key={reg.REG_CODE} value={reg.REG_CODE}>
+                      {reg.REG_LIBELLE}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
@@ -334,7 +381,7 @@ export default function Utilisateurs() {
         open={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleConfirmDelete}
-        itemName={utilisateurToDelete?.UTI_NOM.UTI}
+        itemName={utilisateurToDelete?.UTI_NOM}
       />
     </div>
   );

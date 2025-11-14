@@ -44,4 +44,9 @@ class Regie extends Model
         'REG_MODIFIER_PAR',
         'REG_VERSION',
     ];
+
+    public function utilisateurs()
+    {
+        return $this->hasMany(Utilisateur::class, 'REG_CODE', 'REG_CODE');
+    }
 }

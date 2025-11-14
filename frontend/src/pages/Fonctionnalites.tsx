@@ -46,7 +46,7 @@ export default function Fonctionnalites() {
   const columns: Column[]  = [
     {
       key: "FON_NOM",
-      title: "Libellé",
+      title: "LIBELLE",
       render: (value) => (
         <div className="flex items-center gap-2">
           <AlignVerticalJustifyStartIcon className="h-4 w-4 text-primary" />
@@ -56,26 +56,26 @@ export default function Fonctionnalites() {
     },
     {
       key: "FON_DATE_CREER",
-      title: "Date de création",
+      title: "DATE DE CREATION",
       render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
     },
     {
         key:"FON_CREER_PAR",
-        title: "Créer par",
+        title: "CREER PAR",
     },
     {
       key: "FON_DATE_MODIFIER",
-      title: "Date de modification",
+      title: "DATE DE MODIFICATION",
       render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
     },
     {
         key: "FON_MODIFIER_PAR",
-        title: "Modifier par",
+        title: "MODIFIER PAR",
         render: (Value) => Value? Value : "_",
     },
     {
         key: "FON_VERSION",
-        title: "Version modifiée",
+        title: "VERSION MODIFIEE",
         render: (Value) => Value? Value : "_",
     },
   ];
@@ -137,7 +137,7 @@ export default function Fonctionnalites() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+      <h1 className="text-xl font-bold text-primary">
         Gestion des Fonctionnalités
       </h1>
 
@@ -157,7 +157,7 @@ export default function Fonctionnalites() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editingFonctionnalite ? "Modifier la fonctionnalité" : "Nouvelle fonctionnalité"}
+              {editingFonctionnalite ? "MODIFIER LA FONCTIONNALITE" : "NOUVELLE FONCTIONNALITE"}
             </DialogTitle>
           </DialogHeader>
 

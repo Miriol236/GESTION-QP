@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Echeance;
+use Illuminate\Support\Facades\DB;
 
 class EcheanceController extends Controller
 {
@@ -23,8 +24,17 @@ class EcheanceController extends Controller
      */
     public function index()
     {
-        $echeances = Echeance::all();
+        $echeances = Echeance::orderBy('ECH_CODE', 'desc')->get();
         return response()->json($echeances);
+    }
+
+    public function indexPublic()
+    {
+        return response()->json(
+            \App\Models\Echeance::select('ECH_CODE', 'ECH_LIBELLE')
+                ->orderByDesc('ECH_STATUT')
+                ->get()
+        );
     }
 
     /**
@@ -80,19 +90,26 @@ class EcheanceController extends Controller
             'ECH_LIBELLE' => 'required|string|max:100',
         ]);
 
+        // Vérifier si une échéance avec le même libellé existe déjà
         $exists = Echeance::where('ECH_LIBELLE', $request->ECH_LIBELLE)->exists();
-
         if ($exists) {
             return response()->json(['message' => 'Une échéance avec ce nom existe déjà.'], 409);
         }
 
+        //  Désactiver toutes les autres échéances avant d’ajouter la nouvelle
+        Echeance::where('ECH_STATUT', true)->update(['ECH_STATUT' => false]);
+
+        //  Créer la nouvelle échéance avec ECH_STATUT = true automatiquement
         $echeance = new Echeance();
         $echeance->ECH_LIBELLE = $request->ECH_LIBELLE;
+        $echeance->ECH_STATUT = true; // Valeur automatique
         $echeance->ECH_DATE_CREER = now();
-        $echeance->ECH_CREER_PAR = auth()->check() ? auth()->user()->UTI_NOM." ".auth()->user()->UTI_PRENOM : 'SYSTEM';
+        $echeance->ECH_CREER_PAR = auth()->check()
+            ? auth()->user()->UTI_NOM . ' ' . auth()->user()->UTI_PRENOM
+            : 'SYSTEM';
         $echeance->save();
 
-        return response()->json(['message' => 'Echéance créée avec succès !'], 201);
+        return response()->json(['message' => 'Échéance créée avec succès !'], 201);
     }
 
     /**
@@ -165,17 +182,86 @@ class EcheanceController extends Controller
      *     @OA\Response(response=404, description="Echéance non trouvée"),
      *     @OA\Response(response=401, description="Non authentifié")
      * )
-     */
+     */  
     public function destroy($code)
     {
         $echeance = Echeance::find($code);
 
         if (!$echeance) {
-            return response()->json(['message' => 'Echéance non trouvée'], 404);
+            return response()->json(['message' => 'Échéance non trouvée'], 404);
         }
 
-        $echeance->delete();
+        // Garder en mémoire si elle était active (cast en bool pour sécurité)
+        $wasActive = (bool) $echeance->ECH_STATUT;
 
-        return response()->json(['message' => 'Echéance supprimée avec succès !']);
+        // Utiliser une transaction pour être sûr que tout est atomique
+        DB::beginTransaction();
+        try {
+            $echeance->delete();
+
+            if ($wasActive) {
+                // Récupérer la "dernière" échéance restante par ECH_CODE (non supprimée)
+                // Si tu utilises SoftDeletes, la requête exclut automatiquement les "trashed"
+                $lastEcheance = Echeance::orderByDesc('ECH_CODE')->first();
+
+                if ($lastEcheance) {
+                    // Eviter mass-assignment : assigner et save() pour contourner le fillable
+                    $lastEcheance->ECH_STATUT = true;
+                    $saved = $lastEcheance->save();
+
+                    if (! $saved) {
+                        // rollback et message d'erreur si le save échoue
+                        DB::rollBack();
+                        return response()->json(['message' => 'Impossible d\'activer la dernière échéance'], 500);
+                    }
+
+                    // Désactiver au besoin les autres (garantir unicité)
+                    Echeance::where('ECH_CODE', '!=', $lastEcheance->ECH_CODE)
+                            ->where('ECH_STATUT', true)
+                            ->update(['ECH_STATUT' => false]);
+                }
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            // Pour le debug local : renvoyer l'erreur (en prod, loguer au lieu de renvoyer)
+            return response()->json([
+                'message' => 'Erreur lors de la suppression',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+
+        return response()->json(['message' => 'Échéance supprimée avec succès !']);
     }
+
+    public function activer($code)
+    {
+        $echeance = Echeance::find($code);
+
+        if (!$echeance) {
+            return response()->json(['message' => 'Échéance non trouvée'], 404);
+        }
+
+        //  Désactiver toutes les autres échéances
+        Echeance::where('ECH_STATUT', true)->update(['ECH_STATUT' => false]);
+
+        //  Activer celle sélectionnée
+        $echeance->ECH_STATUT = true;
+        $echeance->save();
+
+        return response()->json(['message' => 'Échéance activée avec succès !']);
+    }
+
+    public function active()
+    {
+        $echeance = Echeance::where('ECH_STATUT', true)->first();
+
+        if (!$echeance) {
+            return response()->json(['message' => 'Aucune échéance active'], 404);
+        }
+
+        return response()->json($echeance);
+    }
+
 }

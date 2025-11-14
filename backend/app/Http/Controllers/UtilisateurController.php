@@ -93,7 +93,6 @@ class UtilisateurController extends Controller
             'UTI_PASSWORD' => 'required|string|min:6',
             'UTI_SEXE' => 'nullable|string|max:1',
             'GRP_CODE' => 'required|string',
-            'REG_CODE' => 'required|string'
         ], [
             'UTI_USERNAME.unique' => 'Ce username existe déjà.',
             'UTI_PASSWORD.min' => 'Le mot de passe prend minimum 6 caractères.',
@@ -188,7 +187,7 @@ class UtilisateurController extends Controller
             'UTI_DATE_MODIFIER' => now(),
             'UTI_VERSION' => $nouvelleVersion,
             'GRP_CODE' => $request->GRP_CODE ?? $utilisateur->GRP_CODE,
-            'REG_CODE' => $request->REG_CODE ?? $utilisateur->GRP_CODE,
+            'REG_CODE' => $request->REG_CODE ?? $utilisateur->REG_CODE,
         ]);
 
         return response()->json(['message' => 'Utilisateur mis à jour avec succès']);

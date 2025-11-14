@@ -27,6 +27,16 @@ class FonctionController extends Controller
         return response()->json($fonctions);
     }
 
+    public function indexPublic()
+    {
+        return response()->json(
+            \App\Models\Fonction::select('FON_CODE', 'FON_LIBELLE')
+                ->orderBy('FON_LIBELLE')
+                ->get()
+        );
+    }
+
+
     /**
      * @OA\Get(
      *     path="/api/fonctions/{code}",

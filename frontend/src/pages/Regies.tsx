@@ -46,7 +46,7 @@ export default function Regies() {
   const columns: Column[]  = [
     {
       key: "REG_LIBELLE",
-      title: "Libellé",
+      title: "LIBELLE",
       render: (value) => (
         <div className="flex items-center gap-2">
           <span className="font-medium">{value}</span>
@@ -55,34 +55,34 @@ export default function Regies() {
     },
     {
         key: "REG_SIGLE",
-        title: "Sigle",
+        title: "SIGLE",
     },
     {
         key: "REG_SIGLE_CODE",
-        title: "Sigle code",
+        title: "SIGLE CODE",
     },
     {
       key: "REG_DATE_CREER",
-      title: "Date de création",
+      title: "DATE DE CREATION",
       render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
     },
     {
         key:"REG_CREER_PAR",
-        title: "Créer par",
+        title: "CREER PAR",
     },
     {
       key: "REG_DATE_MODIFIER",
-      title: "Date de modification",
+      title: "DATE DE MODIFICATION",
       render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
     },
     {
         key: "REG_MODIFIER_PAR",
-        title: "Modifier par",
+        title: "MODIFIER PAR",
         render: (Value) => Value? Value : "_",
     },
     {
         key: "REG_VERSION",
-        title: "Version modifiée",
+        title: "VERSION MODIFIEE",
         render: (Value) => Value? Value : "_",
     },
   ];
@@ -146,7 +146,7 @@ export default function Regies() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+      <h1 className="text-xl font-bold text-primary">
         Gestion des Régies
       </h1>
 
@@ -166,7 +166,7 @@ export default function Regies() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editingRegie ? "Modifier la régie" : "Nouvelle régie"}
+              {editingRegie ? "MODIFIER LA REGIE" : "NOUVELLE REGIE"}
             </DialogTitle>
           </DialogHeader>
 
