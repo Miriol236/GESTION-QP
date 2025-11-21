@@ -31,4 +31,9 @@ class Paiement extends Model
         'REG_CODE',
         'ECH_CODE',
     ];
+
+    public function details()
+    {
+        return $this->hasMany(\App\Models\DetailsPaiement::class, 'PAI_CODE', 'PAI_CODE');
+    }
 }

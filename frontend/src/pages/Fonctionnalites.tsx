@@ -43,6 +43,15 @@ export default function Fonctionnalites() {
     }
   };
 
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  const displayed = fonctionnalites
+    // Filtrer par recherche si searchTerm non vide
+    .filter((p) =>
+      !searchTerm ||
+      String(p.FON_LIBELLE).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const columns: Column[]  = [
     {
       key: "FON_NOM",
@@ -142,14 +151,15 @@ export default function Fonctionnalites() {
       </h1>
 
       <DataTable
-        title={`Enregistrements (${fonctionnalites.length})`}
+        title={`Effectif (${displayed.length})`}
         columns={columns}
-        data={fonctionnalites}
+        data={displayed}
         onAdd={() => { setEditingFonctionnalite(null); setIsDialogOpen(true); }}
         onEdit={(u) => { setEditingFonctionnalite(u); setIsDialogOpen(true); }}
         onDelete={(u) => { setFonctionnaliteToDelete(u); setIsDeleteDialogOpen(true); }}
-        addButtonText="Nouvelle fonctionnalité"
+        addButtonText="Nouveau"
         searchPlaceholder="Rechercher une fonctionnalité..."
+        onSearchChange={(value: string) => setSearchTerm(value)}
       />
 
       {/* Dialog ajout/modification */}

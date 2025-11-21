@@ -28,7 +28,7 @@ import {
   BriefcaseBusiness,
   ShieldPlus,
   Banknote,
-  HandCoins,
+  Pencil,
   ChevronDown, 
   ChevronRight
 } from "lucide-react";
@@ -38,21 +38,21 @@ import { toast } from "sonner";
 // Structure du menu avec foncCode
 const menuItems = [
   {
-    title: "Bénéficiaires",
-    icon: Users,
+    title: "Traitements",
+    icon: Pencil,
     children: [
-      { title: "Gestion des bénéficiaires", url: "/beneficiaires", icon: User, foncCode: "0011" },
-      { title: "Liste des bénéficiaires avec RIB actifs", url: "/liste-beneficiaires", icon: Users, foncCode: "0012" },
+      { title: "Bénéficiaires", url: "/beneficiaires", icon: User, foncCode: "0011" },
+      { title: "Paiements QP", url: "/paiements", icon: CreditCard, foncCode: "0014" },
     ],
   },
-  {
-    title: "Paiements QP",
-    icon: CreditCard,
-    children: [
-      { title: "Gestion des paiements", url: "/paiements", icon: HandCoins, foncCode: "0014" },
-      { title: "Liste des paiements", url: "/", icon: Banknote, foncCode: "0000" },
-    ],
-  },
+  // {
+  //   title: "Paiements QP",
+  //   icon: CreditCard,
+  //   children: [
+  //     { title: "Gestion des paiements", url: "/paiements", icon: HandCoins, foncCode: "0014" },
+  //     { title: "Liste des paiements", url: "/", icon: Banknote, foncCode: "0000" },
+  //   ],
+  // },
   {
     title: "Paramètres",
     icon: Settings,

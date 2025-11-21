@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('BEN_MATRICULE', 10)->nullable();
             $table->string('BEN_NOM');
             $table->string('BEN_PRENOM');
-            $table->string('BEN_SEXE');
+            $table->string('BEN_SEXE')->nullable();
             $table->date('BEN_DATE_CREER');
             $table->string('BEN_CREER_PAR');
             $table->date('BEN_DATE_MODIFIER')->nullable();
@@ -25,11 +25,9 @@ return new class extends Migration
             $table->string('TYP_CODE', 10);
             $table->string('FON_CODE', 10)->nullable();
             $table->string('GRD_CODE', 10)->nullable();
-            $table->string('REG_CODE', 10);
             $table->foreign('TYP_CODE')->references('TYP_CODE')->on('T_TYPE_BENEFICIAIRES');
             $table->foreign('FON_CODE')->references('FON_CODE')->on('T_FONCTIONS');
             $table->foreign('GRD_CODE')->references('GRD_CODE')->on('T_GRADES');
-            $table->foreign('REG_CODE')->references('REG_CODE')->on('T_REGIES');
         });
     }
 

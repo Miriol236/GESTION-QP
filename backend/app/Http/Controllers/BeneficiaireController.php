@@ -29,15 +29,12 @@ class BeneficiaireController extends Controller
         //  Récupère l'utilisateur connecté
         $user = auth()->user();
 
-        // Vérifie qu'il est bien connecté
+        $beneficiaires = Beneficiaire::All();
+
+        //  Vérifie qu'il est bien connecté
         if (!$user) {
             return response()->json(['message' => 'Utilisateur non authentifié.'], 401);
         }
-
-        //  Filtrer les bénéficiaires selon la régie de l'utilisateur
-        $beneficiaires = Beneficiaire::where('REG_CODE', $user->REG_CODE)
-            ->orderBy('BEN_CODE', 'desc')
-            ->get();
 
         return response()->json($beneficiaires);
     }
@@ -51,16 +48,15 @@ class BeneficiaireController extends Controller
         }
 
         $query = Beneficiaire::query()
-            ->leftJoin('T_REGIES', 'T_REGIES.REG_CODE', '=', 'T_BENEFICIAIRES.REG_CODE')
             ->join('T_DOMICILIERS', function ($join) {
                 $join->on('T_DOMICILIERS.BEN_CODE', '=', 'T_BENEFICIAIRES.BEN_CODE')
                     ->where('T_DOMICILIERS.DOM_STATUT', true); // RIB actif uniquement
             })
             ->leftJoin('T_BANQUES', 'T_BANQUES.BNQ_CODE', '=', 'T_DOMICILIERS.BNQ_CODE')
             ->leftJoin('T_GUICHETS', 'T_GUICHETS.GUI_ID', '=', 'T_DOMICILIERS.GUI_ID')
-            ->leftJoin('T_TYPE_BENEFICIAIRES', 'T_TYPE_BENEFICIAIRES.TYP_CODE', '=', 'T_BENEFICIAIRES.TYP_CODE')       // Type
+            ->leftJoin('T_TYPE_BENEFICIAIRES', 'T_TYPE_BENEFICIAIRES.TYP_CODE', '=', 'T_BENEFICIAIRES.TYP_CODE') // Type
             ->leftJoin('T_FONCTIONS', 'T_FONCTIONS.FON_CODE', '=', 'T_BENEFICIAIRES.FON_CODE') // Fonction
-            ->leftJoin('T_GRADES', 'T_GRADES.GRD_CODE', '=', 'T_BENEFICIAIRES.GRD_CODE')    // Grade
+            ->leftJoin('T_GRADES', 'T_GRADES.GRD_CODE', '=', 'T_BENEFICIAIRES.GRD_CODE') // Grade
             ->select([
                 'T_BENEFICIAIRES.BEN_CODE as CODE',
                 'T_BENEFICIAIRES.BEN_MATRICULE as MATRICULE',
@@ -71,18 +67,12 @@ class BeneficiaireController extends Controller
                 'T_GUICHETS.GUI_CODE as GUICHET',
                 'T_DOMICILIERS.DOM_NUMCPT as NUMERO_DE_COMPTE',
                 'T_DOMICILIERS.DOM_RIB as CLE_RIB',
-                'T_REGIES.REG_SIGLE as REGIE',
-                'T_REGIES.REG_CODE as REG_CODE',
-                'T_TYPE_BENEFICIAIRES.TYP_LIBELLE as TYPE_BENEFICIAIRE',   // Type
-                'T_FONCTIONS.FON_LIBELLE as FONCTION',        // Fonction
-                'T_GRADES.GRD_LIBELLE as GRADE',             // Grade
+                'T_TYPE_BENEFICIAIRES.TYP_LIBELLE as TYPE_BENEFICIAIRE', // Type
+                'T_FONCTIONS.FON_LIBELLE as FONCTION', // Fonction
+                'T_GRADES.GRD_LIBELLE as GRADE', // Grade
             ]);
 
-        // Filtrer par régie si l'utilisateur en a une
-        if (!empty($user->REG_CODE)) {
-            $query->where('T_BENEFICIAIRES.REG_CODE', $user->REG_CODE);
-        }
-
+        // Plus de filtrage par régie : tout le monde peut consulter
         $beneficiaires = $query->orderBy('T_BENEFICIAIRES.BEN_CODE', 'asc')->get();
 
         // Formater le nom de la banque
@@ -171,7 +161,6 @@ class BeneficiaireController extends Controller
 
         $exists = Beneficiaire::where('BEN_NOM', $request->BEN_NOM)
             ->where('BEN_PRENOM', $request->BEN_PRENOM)
-            ->where('REG_CODE', auth()->user()->REG_CODE) // Vérifie seulement dans la régie de l'utilisateur
             ->exists();
 
         if ($exists) {
@@ -190,7 +179,6 @@ class BeneficiaireController extends Controller
         $beneficiaire->TYP_CODE = $request->TYP_CODE;
         $beneficiaire->FON_CODE = $request->FON_CODE;
         $beneficiaire->GRD_CODE = $request->GRD_CODE;
-        $beneficiaire->REG_CODE = auth()->check() ? auth()->user()->REG_CODE : 'SYSTEM';
         $beneficiaire->save();
 
         return response()->json([

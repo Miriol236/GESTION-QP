@@ -93,7 +93,7 @@ useEffect(() => {
         onPointerDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b bg-gradient-to-r from-blue-600 to-blue-500 text-white">
+        <div className="flex justify-between items-center p-1 border-b bg-gradient-to-r from-blue-600 to-blue-500 text-white">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Eye className="w-5 h-5" />
             Aperçu du bénéficiaire
@@ -108,24 +108,13 @@ useEffect(() => {
           {/* Informations du bénéficiaire */}
           <div>
             <h3 className="text-blue-600 font-semibold mb-3 border-b pb-1">Informations personnelles</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <Info label="Code" value={beneficiaire.BEN_CODE} />
-              <Info label="Matricule solde" value={beneficiaire.BEN_MATRICULE} />
-              <Info label="Nom" value={beneficiaire.BEN_NOM} />
-              <Info label="Prénom" value={beneficiaire.BEN_PRENOM} />
-              <Info label="Sexe" value={beneficiaire.BEN_SEXE === "M" ? "Masculin" : "Féminin"} />
-              <Info label="Type" value={getTypesInfo(beneficiaire.TYP_CODE || "—")} />
-              <Info label="Fonction" value={getFonctionsInfo(beneficiaire.FON_CODE || "—")} />
-              <Info label="Grade" value={getGradesInfo(beneficiaire.GRD_CODE || "—")} />
-              <Info label="Saisir par" value={beneficiaire.BEN_CREER_PAR} />
-              <Info label="Date de saisie" value={beneficiaire.BEN_DATE_CREER ? new Date(beneficiaire.BEN_DATE_CREER).toLocaleDateString("fr-FR", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })
-                    : "_"
-                }
-              />
+            <div className="grid grid-cols-4 gap-4 text-sm">
+              <Info label="Matricule solde :" value={beneficiaire.BEN_MATRICULE} />
+              <Info label="Nom(s) et Prénom(s) :" value={`${beneficiaire.BEN_NOM} ${beneficiaire.BEN_PRENOM}`} />
+              <Info label="Sexe :" value={beneficiaire.BEN_SEXE === "M" ? "Masculin" : beneficiaire.BEN_SEXE === "F" ? "Fémini" : "_"} />
+              <Info label="Type :" value={getTypesInfo(beneficiaire.TYP_CODE || "—")} />
+              <Info label="Fonction :" value={getFonctionsInfo(beneficiaire.FON_CODE || "—")} />
+              <Info label="Grade :" value={getGradesInfo(beneficiaire.GRD_CODE || "—")} />
             </div>
           </div>
 
@@ -151,8 +140,8 @@ useEffect(() => {
                   <tbody>
                     {domiciliations.map((d: any, i: number) => (
                       <tr key={i} className="odd:bg-gray-50 border-t">
-                        <td className="px-4 py-2"> {[d.BNQ_NUMERO, d.BNQ_LIBELLE].filter(Boolean).join(" - ") || "—"}</td>
-                        <td className="px-4 py-2"> {[d.GUI_CODE, d.GUI_NOM].filter(Boolean).join(" - ") || "—"}</td>
+                        <td className="px-4 py-2 font-semibold"> {[d.BNQ_LIBELLE].filter(Boolean).join(" - ") || "—"}</td>
+                        <td className="px-4 py-2 font-semibold"> {[d.GUI_CODE, d.GUI_NOM].filter(Boolean).join(" - ") || "—"}</td>
 
                         <td className="font-semibold px-4 py-2">{d.DOM_NUMCPT || "_"}</td>
                         <td className="px-4 py-2 font-semibold text-blue-600">{d.DOM_RIB || "—"}</td>
@@ -172,11 +161,26 @@ useEffect(() => {
               </div>
             )}
           </div>
+          <div>
+            <h3 className="text-blue-600 font-semibold mb-3 border-b pb-1"></h3>
+            <div className="grid grid-cols-4 gap-4 text-sm">
+              <Info label="Date de saisie :" value={beneficiaire.BEN_DATE_CREER ? new Date(beneficiaire.BEN_DATE_CREER).toLocaleDateString("fr-FR", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })
+              : "_"
+            }
+              />
+            <Info label="Saisir par :" value={beneficiaire.BEN_CREER_PAR} />
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
         <div className="p-4 border-t text-right bg-gray-50">
           <Button variant="default" onClick={onClose}>
+            <X className="w-4 h-4" />
             Fermer
           </Button>
         </div>
@@ -188,7 +192,7 @@ useEffect(() => {
 function Info({ label, value }: { label: string; value: any }) {
   return (
     <div>
-      <p className="text-xs text-gray-500">{label}</p>
+      <p className="text-sm font-semibold text-gray-500">{label}</p>
       <p className="font-medium text-gray-800">{value || "—"}</p>
     </div>
   );

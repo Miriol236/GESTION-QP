@@ -43,6 +43,16 @@ export default function Regies() {
         }
     };
 
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const displayed = regies
+    // Filtrer par recherche si searchTerm non vide
+    .filter((p) =>
+      !searchTerm ||
+      String(p.REG_LIBELLE).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(p.REG_SIGLE).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const columns: Column[]  = [
     {
       key: "REG_LIBELLE",
@@ -151,14 +161,15 @@ export default function Regies() {
       </h1>
 
       <DataTable
-        title={`Enregistrements (${regies.length})`}
+        title={`Effectif (${displayed.length})`}
         columns={columns}
-        data={regies}
+        data={displayed}
         onAdd={() => { setEditingRegie(null); setIsDialogOpen(true); }}
         onEdit={(u) => { setEditingRegie(u); setIsDialogOpen(true); }}
         onDelete={(u) => { setRegieToDelete(u); setIsDeleteDialogOpen(true); }}
-        addButtonText="Nouvelle régie"
+        addButtonText="Nouveau"
         searchPlaceholder="Rechercher une régie..."
+        onSearchChange={(value: string) => setSearchTerm(value)}
       />
 
       {/* Dialog ajout/modification */}

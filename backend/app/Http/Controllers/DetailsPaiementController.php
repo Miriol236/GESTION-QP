@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\DetailsPaiement;
+use Illuminate\Support\Facades\DB;
 
 class DetailsPaiementController extends Controller
 {
@@ -14,6 +15,7 @@ class DetailsPaiementController extends Controller
             ->select(
                 'T_DETAILS_PAIEMENT.*',
                 'T_ELEMENTS.ELT_LIBELLE',
+                'T_ELEMENTS.ELT_SENS',
             )
             ->orderBy('T_DETAILS_PAIEMENT.DET_CODE')
             ->get();
@@ -92,5 +94,56 @@ class DetailsPaiementController extends Controller
         } catch (\Exception $e) {
             return response()->json(['message' => 'Impossible de supprimer : ' . $e->getMessage()], 409);
         }
+    }
+
+    public function getTotalsByUser(Request $request)
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Utilisateur non authentifié.'], 401);
+        }
+
+        // Paramètre optionnel envoyé depuis le front
+        $ech = $request->input('ech_code');
+
+        // Si aucun ech_code fourni, récupérer l’échéance en cours (statut = true)
+        if (empty($ech)) {
+            $currentEcheance = DB::table('T_ECHEANCES')
+                ->where('ECH_STATUT', true)
+                ->orderBy('ECH_CODE', 'desc')
+                ->first();
+
+            $ech = $currentEcheance?->ECH_CODE ?? null;
+        }
+
+        $query = DB::table('T_DETAILS_PAIEMENT')
+            ->join('T_ELEMENTS', 'T_ELEMENTS.ELT_CODE', '=', 'T_DETAILS_PAIEMENT.ELT_CODE')
+            ->join('T_PAIEMENTS', 'T_PAIEMENTS.PAI_CODE', '=', 'T_DETAILS_PAIEMENT.PAI_CODE')
+            ->select(
+                DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 1 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS TOTAL_GAIN'),
+                DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 2 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS TOTAL_RETENU'),
+                DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 1 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) -
+                        SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 2 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS TOTAL_NET')
+            );
+
+        // Filtrer par régie si user a REG_CODE
+        if (!empty($user->REG_CODE)) {
+            $query->where('T_PAIEMENTS.REG_CODE', $user->REG_CODE);
+        }
+
+        // Filtrer par échéance si disponible
+        if (!empty($ech)) {
+            $query->where('T_PAIEMENTS.ECH_CODE', $ech);
+        }
+
+        $totals = $query->first();
+
+        return response()->json([
+            'total_gain'   => $totals->TOTAL_GAIN ?? 0,
+            'total_retenu' => $totals->TOTAL_RETENU ?? 0,
+            'total_net'    => $totals->TOTAL_NET ?? 0,
+            'ech_code'     => $ech, // optionnel, pour savoir quelle échéance est affichée par défaut
+        ]);
     }
 }

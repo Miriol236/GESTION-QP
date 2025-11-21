@@ -67,6 +67,15 @@ export default function Groupe() {
     }
   };
 
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  const displayed = groupes
+    // Filtrer par recherche si searchTerm non vide
+    .filter((p) =>
+      !searchTerm ||
+      String(p.GRP_NOM).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   // === Colonnes du tableau ===
   const columns = [
     {
@@ -239,15 +248,16 @@ export default function Groupe() {
       </h1>
 
       <DataTable
-        title={`Enregistrements (${groupes.length})`}
+        title={`Effectif (${displayed.length})`}
         columns={columns}
-        data={groupes}
+        data={displayed}
         onAdd={() => { setEditingGroupe(null); setIsDialogOpen(true); }}
         onEdit={(u) => { setEditingGroupe(u); setIsDialogOpen(true); }}
         onDelete={(u) => { setGroupeToDelete(u); setIsDeleteDialogOpen(true); }}
         onManageRoles={handleManageRoles}
-        addButtonText="Nouveau groupe"
+        addButtonText="Nouveau"
         searchPlaceholder="Rechercher un groupe..."
+        onSearchChange={(value: string) => setSearchTerm(value)}
       />
 
       {/* Modal ajout/modification */}

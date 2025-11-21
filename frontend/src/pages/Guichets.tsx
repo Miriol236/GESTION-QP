@@ -62,6 +62,16 @@ export default function Guichets() {
         }
     };
 
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const displayed = guichets
+    // Filtrer par recherche si searchTerm non vide
+    .filter((p) =>
+      !searchTerm ||
+      String(p.GUI_CODE).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(p.GUI_NOM).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const columns: Column[]  = [
     {
         key: "GUI_CODE",
@@ -184,14 +194,15 @@ export default function Guichets() {
       </h1>
 
       <DataTable
-        title={`Enregistrements (${guichets.length})`}
+        title={`Effectif (${displayed.length})`}
         columns={columns}
-        data={guichets}
+        data={displayed}
         onAdd={() => { setEditingGuichet(null); setIsDialogOpen(true); }}
         onEdit={(u) => { setEditingGuichet(u); setSelectedBanque(u.BNQ_CODE); setIsDialogOpen(true); }}
         onDelete={(u) => { setGuichetToDelete(u); setIsDeleteDialogOpen(true); }}
-        addButtonText="Nouveau guichet"
+        addButtonText="Nouveau"
         searchPlaceholder="Rechercher un guichet..."
+        onSearchChange={(value: string) => setSearchTerm(value)}
       />
 
       {/* Dialog ajout/modification */}

@@ -10,6 +10,8 @@ import { API_URL } from "@/config/api";
 import { TableSkeleton } from "@/components/loaders/TableSkeleton";
 import BeneficiairePreviewModal from "./BeneficiairePreviewModal";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { User, ChartColumnIncreasing, CheckCheck } from "lucide-react";
 
 export default function Beneficiaires() {
   const [beneficiaires, setBeneficiaires] = useState<any[]>([]);
@@ -24,6 +26,43 @@ export default function Beneficiaires() {
   const [isLoading, setIsLoading] = useState(true);
   const [openPreview, setOpenPreview] = useState(false);
   const [selectedBeneficiaire, setSelectedBeneficiaire] = useState<any>(null);
+
+  // Récupérer l'utilisateur courant pour déterminer les permissions
+    const { user } = useAuth();
+    const grpCode = user?.GRP_CODE || null;
+  
+    // Permissions par groupe (si besoin on peut externaliser)
+    const can = {
+      onAdd: grpCode === "0003",
+      onEdit: grpCode === "0003",
+      onDelete: grpCode === "0003",
+      // onDeleteAll: grpCode === "0003",
+      onView: grpCode === "0003" || grpCode === "0002" || grpCode === "0001",
+      // onValidateVirement: grpCode === "0001",
+      // onStatusUpdate: grpCode === "0001",
+    };
+
+    // Handlers réutilisables (passés au DataTable seulement si permitted)
+  const handleAdd = () => {
+    setIsEditing(false);
+    setEditBeneficiaire(null);
+    setOpenModal(true);
+  };
+
+  const handleEdit = (b: any) => {
+    setIsEditing(true);
+    setEditBeneficiaire(b);
+    setOpenModal(true);
+  };
+
+  const handleDelete = (b: any) => {
+    setBeneficiaireToDelete(b);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handlePrint = () => {
+    window.print(); // Simple impression du contenu
+  };
 
   //  Charger les bénéficiaires depuis l’API
   const fetchBeneficiaires = async () => {
@@ -41,6 +80,18 @@ export default function Beneficiaires() {
       setIsLoading(false);
     }
   };
+
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const displayedPaiements = beneficiaires
+    // Filtrer par recherche si searchTerm non vide
+    .filter((p) =>
+      !searchTerm ||
+      String(p.BEN_MATRICULE).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(p.BEN_CODE).toLowerCase().includes(searchTerm.toLowerCase())  ||
+      String(p.BEN_NOM).toLowerCase().includes(searchTerm.toLowerCase())  ||
+      String(p.BEN_PRENOM).toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   useEffect(() => {
     fetchBeneficiaires();
@@ -81,56 +132,57 @@ export default function Beneficiaires() {
 
   //  Colonnes du tableau
   const columns: Column[] = [
-    {
-      key: "BEN_CODE",
-      title: "CODE",
-      render: (value: string) => {
-        const ben = beneficiaires.find(b => b.BEN_CODE === value);
-        return (
-          <div  className="bg-primary/10 font-semibold text-primary">
-            {ben ? ben.BEN_CODE : "—"}
-          </div>
-        );
-      },
-    },
     // {
-    //   key: "BEN_MATRICULE",
-    //   title: "MATRICULE SOLDE",
+    //   key: "BEN_CODE",
+    //   title: "CODE",
     //   render: (value: string) => {
-    //     const ben = beneficiaires.find(b => b.BEN_MATRICULE === value);
+    //     const ben = beneficiaires.find(b => b.BEN_CODE === value);
     //     return (
     //       <div  className="bg-primary/10 font-semibold text-primary">
-    //         {ben ? ben.BEN_MATRICULE : "—"}
+    //         {ben ? ben.BEN_CODE : "—"}
     //       </div>
     //     );
     //   },
     // },
     {
-          key: "BEN_NOM",
-          title: "BENEFICIAIRE",
-          render: (_, row) => (
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{row.BEN_NOM} {row.BEN_PRENOM}</span>
-              </div>
-            </div>
-          ),
-        },
+      key: "BEN_NOM",
+      title: "BENEFICIAIRE",
+      render: (_, row) => (
+        <div>
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-primary" />
+            <span className="font-medium">{row.BEN_NOM} {row.BEN_PRENOM}</span>
+          </div>
+        </div>
+      ),
+    },
     {
       key: "BEN_SEXE",
       title: "SEXE",
-      render: (value) => (
-        <Badge
-          variant={value === 'M' ? "default" : "secondary"}
-          className={
-            value === 'M'
-              ? "bg-green-500/20 text-green-700"
-              : "bg-red-500/20 text-red-700"
-          }
-        >
-          {value === 'M' ? "Masculin" : "Féminin"}
-        </Badge>
-      ),
+      render: (value) => {
+        if (value !== "M" && value !== "F") {
+          return (
+            <Badge className="bg-gray-500/20 text-gray-700">
+              Non défini
+            </Badge>
+          );
+        }
+
+        const isMale = value === "M";
+
+        return (
+          <Badge
+            variant={isMale ? "default" : "secondary"}
+            className={
+              isMale
+                ? "bg-green-500/20 text-green-700"
+                : "bg-red-500/20 text-red-700"
+            }
+          >
+            {isMale ? "Masculin" : "Féminin"}
+          </Badge>
+        );
+      },
     },
     {
       key: "TYP_CODE",
@@ -206,6 +258,7 @@ export default function Beneficiaires() {
               beneficiaireData={isEditing ? editBeneficiaire : null}
               // onSuccess ferme le modal ; le fetch est géré dans onOpenChange
               onSuccess={() => setOpenModal(false)}
+              onFinish={() => fetchBeneficiaires()}
             />
           </DialogContent>
         </Dialog>
@@ -220,30 +273,21 @@ export default function Beneficiaires() {
 
           {/* Table */}
           <DataTable
-            title={`Enregistrement (${beneficiaires.length})`}
+            title={`Effectif (${displayedPaiements.length})`}
             columns={columns}
-            data={beneficiaires}
-            onAdd={() => {
-              setIsEditing(false);
-              setEditBeneficiaire(null);
-              setOpenModal(true);
-            }}
+            data={displayedPaiements}
+            onAdd={can.onAdd ? handleAdd : undefined}
             onView={(b) => {
               setSelectedBeneficiaire(b);
               setOpenPreview(true);
             }}
-            onEdit={(b) => {
-              setIsEditing(true);
-              setEditBeneficiaire(b);
-              setOpenModal(true);
-            }}
-            onDelete={(b) => {
-              setBeneficiaireToDelete(b);
-              setIsDeleteDialogOpen(true);
-            }}
-            addButtonText="Nouveau bénéficiaire"
+            onEdit={can.onEdit ? handleEdit : undefined}
+            onDelete={can.onDelete ? handleDelete : undefined}
+            addButtonText="Nouveau"
             onDeleteAll={(rows) => (rows)}
             searchPlaceholder="Rechercher un bénéficiaire..."
+            onSearchChange={(value: string) => setSearchTerm(value)}
+            // onPrint={handlePrint}
           />
         </CardContent>
       </Card>

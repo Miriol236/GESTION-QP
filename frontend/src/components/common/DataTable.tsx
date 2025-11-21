@@ -44,6 +44,7 @@ export interface DataTableProps {
   onStatut?: (row: any) => void;
   onManageRoles?: (row: any) => void;
   onPrint?: () => void;
+  onSearchChange?: (value: string) => void;
   // Callback when the user validates virement for selected rows (receives selected rows)
   onValidateVirement?: (rows: any[]) => void;
   // Callback when the user requests a status update for selected rows (receives selected rows)
@@ -79,6 +80,7 @@ export function DataTable({
   onStatut,
   onManageRoles,
   onPrint,
+  onSearchChange,
   onValidateVirement,
   onStatusUpdate,
   onViews,
@@ -145,7 +147,7 @@ export function DataTable({
   }, [filteredData, sortKey, sortDirection]);
 
   const [currentPage, setCurrentPage] = React.useState(1);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [rowsPerPage, setRowsPerPage] = React.useState(50);
 
   // Calcul des données à afficher sur la page actuelle
   const paginatedData = React.useMemo(() => {
@@ -228,26 +230,48 @@ export function DataTable({
                       <ChevronDown className="ml-2 h-4 w-4" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="p-0 w-[220px]">
-                    <Command>
-                      <CommandInput placeholder={`Rechercher ${filterPlaceholder.toLowerCase()}...`} />
-                      <CommandList>
-                        <CommandEmpty>Aucun résultat</CommandEmpty>
-                        <CommandGroup>
-                          <CommandItem onSelect={() => {
+                  <PopoverContent className="p-0 w-[250px]">
+                    <Command className="min-w-[260px] max-w-[380px]">
+                      <CommandGroup>
+                        {/* Option : Afficher tout */}
+                        <CommandItem
+                          onSelect={() => {
                             setSelectedFilter(null);
                             onFilterSelect && onFilterSelect(null);
-                          }}>
-                            Afficher tout
-                          </CommandItem>
-                          {filterItems.map((it: any, idx: number) => (
-                            <CommandItem key={idx} onSelect={() => { setSelectedFilter(it); onFilterSelect && onFilterSelect(it); }}>
-                              <Check className={`mr-2 h-4 w-4 ${selectedFilter === it ? 'opacity-100 text-blue-600' : 'opacity-0'}`} />
+                          }}
+                          className="whitespace-nowrap"
+                        >
+                          <Check
+                            className={`mr-2 h-4 w-4 ${
+                              selectedFilter === null ? "opacity-100 text-blue-600" : "opacity-0"
+                            }`}
+                          />
+                          Afficher tout
+                        </CommandItem>
+
+                        {/* Les filtres */}
+                        {filterItems.map((it: any, idx: number) => {
+                          const isSelected = JSON.stringify(selectedFilter) === JSON.stringify(it);
+
+                          return (
+                            <CommandItem
+                              key={idx}
+                              onSelect={() => {
+                                setSelectedFilter(it);
+                                onFilterSelect && onFilterSelect(it);
+                              }}
+                              className="whitespace-nowrap"
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  isSelected ? "opacity-100 text-blue-600" : "opacity-0"
+                                }`}
+                              />
                               {filterDisplay ? filterDisplay(it) : String(it)}
                             </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
+                          );
+                        })}
+                      </CommandGroup>
                     </Command>
                   </PopoverContent>
                 </Popover>
@@ -257,14 +281,18 @@ export function DataTable({
           <div className="flex items-center gap-4">
             {searchable && (
               <div className="relative w-full sm:w-auto">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder={searchPlaceholder}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-full sm:w-64"
-                  />
-                </div>
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={searchPlaceholder}
+                  value={searchTerm}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSearchTerm(value);              // garde ton état local
+                    onSearchChange?.(value);           // appelle le callback si défini
+                  }}
+                  className="pl-10 w-full sm:w-64"
+                />
+              </div>
             )}
 
             {/*  Bouton "Supprimer la sélection" */}
@@ -397,7 +425,7 @@ export function DataTable({
             <table className="w-full border-collapse">
               <thead className="sticky top-0 z-10 bg-gray-200/90 backdrop-blur-sm shadow-md text-gray-800">
                 <tr>
-                  <th className="px-4 py-2">
+                  <th className="px-4 py-0">
                     <input
                       type="checkbox"
                       checked={
@@ -576,6 +604,14 @@ export function DataTable({
               <option value={5}>5</option>
               <option value={10}>10</option>
               <option value={20}>20</option>
+              <option value={30}>30</option>
+              <option value={40}>40</option>
+              <option value={50}>50</option>
+              <option value={60}>60</option>
+              <option value={70}>70</option>
+              <option value={80}>80</option>
+              <option value={90}>90</option>
+              <option value={100}>100</option>
             </select>
           </div>
 

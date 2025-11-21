@@ -51,6 +51,15 @@ export default function Element() {
       }
   };
 
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const displayed = elements
+    // Filtrer par recherche si searchTerm non vide
+    .filter((p) =>
+      !searchTerm ||
+      String(p.ELT_LIBELLE).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const columns: Column[]  = [
     {
       key: "ELT_LIBELLE",
@@ -164,14 +173,15 @@ export default function Element() {
       </h1>
 
       <DataTable
-        title={`Enregistrements (${elements.length})`}
+        title={`Effectif (${displayed.length})`}
         columns={columns}
-        data={elements}
+        data={displayed}
         onAdd={() => { setEditingElement(null); setIsDialogOpen(true); }}
         onEdit={(u) => { setEditingElement(u); setIsDialogOpen(true); }}
         onDelete={(u) => { setElementToDelete(u); setIsDeleteDialogOpen(true); }}
-        addButtonText="Nouveau élément"
+        addButtonText="Nouveau"
         searchPlaceholder="Rechercher un élément..."
+        onSearchChange={(value: string) => setSearchTerm(value)}
       />
 
       {/* Dialog ajout/modification */}

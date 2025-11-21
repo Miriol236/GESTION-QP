@@ -17,12 +17,12 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Check, ChevronDown, Edit, Trash2, ArrowRight, ArrowLeft, Power } from "lucide-react";
+import { Check, ChevronDown, Edit, Trash2, ArrowRight, ArrowLeft, Power, Plus, X, Save } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { API_URL } from "@/config/api";
 
-export default function BeneficiaireWizard({ onSuccess, beneficiaireData }: { onSuccess?: () => void; beneficiaireData?: any; }) {
+export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFinish }: { onSuccess?: () => void; beneficiaireData?: any; onFinish?: () => void; }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -427,6 +427,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData }: { on
 
   const handleFinish = () => {
     toast.success("Bénéficiaire et domiciliations enregistrés !");
+    if (onFinish) onFinish();
     if (onSuccess) onSuccess();
   };
 
@@ -695,7 +696,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData }: { on
                 {/* Boutons */}
                 <div className="flex flex-col sm:flex-row justify-end mt-5 space-y-2 sm:space-y-0 sm:space-x-4">
                   {beneficiaireData ? (
-                    <Button onClick={handleNextWithUpdate} disabled={loading}>
+                    <Button onClick={handleNextWithUpdate} disabled={!dataReady || loading}>
                       {loading ? (
                         "Mise à jour..."
                       ) : (
@@ -815,7 +816,17 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData }: { on
                         }
                       `}
                     >
-                      {isEditing ? "Mettre à jour" : "Ajouter"}
+                      {isEditing ? (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Mettre à jour
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Ajouter
+                        </>
+                      )}
                     </Button>
 
                     {isEditing && (
@@ -833,6 +844,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData }: { on
                           });
                         }}
                       >
+                        <X className="w-4 h-4 mr-2" />
                         Annuler
                       </Button>
                     )}
@@ -958,7 +970,14 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData }: { on
                   disabled={loading}
                   className="w-full md:w-auto"
                 >
-                  {loading ? "Enregistrement..." : "Terminer"}
+                  {loading ? (
+                    "Enregistrement..."
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Terminer
+                    </>
+                  )}
                 </Button>
               </div>
 

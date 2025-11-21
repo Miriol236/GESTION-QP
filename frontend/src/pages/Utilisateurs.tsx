@@ -119,6 +119,16 @@ export default function Utilisateurs() {
     }
   };
 
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const displayed = utilisateurs
+    // Filtrer par recherche si searchTerm non vide
+    .filter((p) =>
+      !searchTerm ||
+      String(p.UTI_NOM).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(p.UTI_PRENOM).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   //  Colonnes du tableau
   const columns: Column[] = [
     {
@@ -272,15 +282,16 @@ export default function Utilisateurs() {
       </h1>
 
       <DataTable
-        title={`Utilisateurs (${utilisateurs.length})`}
+        title={`Effectif (${displayed.length})`}
         columns={columns}
-        data={utilisateurs}
+        data={displayed}
         onAdd={() => { setEditingUtilisateur(null); setIsDialogOpen(true); }}
         onEdit={(u) => { setEditingUtilisateur(u); setSelectedGroupe(u.GRP_CODE); setSelectedRegie(u.REG_CODE); setIsDialogOpen(true); }}
         onDelete={(u) => { setUtilisateurToDelete(u); setIsDeleteDialogOpen(true); }}
         onToggleStatus={handleToggleStatus}
-        addButtonText="Nouvel utilisateur"
+        addButtonText="Nouveau"
         searchPlaceholder="Rechercher un utilisateur..."
+        onSearchChange={(value: string) => setSearchTerm(value)}
       />
 
       {/* Dialog ajout/modification */}

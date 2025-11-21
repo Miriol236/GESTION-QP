@@ -27,25 +27,73 @@ class PaiementController extends Controller
      */
     public function index()
     {
-        //  Récupère l'utilisateur connecté
         $user = auth()->user();
-
-        //  Vérifie qu'il est bien connecté
         if (!$user) {
             return response()->json(['message' => 'Utilisateur non authentifié.'], 401);
         }
 
-        //  Si l'utilisateur n'a pas de régie, il voit tout
-        if (empty($user->REG_CODE)) {
-            $paiements = Paiement::orderBy('BEN_CODE', 'desc')->get();
-        } else {
-            //  Sinon, il ne voit que les paiements de sa régie
-            $paiements = Paiement::where('REG_CODE', $user->REG_CODE)
-                ->orderBy('BEN_CODE', 'desc')
-                ->get();
-        }
+        // Sous-requête pour calculer total gain et total retenu par paiement
+        $totauxSub = DB::table('T_DETAILS_PAIEMENT')
+            ->join('T_ELEMENTS', 'T_ELEMENTS.ELT_CODE', '=', 'T_DETAILS_PAIEMENT.ELT_CODE')
+            ->select(
+                'T_DETAILS_PAIEMENT.PAI_CODE',
+                DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 1 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS TOTAL_GAIN'),
+                DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 2 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS TOTAL_RETENU'),
+                DB::raw('(SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 1 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) -
+                        SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 2 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END)) AS MONTANT_NET')
+            )
+            ->groupBy('T_DETAILS_PAIEMENT.PAI_CODE');
+
+        // Requête principale
+        $paiements = Paiement::query()
+            ->select(
+                'T_PAIEMENTS.*',
+                'T_BENEFICIAIRES.BEN_MATRICULE',
+                DB::raw("CONCAT(T_BENEFICIAIRES.BEN_NOM, ' ', T_BENEFICIAIRES.BEN_PRENOM) as BENEFICIAIRE"),
+                'T_BENEFICIAIRES.BEN_SEXE',
+                'T_TYPE_BENEFICIAIRES.TYP_LIBELLE as TYPE_BENEFICIAIRE',
+                'T_BANQUES.BNQ_NUMERO',
+                'T_BANQUES.BNQ_LIBELLE',
+                'T_GUICHETS.GUI_CODE',
+                'T_GUICHETS.GUI_NOM',
+                'T_DOMICILIERS.DOM_NUMCPT as NUMERO_DE_COMPTE',
+                'T_DOMICILIERS.DOM_RIB as CLE_RIB',
+                'totaux.TOTAL_GAIN',
+                'totaux.TOTAL_RETENU',
+                'totaux.MONTANT_NET'
+            )
+            ->join('T_BENEFICIAIRES', 'T_BENEFICIAIRES.BEN_CODE', '=', 'T_PAIEMENTS.BEN_CODE')
+            ->leftJoin('T_DOMICILIERS', function($join){
+                $join->on('T_DOMICILIERS.BEN_CODE', '=', 'T_BENEFICIAIRES.BEN_CODE')
+                    ->where('T_DOMICILIERS.DOM_STATUT', true); // RIB actif
+            })
+            ->leftJoin('T_BANQUES', 'T_BANQUES.BNQ_CODE', '=', 'T_DOMICILIERS.BNQ_CODE')
+            ->leftJoin('T_GUICHETS', 'T_GUICHETS.GUI_ID', '=', 'T_DOMICILIERS.GUI_ID')
+            ->leftJoin('T_TYPE_BENEFICIAIRES', 'T_TYPE_BENEFICIAIRES.TYP_CODE', '=', 'T_BENEFICIAIRES.TYP_CODE')
+            ->leftJoinSub($totauxSub, 'totaux', function($join){
+                $join->on('totaux.PAI_CODE', '=', 'T_PAIEMENTS.PAI_CODE');
+            })
+            ->when($user->REG_CODE, fn($q) => $q->where('T_PAIEMENTS.REG_CODE', $user->REG_CODE))
+            ->orderBy('T_PAIEMENTS.BEN_CODE', 'desc')
+            ->get();
 
         return response()->json($paiements);
+    }
+
+    public function getBenStatus()
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Utilisateur non authentifié.'], 401);
+        }
+
+        // Récupérer les bénéficiaires avec au moins un RIB actif
+        $beneficiaires = Beneficiaire::whereHas('domiciliations', function($query) {
+            $query->where('DOM_STATUT', 1);
+        })->get();
+
+        return response()->json($beneficiaires);
     }
 
     /**
@@ -74,6 +122,87 @@ class PaiementController extends Controller
         }
 
         return response()->json($paiement);
+    }
+
+    public function getAll()
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Utilisateur non authentifié.'], 401);
+        }
+
+        // Sous-requête pour calculer total gain et total retenu par paiement
+        $totauxSub = DB::table('T_DETAILS_PAIEMENT')
+            ->join('T_ELEMENTS', 'T_ELEMENTS.ELT_CODE', '=', 'T_DETAILS_PAIEMENT.ELT_CODE')
+            ->select(
+                'T_DETAILS_PAIEMENT.PAI_CODE',
+                DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 1 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS TOTAL_GAIN'),
+                DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 2 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS TOTAL_RETENU'),
+                DB::raw('(SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 1 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) -
+                        SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 2 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END)) AS MONTANT_NET')
+            )
+            ->groupBy('T_DETAILS_PAIEMENT.PAI_CODE');
+
+        $query = Beneficiaire::query()
+            ->join('T_DOMICILIERS', function ($join) {
+                $join->on('T_DOMICILIERS.BEN_CODE', '=', 'T_BENEFICIAIRES.BEN_CODE')
+                    ->where('T_DOMICILIERS.DOM_STATUT', true); // RIB actif uniquement
+            })
+            ->leftJoin('T_PAIEMENTS', 'T_PAIEMENTS.BEN_CODE', '=', 'T_BENEFICIAIRES.BEN_CODE')
+            ->leftJoinSub($totauxSub, 'totaux', function($join){
+                $join->on('totaux.PAI_CODE', '=', 'T_PAIEMENTS.PAI_CODE');
+            })
+            ->leftJoin('T_BANQUES', 'T_BANQUES.BNQ_CODE', '=', 'T_DOMICILIERS.BNQ_CODE')
+            ->leftJoin('T_GUICHETS', 'T_GUICHETS.GUI_ID', '=', 'T_DOMICILIERS.GUI_ID')
+            ->leftJoin('T_TYPE_BENEFICIAIRES', 'T_TYPE_BENEFICIAIRES.TYP_CODE', '=', 'T_BENEFICIAIRES.TYP_CODE')
+            ->leftJoin('T_FONCTIONS', 'T_FONCTIONS.FON_CODE', '=', 'T_BENEFICIAIRES.FON_CODE')
+            ->leftJoin('T_GRADES', 'T_GRADES.GRD_CODE', '=', 'T_BENEFICIAIRES.GRD_CODE')
+            ->leftJoin('T_REGIES', 'T_REGIES.REG_CODE', '=', 'T_PAIEMENTS.REG_CODE')
+            ->select([
+                'T_BENEFICIAIRES.BEN_CODE as CODE',
+                'T_BENEFICIAIRES.BEN_MATRICULE as MATRICULE',
+                DB::raw("CONCAT(T_BENEFICIAIRES.BEN_NOM, ' ', T_BENEFICIAIRES.BEN_PRENOM) as BENEFICIAIRE"),
+                'T_BENEFICIAIRES.BEN_SEXE as SEXE',
+                'T_BANQUES.BNQ_NUMERO',
+                'T_BANQUES.BNQ_LIBELLE as BANQUE',
+                'T_GUICHETS.GUI_CODE',
+                'T_GUICHETS.GUI_NOM',
+                'T_DOMICILIERS.DOM_NUMCPT as NUMERO_DE_COMPTE',
+                'T_DOMICILIERS.DOM_RIB as CLE_RIB',
+                'T_TYPE_BENEFICIAIRES.TYP_LIBELLE as TYPE_BENEFICIAIRE',
+                'T_FONCTIONS.FON_LIBELLE as FONCTION',
+                'T_GRADES.GRD_LIBELLE as GRADE',
+                'T_REGIES.REG_LIBELLE',
+                'totaux.TOTAL_GAIN',
+                'totaux.TOTAL_RETENU',
+                'totaux.MONTANT_NET'
+            ]);
+
+        $beneficiaires = $query->orderBy('T_BENEFICIAIRES.BEN_CODE', 'asc')->get();
+
+        // Formater Banque
+        // $beneficiaires->transform(function ($b) {
+        //     $b->BANQUE = trim(($b->BNQ_NUMERO ? $b->BNQ_NUMERO . ' - ' : '') . ($b->BNQ_LIBELLE ?? '—'));
+        //     unset($b->BNQ_NUMERO, $b->BNQ_LIBELLE);
+        //     return $b;
+        // });
+
+        // Formater Guichet
+        $beneficiaires->transform(function ($g) {
+            $g->GUICHET = trim(($g->GUI_CODE ? $g->GUI_CODE . ' - ' : '') . ($g->GUI_NOM ?? '—'));
+            unset($g->GUI_CODE, $g->GUI_NOM);
+            return $g;
+        });
+
+        // Formater Régie
+        $beneficiaires->transform(function ($r) {
+            $r->REGIE = trim($r->REG_LIBELLE ?? '—');
+            unset($r->REG_LIBELLE);
+            return $r;
+        });
+
+        return response()->json($beneficiaires);
     }
 
     /**
@@ -304,6 +433,13 @@ class PaiementController extends Controller
             return response()->json(['message' => 'Information non trouvée'], 404);
         }
 
+        if ($paiement->PAI_STATUT != 0) {
+            return response()->json([
+                'message' => 'Impossible de supprimer : paiement déjà traité.',
+                'PAI_CODE' => $code
+            ], 400);
+        }
+
         $paiement->delete();
         return response()->json(['message' => 'Informations du bénéficiaire pour le paiement supprimées avec succès']);
     }
@@ -337,28 +473,67 @@ class PaiementController extends Controller
 
     public function validerStatut(Request $request, $id = null)
     {
-        $ids = $request->input('ids', []);
-        if ($id !== null) $ids = [$id];
-        if (empty($ids)) {
-            return response()->json(['message' => 'Aucun identifiant fourni.'], 400);
-        }
+        if ($id) {
+            // Single validation
+            $paiement = Paiement::where('PAI_CODE', $id)->first();
 
-        try {
-            $results = $this->traiterValidationPaiements($ids, function ($paiement, &$results) {
-                if ($paiement->PAI_STATUT == 1) {
-                    $results['failed'][] = ['PAI_CODE' => $paiement->PAI_CODE, 'reason' => 'Déjà validé.'];
-                    return;
+            if (!$paiement) {
+                return response()->json(['message' => 'Paiement introuvable.'], 404);
+            }
+
+            if ($paiement->PAI_STATUT == 1) {
+                return response()->json(['message' => 'Le paiement est déjà marqué comme payé.'], 400);
+            }
+
+            $paiement->PAI_STATUT = 1;
+            $paiement->PAI_DATE_MODIFIER = now();
+            $paiement->PAI_MODIFIER_PAR = auth()->check()
+                ? auth()->user()->UTI_NOM . ' ' . auth()->user()->UTI_PRENOM
+                : 'SYSTEM';
+            $paiement->save();
+
+            return response()->json(['message' => "Statut mis à jour pour $id"]);
+        } else {
+            // Multiple validation
+            $ids = $request->input('ids', []);
+
+            if (!is_array($ids) || count($ids) === 0) {
+                return response()->json(['message' => 'Aucun ID fourni.'], 400);
+            }
+
+            $results = ['success' => [], 'failed' => []];
+
+            DB::beginTransaction();
+            try {
+                $paiements = Paiement::whereIn('PAI_CODE', $ids)->get()->keyBy('PAI_CODE');
+
+                foreach ($ids as $code) {
+                    $paiement = $paiements->get($code);
+                    if (!$paiement) {
+                        $results['failed'][] = ['PAI_CODE' => $code, 'reason' => 'Paiement introuvable.'];
+                        continue;
+                    }
+
+                    if ($paiement->PAI_STATUT == 1) {
+                        $results['failed'][] = ['PAI_CODE' => $code, 'reason' => 'Déjà validé.'];
+                        continue;
+                    }
+
+                    $paiement->PAI_STATUT = 1;
+                    $paiement->PAI_DATE_MODIFIER = now();
+                    $paiement->PAI_MODIFIER_PAR = auth()->check()
+                        ? auth()->user()->UTI_NOM . ' ' . auth()->user()->UTI_PRENOM
+                        : 'SYSTEM';
+                    $paiement->save();
+
+                    $results['success'][] = ['PAI_CODE' => $code];
                 }
 
-                $paiement->PAI_STATUT = 1;
-                $paiement->PAI_DATE_MODIFIER = now();
-                $paiement->PAI_MODIFIER_PAR = auth()->check()
-                    ? auth()->user()->UTI_NOM . ' ' . auth()->user()->UTI_PRENOM
-                    : 'SYSTEM';
-                $paiement->save();
-
-                $results['success'][] = ['PAI_CODE' => $paiement->PAI_CODE];
-            });
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
 
             return response()->json([
                 'message' => 'Validation des statuts terminée.',
@@ -366,41 +541,65 @@ class PaiementController extends Controller
                 'failed' => $results['failed'],
                 'success' => $results['success']
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Erreur lors de la validation des statuts.',
-                'error' => $e->getMessage()
-            ], 500);
         }
     }
 
     public function validerVirement(Request $request, $id = null)
     {
-        $ids = $request->input('ids', []);
-        if ($id !== null) $ids = [$id];
-        if (empty($ids)) {
-            return response()->json(['message' => 'Aucun identifiant fourni.'], 400);
-        }
+        if ($id) {
+            // Single validation
+            $paiement = Paiement::where('PAI_CODE', $id)->first();
 
-        try {
-            $results = $this->traiterValidationPaiements($ids, function ($paiement, &$results) {
-                if ($paiement->PAI_STATUT != 1) {
-                    $results['failed'][] = ['PAI_CODE' => $paiement->PAI_CODE, 'reason' => 'Le paiement doit être validé avant le virement.'];
-                    return;
+            if (!$paiement) {
+                return response()->json(['message' => 'Paiement introuvable.'], 404);
+            }
+
+            if ($paiement->PAI_STATUT != 1) {
+                return response()->json(['message' => 'Le paiement doit être marqué comme payé avant de valider le virement.'], 400);
+            }
+
+            $paiement->PAI_VIREMENT += 1;
+            $paiement->save();
+
+            return response()->json(['message' => "Virement validé pour $id"]);
+        } else {
+            // Multiple validation
+            $ids = $request->input('ids', []);
+
+            if (!is_array($ids) || count($ids) === 0) {
+                return response()->json(['message' => 'Aucun ID fourni.'], 400);
+            }
+
+            $results = ['success' => [], 'failed' => []];
+
+            DB::beginTransaction();
+            try {
+                $paiements = Paiement::whereIn('PAI_CODE', $ids)->get()->keyBy('PAI_CODE');
+
+                foreach ($ids as $code) {
+                    $paiement = $paiements->get($code);
+                    if (!$paiement) {
+                        $results['failed'][] = ['PAI_CODE' => $code, 'reason' => 'Paiement introuvable.'];
+                        continue;
+                    }
+
+                    if ($paiement->PAI_STATUT != 1) {
+                        $results['failed'][] = ['PAI_CODE' => $code, 'reason' => 'Le paiement doit être marqué comme payé avant de valider le virement.'];
+                        continue;
+                    }
+
+                    $paiement->PAI_VIREMENT += 1;
+                    $paiement->PAI_DATE_VIREMENT = now();
+                    $paiement->save();
+
+                    $results['success'][] = ['PAI_CODE' => $code];
                 }
 
-                $paiement->PAI_VIREMENT = ($paiement->PAI_VIREMENT ?? 0) + 1;
-                $paiement->PAI_DATE_MODIFIER = now();
-                $paiement->PAI_MODIFIER_PAR = auth()->check()
-                    ? auth()->user()->UTI_NOM . ' ' . auth()->user()->UTI_PRENOM
-                    : 'SYSTEM';
-                $paiement->save();
-
-                $results['success'][] = [
-                    'PAI_CODE' => $paiement->PAI_CODE,
-                    'nouvelle_valeur_virement' => $paiement->PAI_VIREMENT
-                ];
-            });
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
 
             return response()->json([
                 'message' => 'Validation des virements terminée.',
@@ -408,12 +607,58 @@ class PaiementController extends Controller
                 'failed' => $results['failed'],
                 'success' => $results['success']
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Erreur lors de la validation des virements.',
-                'error' => $e->getMessage()
-            ], 500);
         }
     }
 
+    public function deletePaiement(Request $request)
+    {
+        // Suppression multiple uniquement
+        $ids = $request->input('ids', []);
+
+        if (!is_array($ids) || count($ids) === 0) {
+            return response()->json(['message' => 'Aucun ID fourni.'], 400);
+        }
+
+        $results = ['success' => [], 'failed' => []];
+
+        DB::beginTransaction();
+        try {
+            $paiements = Paiement::whereIn('PAI_CODE', $ids)->get()->keyBy('PAI_CODE');
+
+            foreach ($ids as $code) {
+                $paiement = $paiements->get($code);
+
+                if (!$paiement) {
+                    $results['failed'][] = [
+                        'PAI_CODE' => $code,
+                        'reason' => 'Paiement introuvable.'
+                    ];
+                    continue;
+                }
+
+                if ($paiement->PAI_STATUT != 0) {
+                    $results['failed'][] = [
+                        'PAI_CODE' => $code,
+                        'reason' => 'Impossible de supprimer : paiements déjà traités.'
+                    ];
+                    continue;
+                }
+
+                $paiement->delete();
+                $results['success'][] = ['PAI_CODE' => $code];
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+
+        return response()->json([
+            'message' => 'Suppression terminée.',
+            'deleted' => count($results['success']),
+            'failed' => $results['failed'],
+            'success' => $results['success']
+        ]);
+    }
 }

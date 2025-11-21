@@ -43,6 +43,16 @@ export default function Banques() {
         }
     };
 
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const displayed = banques
+    // Filtrer par recherche si searchTerm non vide
+    .filter((p) =>
+      !searchTerm ||
+      String(p.BNQ_NUMERO).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(p.BNQ_LIBELLE).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const columns: Column[]  = [
     {
         key: "BNQ_NUMERO",
@@ -151,14 +161,15 @@ export default function Banques() {
       </h1>
 
       <DataTable
-        title={`Enregistrements (${banques.length})`}
+        title={`Effectif (${displayed.length})`}
         columns={columns}
-        data={banques}
+        data={displayed}
         onAdd={() => { setEditingBanque(null); setIsDialogOpen(true); }}
         onEdit={(u) => { setEditingBanque(u); setIsDialogOpen(true); }}
         onDelete={(u) => { setBanqueToDelete(u); setIsDeleteDialogOpen(true); }}
-        addButtonText="Nouvelle banque"
+        addButtonText="Nouveau"
         searchPlaceholder="Rechercher une banque..."
+        onSearchChange={(value: string) => setSearchTerm(value)}
       />
 
       {/* Dialog ajout/modification */}

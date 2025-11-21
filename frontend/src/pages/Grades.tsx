@@ -43,6 +43,15 @@ export default function Grades() {
         }
     };
 
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const displayedPaiements = grades
+    // Filtrer par recherche si searchTerm non vide
+    .filter((p) =>
+      !searchTerm ||
+      String(p.GRD_LIBELLE).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const columns: Column[]  = [
     {
       key: "GRD_LIBELLE",
@@ -141,14 +150,15 @@ export default function Grades() {
       </h1>
 
       <DataTable
-        title={`Enregistrements (${grades.length})`}
+        title={`Effectif (${displayedPaiements.length})`}
         columns={columns}
-        data={grades}
+        data={displayedPaiements}
         onAdd={() => { setEditingGrade(null); setIsDialogOpen(true); }}
         onEdit={(u) => { setEditingGrade(u); setIsDialogOpen(true); }}
         onDelete={(u) => { setGradeToDelete(u); setIsDeleteDialogOpen(true); }}
-        addButtonText="Nouveau grade"
+        addButtonText="Nouveau"
         searchPlaceholder="Rechercher un grade..."
+        onSearchChange={(value: string) => setSearchTerm(value)}
       />
 
       {/* Dialog ajout/modification */}

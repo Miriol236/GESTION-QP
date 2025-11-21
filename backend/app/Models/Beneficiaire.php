@@ -28,7 +28,6 @@ class Beneficiaire extends Model
         'TYP_CODE',
         'FON_CODE',
         'GRD_CODE',
-        'REG_CODE',
     ];
 
     /**
@@ -72,12 +71,6 @@ class Beneficiaire extends Model
             //  7. Générer le code final
             $beneficiaire->BEN_CODE = "{$year}{$regSigle}{$newNumber}";
         });
-    }
-
-    //  Relation : un bénéficiaire appartient à une régie
-    public function regie()
-    {
-        return $this->belongsTo(Regie::class, 'REG_CODE', 'REG_CODE');
     }
 
     public function domiciliations()

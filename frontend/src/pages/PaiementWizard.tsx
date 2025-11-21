@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { API_URL } from "@/config/api";
 
-export default function PaiementWizard({ onSuccess, paiementData }: { onSuccess?: () => void; paiementData?: any; }) {
+export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { onSuccess?: () => void; paiementData?: any; onFinish?: () => void; }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -98,7 +98,7 @@ export default function PaiementWizard({ onSuccess, paiementData }: { onSuccess?
       try {
         // Charger les listes (bénéficiaires + éléments + échéances + labels utiles)
         const [b, l, e, t, f, g] = await Promise.all([
-          axios.get(`${API_URL}/beneficiaires`, { headers }),
+          axios.get(`${API_URL}/beneficiaires-rib`, { headers }),
           axios.get(`${API_URL}/elements-publics`, { headers }),
           axios.get(`${API_URL}/echeances-publique`, { headers }),
           axios.get(`${API_URL}/typeBeneficiaires-public`, { headers }),
@@ -343,7 +343,7 @@ export default function PaiementWizard({ onSuccess, paiementData }: { onSuccess?
 
   const handleFinish = () => {
     toast.success("Paiement finalisé avec succès !");
-    if (onSuccess) onSuccess();
+    if (onFinish) onFinish();
   };
 
   // ComboBox réutilisable
@@ -510,7 +510,7 @@ export default function PaiementWizard({ onSuccess, paiementData }: { onSuccess?
                         value={selectedBenef ? (selectedBenef.BEN_SEXE === 'M' ? 'Masculin' : selectedBenef.BEN_SEXE === 'F' ? 'Féminin' : '') : ''}
                         readOnly
                         disabled
-                        className="bg-gray-100 text-gray-700 h-9"
+                        className="bg-gray-100 font-bold text-black h-9"
                       />
                     </div>
 
@@ -520,7 +520,7 @@ export default function PaiementWizard({ onSuccess, paiementData }: { onSuccess?
                         value={selectedBenef ? (types.find(t => t.TYP_CODE === selectedBenef.TYP_CODE)?.TYP_LIBELLE || selectedBenef.TYP_CODE || '') : ''}
                         readOnly
                         disabled
-                        className="bg-gray-100 text-gray-700 h-9"
+                        className="bg-gray-100 font-bold text-black h-9"
                       />
                     </div>
 
@@ -530,7 +530,7 @@ export default function PaiementWizard({ onSuccess, paiementData }: { onSuccess?
                         value={selectedBenef ? (fonctions.find(f => f.FON_CODE === selectedBenef.FON_CODE)?.FON_LIBELLE || selectedBenef.FON_CODE || '') : ''}
                         readOnly
                         disabled
-                        className="bg-gray-100 text-gray-700 h-9"
+                        className="bg-gray-100 font-bold text-black h-9"
                       />
                     </div>
 
@@ -540,7 +540,7 @@ export default function PaiementWizard({ onSuccess, paiementData }: { onSuccess?
                         value={selectedBenef ? (grades.find(g => g.GRD_CODE === selectedBenef.GRD_CODE)?.GRD_LIBELLE || selectedBenef.GRD_CODE || '') : ''}
                         readOnly
                         disabled
-                        className="bg-gray-100 text-gray-700 h-9"
+                        className="bg-gray-100 font-bold text-black h-9"
                       />
                     </div>
                   </div>
@@ -549,15 +549,19 @@ export default function PaiementWizard({ onSuccess, paiementData }: { onSuccess?
                 {/* Buttons placed at the bottom of the block */}
                 <div className="mt-6 flex justify-end">
                   {paiementData ? (
-                    <Button onClick={handleNextWithUpdate} disabled={loading} className="px-4">
-                      {loading ? 'Mise à jour...' : (
-                        <>
-                          Suivant
-                          <motion.div animate={{ x: [0, 3, 0] }} transition={{ repeat: Infinity, duration: 1 }} className="ml-2">
-                            <ArrowRight className="w-4 h-4" />
-                          </motion.div>
-                        </>
-                      )}
+                    <Button 
+                        onClick={handleNextWithUpdate}
+                        disabled={!dataReady || loading} 
+                        className="px-4"
+                    >
+                        {loading ? "Mise à jour..." : (
+                            <>
+                                Suivant
+                                <motion.div animate={{ x: [0, 3, 0] }} transition={{ repeat: Infinity, duration: 1 }} className="ml-2">
+                                    <ArrowRight className="w-4 h-4" />
+                                </motion.div>
+                            </>
+                        )}
                     </Button>
                   ) : (
                     <Button onClick={handleNext} disabled={loading} className="px-4">
@@ -595,7 +599,7 @@ export default function PaiementWizard({ onSuccess, paiementData }: { onSuccess?
                 />
 
                 <div>
-                  <Label>Montant</Label>
+                  <Label>Montant en F CFA</Label>
                   <Input
                     type="number"
                     inputMode="numeric"
@@ -609,8 +613,8 @@ export default function PaiementWizard({ onSuccess, paiementData }: { onSuccess?
                       const sanitized = raw.replace(/[^0-9.-]/g, "");
                       setCurrentDetailsPaiements({ ...currentDetailsPaiements, PAI_MONTANT: sanitized });
                     }}
-                    placeholder="Montant en F CFA"
-                    className="h-9 w-full"
+                    placeholder="Veuillez saisir le montant"
+                    className="h-10 w-full"
                   />
                 </div>
 
@@ -745,7 +749,7 @@ export default function PaiementWizard({ onSuccess, paiementData }: { onSuccess?
                       <thead className="bg-gray-50 sticky top-0 z-10">
                         <tr>
                           <th className="px-3 py-2 text-left">Elémet</th>
-                          <th className="px-3 py-2 text-left">Montant F CFA</th>
+                          <th className="px-3 py-2 text-left">Montant en F CFA</th>
                           <th className="px-3 py-2 text-right">Actions</th>
                         </tr>
                       </thead>

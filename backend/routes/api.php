@@ -117,7 +117,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Routes bénéficiaires
     Route::get('/beneficiaires', [BeneficiaireController::class, 'index'])->middleware('fonctionnalite:0011');
     Route::get('/liste-beneficiaires', [BeneficiaireController::class, 'getAll'])->middleware('fonctionnalite:0012');
-    Route::get('/info-beneficiaires', [BeneficiaireController::class, 'getAll']);
     Route::get('/beneficiaires/{id}', [BeneficiaireController::class, 'show'])->middleware('fonctionnalite:0011');
     Route::post('/beneficiaires', [BeneficiaireController::class, 'store'])->middleware('fonctionnalite:0011');
     Route::post('/domiciliations', [DomicilierController::class, 'store']);
@@ -127,7 +126,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/domiciliations/{DOM_CODE}', [DomicilierController::class, 'update']);
     Route::delete('/domiciliations/{DOM_CODE}', [DomicilierController::class, 'destroy']);
     Route::put('/domiciliations/{id}/toggle', [DomicilierController::class, 'toggleStatus']);
-
+    
     // Routes éléments
     Route::get('/elements', [ElementController::class, 'index'])->middleware('fonctionnalite:0013');
     Route::get('/elements/{id}', [ElementController::class, 'show'])->middleware('fonctionnalite:0013');
@@ -135,20 +134,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/elements/{id}', [ElementController::class, 'update'])->middleware('fonctionnalite:0013');
     Route::delete('/elements/{id}', [ElementController::class, 'destroy'])->middleware('fonctionnalite:0013');
     Route::get('/elements-publics', [ElementController::class, 'indexPublic']);
-
+    
     // Routes paiements
     Route::get('/paiements', [PaiementController::class, 'index'])->middleware('fonctionnalite:0014');
+    Route::get('/beneficiaires-rib', [PaiementController::class, 'getBenStatus']);
+    Route::get('/info-beneficiaires', [PaiementController::class, 'getAll']);
     Route::get('/paiements/{id}', [PaiementController::class, 'show'])->middleware('fonctionnalite:0014');
     Route::post('/paiements', [PaiementController::class, 'store'])->middleware('fonctionnalite:0014');
+    Route::put('/paiements/valider-virement/{id?}', [PaiementController::class, 'validerVirement']);
+    Route::put('/paiements/valider-statut/{id?}', [PaiementController::class, 'validerStatut']);
     Route::put('/paiements/{id}', [PaiementController::class, 'update'])->middleware('fonctionnalite:0014');
+    Route::delete('/paiements/supprimer-virements', [PaiementController::class, 'deletePaiement']);
     Route::delete('/paiements/{id}', [PaiementController::class, 'destroy'])->middleware('fonctionnalite:0014');
-    Route::put('/paiements/valider-statut', [PaiementController::class, 'validerStatut']);
-    Route::put('/paiements/valider-virement', [PaiementController::class, 'validerVirement']);
-
-    Route::put('/paiements/{id}/valider-statut', [PaiementController::class, 'validerStatut']);
-    Route::put('/paiements/{id}/valider-virement', [PaiementController::class, 'validerVirement']);
 
     Route::get('/details-paiement/{PAI_CODE}', [DetailsPaiementController::class, 'showByPaiement']);
+    Route::get('/total-paiement', [DetailsPaiementController::class, 'getTotalsByUser']);
     Route::post('/details-paiement', [DetailsPaiementController::class, 'store']);
     Route::put('/details-paiement/{id}', [DetailsPaiementController::class, 'update']);
     Route::delete('/details-paiement/{id}', [DetailsPaiementController::class, 'destroy']);

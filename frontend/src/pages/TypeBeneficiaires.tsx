@@ -43,6 +43,15 @@ export default function TypeBeneficiaires() {
     }
   };
 
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const displayedPaiements = typeBeneficiaires
+    // Filtrer par recherche si searchTerm non vide
+    .filter((p) =>
+      !searchTerm ||
+      String(p.TYP_LIBELLE).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const columns: Column[]  = [
     {
       key: "TYP_LIBELLE",
@@ -141,14 +150,15 @@ export default function TypeBeneficiaires() {
       </h1>
 
       <DataTable
-        title={`Enregistrements (${typeBeneficiaires.length})`}
+        title={`Effectif (${displayedPaiements.length})`}
         columns={columns}
-        data={typeBeneficiaires}
+        data={displayedPaiements}
         onAdd={() => { setEditingTypeBeneficiaire(null); setIsDialogOpen(true); }}
         onEdit={(u) => { setEditingTypeBeneficiaire(u); setIsDialogOpen(true); }}
         onDelete={(u) => { setTypeBeneficiaireToDelete(u); setIsDeleteDialogOpen(true); }}
-        addButtonText="Nouveau type de bénéficiaires"
+        addButtonText="Nouveau"
         searchPlaceholder="Rechercher un type de bénéficiaires..."
+        onSearchChange={(value: string) => setSearchTerm(value)}
       />
 
       {/* Dialog ajout/modification */}

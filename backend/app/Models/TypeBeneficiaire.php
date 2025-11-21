@@ -29,7 +29,7 @@ class TypeBeneficiaire extends Model
             }
 
             // Formate le code sur 4 chiffres
-            $model->TYP_CODE = str_pad($num, 4, '0', STR_PAD_LEFT);
+            $model->TYP_CODE = str_pad($num, 3, '0', STR_PAD_LEFT);
         });
     }
 

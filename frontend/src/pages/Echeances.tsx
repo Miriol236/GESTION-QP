@@ -43,16 +43,16 @@ export default function Echeances() {
       }
   };
 
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const displayedPaiements = echeances
+    // Filtrer par recherche si searchTerm non vide
+    .filter((p) =>
+      !searchTerm ||
+      String(p.ECH_LIBELLE).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const columns: Column[]  = [
-    {
-      key: "ECH_CODE",
-      title: "CODE",
-      render: (value) => (
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{value}</span>
-        </div>
-      ),
-    },
     {
       key: "ECH_LIBELLE",
       title: "LIBELLE",
@@ -182,15 +182,16 @@ export default function Echeances() {
       </h1>
 
       <DataTable
-        title={`Enregistrements (${echeances.length})`}
+        title={`Effectif (${displayedPaiements.length})`}
         columns={columns}
-        data={echeances}
+        data={displayedPaiements}
         onAdd={() => { setEditingEcheance(null); setIsDialogOpen(true); }}
         onStatut={(u) => { handleActivateEcheance(u); }}
         onEdit={(u) => { setEditingEcheance(u); setIsDialogOpen(true); }}
         onDelete={(u) => { setEcheanceToDelete(u); setIsDeleteDialogOpen(true); }}
-        addButtonText="Nouvelle échéance"
+        addButtonText="Nouveau"
         searchPlaceholder="Rechercher une échéance..."
+        onSearchChange={(value: string) => setSearchTerm(value)}
       />
 
       {/* Dialog ajout/modification */}

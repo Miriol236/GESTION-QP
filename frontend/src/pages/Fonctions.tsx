@@ -43,6 +43,15 @@ export default function Fonctions() {
         }
     };
 
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const displayedPaiements = fonctions
+    // Filtrer par recherche si searchTerm non vide
+    .filter((p) =>
+      !searchTerm ||
+      String(p.FON_LIBELLE).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const columns: Column[]  = [
     {
       key: "FON_LIBELLE",
@@ -141,14 +150,15 @@ export default function Fonctions() {
       </h1>
 
       <DataTable
-        title={`Enregistrements (${fonctions.length})`}
+        title={`Effectif (${displayedPaiements.length})`}
         columns={columns}
-        data={fonctions}
+        data={displayedPaiements}
         onAdd={() => { setEditingFonction(null); setIsDialogOpen(true); }}
         onEdit={(u) => { setEditingFonction(u); setIsDialogOpen(true); }}
         onDelete={(u) => { setFonctionToDelete(u); setIsDeleteDialogOpen(true); }}
-        addButtonText="Nouvelle fonction"
+        addButtonText="Nouveau"
         searchPlaceholder="Rechercher une fonction..."
+        onSearchChange={(value: string) => setSearchTerm(value)}
       />
 
       {/* Dialog ajout/modification */}
