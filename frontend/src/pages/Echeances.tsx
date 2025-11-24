@@ -45,7 +45,7 @@ export default function Echeances() {
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  const displayedPaiements = echeances
+  const displayed = echeances
     // Filtrer par recherche si searchTerm non vide
     .filter((p) =>
       !searchTerm ||
@@ -67,28 +67,9 @@ export default function Echeances() {
       title: "STATUT",
       render: (value: boolean) => (
         <Badge variant={value ? "default" : "secondary"} className={value ? "bg-green-500/20 text-green-700" : ""}>
-          {value ? "En cours" : "___"}
+          {value ? "En cours..." : "Traité"}
         </Badge>
       ),
-    },
-    {
-      key: "ECH_DATE_CREER",
-      title: "DATE DE CREATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key:"ECH_CREER_PAR",
-        title: "CREER PAR",
-    },
-    {
-      key: "ECH_DATE_MODIFIER",
-      title: "DATE DE MODIFICATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key: "ECH_MODIFIER_PAR",
-        title: "MODIFIER PAR",
-        render: (Value) => Value? Value : "_",
     },
   ];
 
@@ -182,9 +163,9 @@ export default function Echeances() {
       </h1>
 
       <DataTable
-        title={`Effectif (${displayedPaiements.length})`}
+        title={`Effectif (${displayed.length})`}
         columns={columns}
-        data={displayedPaiements}
+        data={displayed}
         onAdd={() => { setEditingEcheance(null); setIsDialogOpen(true); }}
         onStatut={(u) => { handleActivateEcheance(u); }}
         onEdit={(u) => { setEditingEcheance(u); setIsDialogOpen(true); }}

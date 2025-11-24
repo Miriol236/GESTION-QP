@@ -29,12 +29,12 @@ class BeneficiaireController extends Controller
         //  Récupère l'utilisateur connecté
         $user = auth()->user();
 
-        $beneficiaires = Beneficiaire::All();
-
         //  Vérifie qu'il est bien connecté
         if (!$user) {
             return response()->json(['message' => 'Utilisateur non authentifié.'], 401);
         }
+
+        $beneficiaires = Beneficiaire::orderBy('BEN_CODE', 'desc')->get();
 
         return response()->json($beneficiaires);
     }

@@ -45,7 +45,7 @@ export default function TypeBeneficiaires() {
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  const displayedPaiements = typeBeneficiaires
+  const displayed = typeBeneficiaires
     // Filtrer par recherche si searchTerm non vide
     .filter((p) =>
       !searchTerm ||
@@ -61,30 +61,6 @@ export default function TypeBeneficiaires() {
           <span className="font-medium">{value}</span>
         </div>
       ),
-    },
-    {
-      key: "TYP_DATE_CREER",
-      title: "DATE DE CREATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key:"TYP_CREER_PAR",
-        title: "CREER PAR",
-    },
-    {
-      key: "TYP_DATE_MODIFIER",
-      title: "DATE DE MODIFICATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key: "TYP_MODIFIER_PAR",
-        title: "MODIFIER PAR",
-        render: (Value) => Value? Value : "_",
-    },
-    {
-        key: "TYP_VERSION",
-        title: "VERSION MODIFIEE",
-        render: (Value) => Value? Value : "_",
     },
   ];
 
@@ -150,9 +126,9 @@ export default function TypeBeneficiaires() {
       </h1>
 
       <DataTable
-        title={`Effectif (${displayedPaiements.length})`}
+        title={`Effectif (${displayed.length})`}
         columns={columns}
-        data={displayedPaiements}
+        data={displayed}
         onAdd={() => { setEditingTypeBeneficiaire(null); setIsDialogOpen(true); }}
         onEdit={(u) => { setEditingTypeBeneficiaire(u); setIsDialogOpen(true); }}
         onDelete={(u) => { setTypeBeneficiaireToDelete(u); setIsDeleteDialogOpen(true); }}

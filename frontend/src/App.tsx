@@ -32,6 +32,8 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+        {/* <BrowserRouter basename="/backend/public"> */}
+        {/* <BrowserRouter basename="/public"> */}
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/login" element={<Login />} />

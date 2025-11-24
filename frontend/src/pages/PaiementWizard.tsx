@@ -21,8 +21,10 @@ import { Check, ChevronDown, Edit, Trash2, ArrowRight, ArrowLeft, Power, Plus, X
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { API_URL } from "@/config/api";
+import { TableSkeleton } from "@/components/loaders/TableSkeleton";
+import { TableSkeletonWizard } from "@/components/loaders/TableSkeletonWizard";
 
-export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { onSuccess?: () => void; paiementData?: any; onFinish?: () => void; }) {
+export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { onSuccess?: () => void; paiementData?: any; onFinish?: () => void; }): JSX.Element {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -184,11 +186,13 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         // Mode modification
         await axios.put(`${API_URL}/paiements/${paiementData.PAI_CODE}`, paiement, { headers });
         toast.success("Paiement mis à jour !");
+        window.dispatchEvent(new Event("totalUpdated"));
         setStep(2);
       } else {
         // Mode création
         const { data } = await axios.post(`${API_URL}/paiements`, paiement, { headers });
         toast.success("Paiement enregistré !");
+        window.dispatchEvent(new Event("totalUpdated"));
         setPaieCode(data.PAI_CODE);
         setStep(2);
 
@@ -257,6 +261,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
       });
 
       toast.success(data.message || "Détails ajoutés !");
+      window.dispatchEvent(new Event("totalUpdated"));
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Erreur lors de l’ajout.");
     }
@@ -418,15 +423,19 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
   const stepTitles = ["Informations du paiement d'un bénéficiaire", "Détails du paiement"];
 
+  if (!dataReady && paiementData) {
+    return <TableSkeletonWizard />;
+  }
+
   return (
     // Structure principale moderne et responsive
     <div className="w-full max-w-4xl lg:max-w-6xl mx-auto p-0 sm:p-8 bg-white rounded-xl shadow-lg ring-1 ring-gray-100">
       {/* Wrapper full-height on mobile so header/footer can be sticky */}
       <div className="flex flex-col h-screen md:h-auto">
-        <div className="p-4 sm:p-8">
+        <div className="p-1 sm:p-1">
 
           {/* Entête dynamique */}
-          <div className="relative mb-4 md:mb-10 sticky top-0 bg-white z-30 py-2">
+          <div className="relative mb-1 md:mb-2 sticky top-0 bg-white z-30 py-1">
             {/* Barre de progression */}
             <div className="absolute top-5 left-0 w-full h-2 bg-gray-100 rounded-full">
               <motion.div
@@ -472,7 +481,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         </div>
 
         {/* Contenu scrollable (évite de perdre l'entête et le footer sur mobile) */}
-        <div className="flex-1 overflow-auto px-4 sm:px-8 pb-28">
+        <div className="flex-1 overflow-auto px-1 sm:px-2 pb-1">
 
           {/* Étape 1 */}
           {step === 1 && (

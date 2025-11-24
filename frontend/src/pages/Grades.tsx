@@ -45,7 +45,7 @@ export default function Grades() {
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  const displayedPaiements = grades
+  const displayed = grades
     // Filtrer par recherche si searchTerm non vide
     .filter((p) =>
       !searchTerm ||
@@ -61,30 +61,6 @@ export default function Grades() {
           <span className="font-medium">{value}</span>
         </div>
       ),
-    },
-    {
-      key: "GRD_DATE_CREER",
-      title: "DATE DE CREATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key:"GRD_CREER_PAR",
-        title: "CREER PAR",
-    },
-    {
-      key: "GRD_DATE_MODIFIER",
-      title: "DATE DE MODIFICATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key: "GRD_MODIFIER_PAR",
-        title: "MODIFIER PAR",
-        render: (Value) => Value? Value : "_",
-    },
-    {
-        key: "GRD_VERSION",
-        title: "VERSION MODIFIEE",
-        render: (Value) => Value? Value : "_",
     },
   ];
 
@@ -150,9 +126,9 @@ export default function Grades() {
       </h1>
 
       <DataTable
-        title={`Effectif (${displayedPaiements.length})`}
+        title={`Effectif (${displayed.length})`}
         columns={columns}
-        data={displayedPaiements}
+        data={displayed}
         onAdd={() => { setEditingGrade(null); setIsDialogOpen(true); }}
         onEdit={(u) => { setEditingGrade(u); setIsDialogOpen(true); }}
         onDelete={(u) => { setGradeToDelete(u); setIsDeleteDialogOpen(true); }}

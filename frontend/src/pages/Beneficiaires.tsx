@@ -83,7 +83,7 @@ export default function Beneficiaires() {
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  const displayedPaiements = beneficiaires
+  const displayed = beneficiaires
     // Filtrer par recherche si searchTerm non vide
     .filter((p) =>
       !searchTerm ||
@@ -273,9 +273,9 @@ export default function Beneficiaires() {
 
           {/* Table */}
           <DataTable
-            title={`Effectif (${displayedPaiements.length})`}
+            title={`Effectif (${displayed.length})`}
             columns={columns}
-            data={displayedPaiements}
+            data={displayed}
             onAdd={can.onAdd ? handleAdd : undefined}
             onView={(b) => {
               setSelectedBeneficiaire(b);

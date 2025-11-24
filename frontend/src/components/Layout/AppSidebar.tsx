@@ -102,14 +102,14 @@ export function AppSidebar() {
     // Chargement initial
     fetchPermissions();
 
-    const handleEcheanceUpdate = () => {
+    const handleDroitUpdate = () => {
       fetchPermissions();
     };
 
-    window.addEventListener("echeanceUpdated", handleEcheanceUpdate);
+    window.addEventListener("droitUpdated", handleDroitUpdate);
 
     return () => {
-      window.removeEventListener("echeanceUpdated", handleEcheanceUpdate);
+      window.removeEventListener("droitUpdated", handleDroitUpdate);
     };
   }, []);
 

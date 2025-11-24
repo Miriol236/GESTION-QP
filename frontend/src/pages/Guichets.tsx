@@ -103,30 +103,6 @@ export default function Guichets() {
         );
       },
     },
-    {
-      key: "GUI_DATE_CREER",
-      title: "DATE DE CREATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key:"GUI_CREER_PAR",
-        title: "CREER PAR",
-    },
-    {
-      key: "GUI_DATE_MODIFIER",
-      title: "DATE DE MODIFICATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key: "GUI_MODIFIER_PAR",
-        title: "MODIFIER PAR",
-        render: (Value) => Value? Value : "_",
-    },
-    {
-        key: "GUI_VERSION",
-        title: "VERSION MODIFIEE",
-        render: (Value) => Value? Value : "_",
-    },
   ];
 
   //  Ajouter ou modifier 

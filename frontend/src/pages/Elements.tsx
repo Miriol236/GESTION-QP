@@ -86,25 +86,6 @@ export default function Element() {
         </Badge>
       ),
     },
-    {
-      key: "ELT_DATE_CREER",
-      title: "DATE DE CREATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key:"ELT_CREER_PAR",
-        title: "CREER PAR",
-    },
-    {
-      key: "ELT_DATE_MODIFIER",
-      title: "DATE DE MODIFICATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key: "ELT_MODIFIER_PAR",
-        title: "MODIFIER PAR",
-        render: (Value) => Value? Value : "_",
-    },
   ];
 
   //  Ajouter ou modifier un élément

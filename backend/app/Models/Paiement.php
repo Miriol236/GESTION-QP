@@ -15,6 +15,7 @@ class Paiement extends Model
     protected $fillable = [
         'PAI_CODE',
         'PAI_BENEFICIAIRE',
+        'TYP_BENEFICIAIRE',
         'PAI_BNQ_NUMERO',
         'PAI_NUMCPT',
         'PAI_GUI_CODE',

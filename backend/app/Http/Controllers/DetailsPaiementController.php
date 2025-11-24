@@ -97,53 +97,85 @@ class DetailsPaiementController extends Controller
     }
 
     public function getTotalsByUser(Request $request)
-    {
-        $user = auth()->user();
+{
+    $user = auth()->user();
 
-        if (!$user) {
-            return response()->json(['message' => 'Utilisateur non authentifié.'], 401);
-        }
-
-        // Paramètre optionnel envoyé depuis le front
-        $ech = $request->input('ech_code');
-
-        // Si aucun ech_code fourni, récupérer l’échéance en cours (statut = true)
-        if (empty($ech)) {
-            $currentEcheance = DB::table('T_ECHEANCES')
-                ->where('ECH_STATUT', true)
-                ->orderBy('ECH_CODE', 'desc')
-                ->first();
-
-            $ech = $currentEcheance?->ECH_CODE ?? null;
-        }
-
-        $query = DB::table('T_DETAILS_PAIEMENT')
-            ->join('T_ELEMENTS', 'T_ELEMENTS.ELT_CODE', '=', 'T_DETAILS_PAIEMENT.ELT_CODE')
-            ->join('T_PAIEMENTS', 'T_PAIEMENTS.PAI_CODE', '=', 'T_DETAILS_PAIEMENT.PAI_CODE')
-            ->select(
-                DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 1 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS TOTAL_GAIN'),
-                DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 2 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS TOTAL_RETENU'),
-                DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 1 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) -
-                        SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 2 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS TOTAL_NET')
-            );
-
-        // Filtrer par régie si user a REG_CODE
-        if (!empty($user->REG_CODE)) {
-            $query->where('T_PAIEMENTS.REG_CODE', $user->REG_CODE);
-        }
-
-        // Filtrer par échéance si disponible
-        if (!empty($ech)) {
-            $query->where('T_PAIEMENTS.ECH_CODE', $ech);
-        }
-
-        $totals = $query->first();
-
-        return response()->json([
-            'total_gain'   => $totals->TOTAL_GAIN ?? 0,
-            'total_retenu' => $totals->TOTAL_RETENU ?? 0,
-            'total_net'    => $totals->TOTAL_NET ?? 0,
-            'ech_code'     => $ech, // optionnel, pour savoir quelle échéance est affichée par défaut
-        ]);
+    if (!$user) {
+        return response()->json(['message' => 'Utilisateur non authentifié.'], 401);
     }
+
+    $ech = $request->input('ech_code');
+
+    if (empty($ech)) {
+        $currentEcheance = DB::table('T_ECHEANCES')
+            // ->where('ECH_STATUT', true)
+            ->orderBy('ECH_CODE', 'desc')
+            ->first();
+
+        $ech = $currentEcheance?->ECH_CODE;
+    }
+
+    // ---- Regrouper les détails par paiement ----
+    $paiements = DB::table('T_DETAILS_PAIEMENT')
+        ->join('T_ELEMENTS', 'T_ELEMENTS.ELT_CODE', '=', 'T_DETAILS_PAIEMENT.ELT_CODE')
+        ->join('T_PAIEMENTS', 'T_PAIEMENTS.PAI_CODE', '=', 'T_DETAILS_PAIEMENT.PAI_CODE')
+        ->select(
+            'T_PAIEMENTS.PAI_CODE',
+            'T_PAIEMENTS.PAI_STATUT',
+            'T_PAIEMENTS.ECH_CODE',
+            DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 1 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS GAIN'),
+            DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 2 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS RETENU')
+        )
+        ->groupBy(
+            'T_PAIEMENTS.PAI_CODE',
+            'T_PAIEMENTS.PAI_STATUT',
+            'T_PAIEMENTS.ECH_CODE'
+        );
+
+    if (!empty($user->REG_CODE)) {
+        $paiements->where('T_PAIEMENTS.REG_CODE', $user->REG_CODE);
+    }
+
+    if (!empty($ech)) {
+        $paiements->where('T_PAIEMENTS.ECH_CODE', $ech);
+    }
+
+    $list = $paiements->get();
+
+    // ---- Calcul propre ----
+    $totalGain = 0;
+    $totalRetenu = 0;
+    $totalNet = 0;
+    $totalPaye = 0;
+
+    foreach ($list as $p) {
+
+        $gain = $p->GAIN ?? 0;
+        $retenu = $p->RETENU ?? 0;
+        $net = $gain - $retenu;
+
+        $totalGain += $gain;
+        $totalRetenu += $retenu;
+        $totalNet += $net;
+
+        if ($p->PAI_STATUT == 1) {
+            $totalPaye += $net; // ⚠️ On paye seulement le NET
+        }
+    }
+
+    // ---- Taux ----
+    $tauxPaiement = ($totalNet > 0)
+        ? round(($totalPaye / $totalNet) * 100, 2)
+        : 0;
+
+    return response()->json([
+        'total_gain'     => $totalGain,
+        'total_retenu'   => $totalRetenu,
+        'total_net'      => $totalNet,
+        'total_paye'     => $totalPaye,
+        'taux_paiement'  => $tauxPaiement,
+        'ech_code'       => $ech,
+    ]);
+}
+
 }

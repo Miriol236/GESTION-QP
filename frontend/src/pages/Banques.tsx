@@ -56,7 +56,7 @@ export default function Banques() {
   const columns: Column[]  = [
     {
         key: "BNQ_NUMERO",
-        title: "NUMERO",
+        title: "NUM",
         render: (value) => (
         <div className="flex items-center gap-2">
           <span className="font-medium">{value}</span>
@@ -71,30 +71,6 @@ export default function Banques() {
           <span className="font-medium">{value}</span>
         </div>
       ),
-    },
-    {
-      key: "BNQ_DATE_CREER",
-      title: "DATE DE CREATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key:"BNQ_CREER_PAR",
-        title: "CREER PAR",
-    },
-    {
-      key: "BNQ_DATE_MODIFIER",
-      title: "DATE DE MODIFICATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key: "BNQ_MODIFIER_PAR",
-        title: "MODIFIER PAR",
-        render: (Value) => Value? Value : "_",
-    },
-    {
-        key: "BNQ_VERSION",
-        title: "VERSION MODIFIEE",
-        render: (Value) => Value? Value : "_",
     },
   ];
 

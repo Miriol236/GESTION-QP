@@ -32,6 +32,7 @@ export default function PaiementPreviewModal({ open, onClose, paiement }: any) {
       total_gain : b.TOTAL_GAIN,
       total_retenu: b.TOTAL_RETENU,
       montant_net: b.MONTANT_NET,
+      statut : b.STATUT,
     };
   };
 
@@ -214,6 +215,18 @@ useEffect(() => {
               <span className="font-semibold text-gray-600">Total Net à payer :</span> {getBeneficiairesInfo(paiement.BEN_CODE)?.montant_net != null
                 ? Number(getBeneficiairesInfo(paiement.BEN_CODE)?.montant_net).toLocaleString("fr-FR")
                 : "—"}
+            </div>
+            <div className="text-sm font-medium text-right"> 
+              <span className="font-semibold text-gray-600">Statut :</span> {getBeneficiairesInfo(paiement.BEN_CODE)?.statut == 1
+                ? (
+                    <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800">
+                      Payé
+                    </span>
+                  ) :  (
+                    <span className="px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-800">
+                      Non Payé
+                    </span>
+                  )}
             </div>
           </div>
           <div>

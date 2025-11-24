@@ -303,7 +303,7 @@ export function DataTable({
                 className="gap-2"
               >
                 <Trash2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Supprimer la sélection ({selectedRows.length})</span>
+                <span className="hidden sm:inline">Supprimer ({selectedRows.length})</span>
               </Button>
             )}
 
@@ -537,12 +537,17 @@ export function DataTable({
                             )}
                             {onToggleStatus && (
                               <Button
-                                variant={row.UTI_STATUT ? "destructive" : "default"}
+                                variant={row.UTI_STATUT ? "secondary" : "outline"}
                                 size="sm"
                                 onClick={() => onToggleStatus(row)}
-                                className="h-8 px-2"
+                                className="h-8 w-8 p-0"
+                                title={row.UTI_STATUT ? "Désactiver" : "Activer"}
                               >
-                                {row.UTI_STATUT ? "Désactiver" : "Activer"}
+                                <Power
+                                  className={`h-4 w-4 ${
+                                    row.UTI_STATUT ? "text-red-500" : "text-green-600"
+                                  }`}
+                                />
                               </Button>
                             )}
                             {onManageRoles && (
@@ -567,7 +572,7 @@ export function DataTable({
                               >
                                 <Power
                                   className={`h-4 w-4 ${
-                                    row.ECH_STATUT ? "text-green-600" : "text-gray-500"
+                                    row.ECH_STATUT ? "text-red-500" : "text-green-600"
                                   }`}
                                 />
                               </Button>

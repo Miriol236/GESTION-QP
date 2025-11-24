@@ -45,7 +45,7 @@ export default function Fonctions() {
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  const displayedPaiements = fonctions
+  const displayed = fonctions
     // Filtrer par recherche si searchTerm non vide
     .filter((p) =>
       !searchTerm ||
@@ -61,30 +61,6 @@ export default function Fonctions() {
           <span className="font-medium">{value}</span>
         </div>
       ),
-    },
-    {
-      key: "FON_DATE_CREER",
-      title: "DATE DE CREATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key:"FON_CREER_PAR",
-        title: "CREER PAR",
-    },
-    {
-      key: "FON_DATE_MODIFIER",
-      title: "DATE DE MODIFICATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key: "FON_MODIFIER_PAR",
-        title: "MODIFIER PAR",
-        render: (Value) => Value? Value : "_",
-    },
-    {
-        key: "FON_VERSION",
-        title: "VERSION MODIFIEE",
-        render: (Value) => Value? Value : "_",
     },
   ];
 
@@ -150,9 +126,9 @@ export default function Fonctions() {
       </h1>
 
       <DataTable
-        title={`Effectif (${displayedPaiements.length})`}
+        title={`Effectif (${displayed.length})`}
         columns={columns}
-        data={displayedPaiements}
+        data={displayed}
         onAdd={() => { setEditingFonction(null); setIsDialogOpen(true); }}
         onEdit={(u) => { setEditingFonction(u); setIsDialogOpen(true); }}
         onDelete={(u) => { setFonctionToDelete(u); setIsDeleteDialogOpen(true); }}

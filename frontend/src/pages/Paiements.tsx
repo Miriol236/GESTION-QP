@@ -132,6 +132,7 @@ export default function Paiements() {
         });
         toast.success("Paiement supprimé avec succès !");
         fetchPaiements();
+        window.dispatchEvent(new Event("totalUpdated"));
       } catch (err: any) {
         toast.error(err?.response?.data?.message || "Suppression échouée" );
       } finally {
@@ -179,6 +180,7 @@ export default function Paiements() {
               if (data.message && data.message.includes("Virement validé")) {
                   toast.success("Virement validé avec succès.");
                   fetchPaiements();
+                  window.dispatchEvent(new Event("totalUpdated"));
               } else {
                   toast.error(data.message || "Erreur lors de la validation du virement.");
               }
@@ -187,6 +189,7 @@ export default function Paiements() {
               if (data.updated > 0) {
                   toast.success(`${data.updated} virement(s) validé(s) avec succès.`);
                   fetchPaiements();
+                  window.dispatchEvent(new Event("totalUpdated"));
               }
 
               if (data.failed && data.failed.length > 0) {
@@ -250,6 +253,7 @@ export default function Paiements() {
       }
 
       fetchPaiements();
+      window.dispatchEvent(new Event("totalUpdated"));
     } catch (err: any) {
       console.error(err);
       toast.error(err?.response?.data?.message || "Erreur lors de la mise à jour du statut.");
@@ -290,6 +294,7 @@ export default function Paiements() {
           if (data.deleted > 0) {
               toast.success(`${data.deleted} paiement(s) supprimé(s) avec succès.`);
               fetchPaiements();
+              window.dispatchEvent(new Event("totalUpdated"));
           }
 
           if (data.failed && data.failed.length > 0) {
@@ -315,64 +320,75 @@ export default function Paiements() {
 
   const [stats, setStats] = useState<Stat[]>([]);
 
+  const fetchTotals = async (ech_code: string | null = null) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      // On ajoute le paramètre ech_code si défini
+      const url = ech_code
+        ? `${API_URL}/total-paiement?ech_code=${ech_code}`
+        : `${API_URL}/total-paiement`;
+
+      const { data } = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const formatAmount = (a: number) =>
+        Number(a).toLocaleString("fr-FR") + " F CFA";
+      const formatPercent = (p: number) => p.toFixed(2) + " %";
+
+      setStats([
+        {
+          title: "Montant Total Gain",
+          value: formatAmount(data.total_gain),
+          icon: DollarSign,
+          color: "text-green-600",
+          bgColor: "bg-green-50",
+        },
+        {
+          title: "Montant Total Retenu",
+          value: formatAmount(data.total_retenu),
+          // description: "Total des retenues",
+          icon: DollarSign,
+          color: "text-red-600",
+          bgColor: "bg-red-50",
+        },
+        {
+          title: "Montant Total Net à Payer",
+          value: formatAmount(data.total_net),
+          // description: "Somme à payer",
+          icon: DollarSign,
+          color: "text-blue-600",
+          bgColor: "bg-blue-50",
+        },
+        {
+          title: "Montant déjà Payé",
+          value: formatAmount(data.total_paye),
+          icon: CheckCheck,
+          color: "text-green-600",
+          bgColor: "bg-green-50",
+        },
+      ]);
+    } catch (error) {
+      console.error("Erreur API:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchTotals = async (ech_code: string | null = null) => {
-      try {
-        const token = localStorage.getItem("token");
-
-        // On ajoute le paramètre ech_code si défini
-        const url = ech_code
-          ? `${API_URL}/total-paiement?ech_code=${ech_code}`
-          : `${API_URL}/total-paiement`;
-
-        const { data } = await axios.get(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const formatAmount = (a: number) =>
-          Number(a).toLocaleString("fr-FR") + " F CFA";
-        const formatPercent = (p: number) => p.toFixed(2) + " %";
-
-        setStats([
-          {
-            title: "Montant Total Gain",
-            value: formatAmount(data.total_gain),
-            icon: DollarSign,
-            color: "text-green-600",
-            bgColor: "bg-green-50",
-          },
-          {
-            title: "Montant Total Retenu",
-            value: formatAmount(data.total_retenu),
-            // description: "Total des retenues",
-            icon: DollarSign,
-            color: "text-red-600",
-            bgColor: "bg-red-50",
-          },
-          {
-            title: "Montant Total Net à Payer",
-            value: formatAmount(data.total_net),
-            // description: "Somme à payer",
-            icon: DollarSign,
-            color: "text-blue-600",
-            bgColor: "bg-blue-50",
-          },
-          // {
-          //   title: "Taux de Paiement",
-          //   value: formatPercent(data.taux_paiement),
-          //   description: "Pourcentage déjà payé",
-          //   icon: CheckCheck,
-          //   color: "text-purple-600",
-          //   bgColor: "bg-purple-50",
-          // },
-        ]);
-      } catch (error) {
-        console.error("Erreur API:", error);
-      }
-    };
-
     // On déclenche le fetch quand selectedEcheance change
     fetchTotals(selectedEcheance ? selectedEcheance.ECH_CODE : null);
+  }, [selectedEcheance]);
+
+  useEffect(() => {
+    const handleTotalUpdated = () => {
+      fetchTotals(selectedEcheance ? selectedEcheance.ECH_CODE : null);
+    };
+
+    window.addEventListener("totalUpdated", handleTotalUpdated);
+
+    return () => {
+      window.removeEventListener("totalUpdated", handleTotalUpdated);
+    };
   }, [selectedEcheance]);
 
   //  Colonnes du tableau
@@ -493,8 +509,11 @@ export default function Paiements() {
           open={openModal}
           onOpenChange={(open) => {
             setOpenModal(open);
-            // When dialog is closed (either by X button or programmatically), refresh the list
-            if (!open) fetchPaiements();
+            // When dialog is closed (either by X button or programmatically), refresh the list and stats
+            if (!open) {
+              fetchPaiements();
+              fetchTotals(selectedEcheance ? selectedEcheance.ECH_CODE : null);
+            }
           }}
         >
           <DialogContent
@@ -514,9 +533,10 @@ export default function Paiements() {
                 setOpenModal(false);
               }}
               onFinish={() => {
-                // Close dialog and refresh table when wizard is finished
+                // Close dialog and refresh table and stats when wizard is finished
                 setOpenModal(false);
                 fetchPaiements();
+                fetchTotals(selectedEcheance ? selectedEcheance.ECH_CODE : null);
               }}
             />
           </DialogContent>
@@ -524,24 +544,27 @@ export default function Paiements() {
       </div>
 
       {/* Statistiques */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2 grid-cols-[repeat(auto-fit,minmax(150px,1fr))]">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.title} className="hover:shadow-md transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className={`${stat.bgColor} p-2 rounded-lg`}>
+            <Card
+              key={stat.title}
+              className="hover:shadow-sm transition-shadow rounded-xl"
+            >
+              <CardHeader className="flex flex-row items-center justify-between p-2 pb-0">
+                <div className={`${stat.bgColor} p-1.5 rounded-md`}>
                   <Icon className={`h-4 w-4 ${stat.color}`} />
                 </div>
-                <CardTitle className="text-sm font-medium">
+                <CardTitle className="text-xs font-semibold text-right">
                   {stat.title}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-xl font-bold text-right">{stat.value}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {/* {stat.description} */}
-                </p>
+
+              <CardContent className="px-2 pb-2">
+                <div className="text-lg font-bold text-right leading-tight">
+                  {stat.value}
+                </div>
               </CardContent>
             </Card>
           );

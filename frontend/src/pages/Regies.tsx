@@ -71,30 +71,6 @@ export default function Regies() {
         key: "REG_SIGLE_CODE",
         title: "SIGLE CODE",
     },
-    {
-      key: "REG_DATE_CREER",
-      title: "DATE DE CREATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key:"REG_CREER_PAR",
-        title: "CREER PAR",
-    },
-    {
-      key: "REG_DATE_MODIFIER",
-      title: "DATE DE MODIFICATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key: "REG_MODIFIER_PAR",
-        title: "MODIFIER PAR",
-        render: (Value) => Value? Value : "_",
-    },
-    {
-        key: "REG_VERSION",
-        title: "VERSION MODIFIEE",
-        render: (Value) => Value? Value : "_",
-    },
   ];
 
   //  Ajouter ou modifier 

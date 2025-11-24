@@ -21,6 +21,7 @@ import { Check, ChevronDown, Edit, Trash2, ArrowRight, ArrowLeft, Power, Plus, X
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { API_URL } from "@/config/api";
+import { TableSkeletonWizard } from "@/components/loaders/TableSkeletonWizard";
 
 export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFinish }: { onSuccess?: () => void; beneficiaireData?: any; onFinish?: () => void; }) {
   const [step, setStep] = useState(1);
@@ -513,15 +514,19 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
 
   const stepTitles = ["Informations du bénéficiaire", "RIB du bénéficiaire"];
 
+  if (!dataReady && beneficiaireData) {
+    return <TableSkeletonWizard />;
+  }
+
   return (
     // Structure principale moderne et responsive
-    <div className="w-full max-w-4xl lg:max-w-6xl mx-auto p-0 sm:p-8 bg-white rounded-xl shadow-lg ring-1 ring-gray-100">
+    <div className="w-full max-w-4xl lg:max-w-6xl mx-auto p-0 sm:p-8 bg-gray-100 rounded-xl shadow-lg ring-1 ring-gray-100">
       {/* Wrapper full-height on mobile so header/footer can be sticky */}
       <div className="flex flex-col h-screen md:h-auto">
-        <div className="p-4 sm:p-8">
+        <div className="p-1 sm:p-1">
 
           {/* Entête dynamique */}
-          <div className="relative mb-4 md:mb-10 sticky top-0 bg-white z-30 py-2">
+          <div className="relative mb-1 md:mb-2 sticky top-0 bg-white z-30 py-1">
             {/* Barre de progression */}
             <div className="absolute top-5 left-0 w-full h-2 bg-gray-100 rounded-full">
               <motion.div
@@ -567,7 +572,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
         </div>
 
         {/* Contenu scrollable (évite de perdre l'entête et le footer sur mobile) */}
-        <div className="flex-1 overflow-auto px-4 sm:px-8 pb-28">
+        <div className="flex-1 overflow-auto px-1 sm:px-2 pb-1">
 
           {/* Étape 1 */}
           {step === 1 && (
@@ -588,7 +593,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                         BEN_MATRICULE: e.target.value.toUpperCase(),
                       })
                     }
-                    className="h-12 text-sm text-gray-900 caret-blue-600 w-full"
+                    className="h-10 text-sm text-gray-900 caret-blue-600 w-full bg-white"
                   />
                 </div>
 
@@ -604,7 +609,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                           BEN_NOM: e.target.value.toUpperCase(), // Conversion auto en MAJ
                         })
                       }
-                      className="h-12 text-sm uppercase text-gray-900 caret-blue-600 w-full" // Affichage en MAJ
+                      className="h-10 text-sm uppercase text-gray-900 caret-blue-600 w-full bg-white" // Affichage en MAJ
                     />
                   </div>
 
@@ -618,7 +623,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                           BEN_PRENOM: e.target.value.toUpperCase(), // Conversion auto en MAJ
                         })
                       }
-                      className="h-12 text-sm uppercase text-gray-900 caret-blue-600 w-full" // Affichage en MAJ
+                      className="h-10 text-sm uppercase text-gray-900 caret-blue-600 w-full bg-white" // Affichage en MAJ
                     />
                   </div>
 
@@ -853,102 +858,110 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
               </div>
 
               {/* Vue mobile (cards) */}
-              <div className="flex flex-col gap-2 md:hidden mb-3">
-                {domiciliations.length === 0 ? (
-                  <div className="p-4 bg-gray-50 rounded-md text-center text-gray-500">Aucune domiciliation ajoutée.</div>
-                ) : (
-                  domiciliations.map((d, i) => (
-                    <div key={i} className="p-2 bg-white rounded-lg shadow-sm border flex flex-col gap-2">
-                      <div className="flex justify-between items-start">
-                        <div className="text-sm font-medium">{getBanqueInfo(d.BNQ_CODE)}</div>
-                        <div className="text-xs">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${d.DOM_STATUT ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-                            {d.DOM_STATUT ? "Actif" : "Inactif"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="text-sm text-gray-600">{getGuichetInfo(d.GUI_ID)}</div>
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <div className="text-xs text-gray-500">N° Compte</div>
-                          <div className="font-medium">{d.DOM_NUMCPT}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs text-gray-500">Clé RIB</div>
-                          <div className="text-blue-600 font-medium">{d.DOM_RIB || "—"}</div>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2 pt-1">
-                        <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(d)} title={d.DOM_STATUT ? "Désactiver" : "Activer"}>
-                          <Power className={`w-4 h-4 ${d.DOM_STATUT ? "text-gray-500" : "text-green-500"}`} />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(d)}>
-                          <Edit className="w-4 h-4 text-blue-500" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => {
-                          setSelectedDomiciliation(d);
-                          setIsDeleteDialogOpen(true);
-                        }}>
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Tableau desktop */}
-              <div className="hidden md:block rounded-xl border bg-white overflow-auto max-h-[360px] shadow-sm">
-                <table className="min-w-full divide-y divide-gray-100 text-sm">
-                  <thead className="bg-gray-50 sticky top-0 z-10">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Banque</th>
-                      <th className="px-3 py-2 text-left">Guichet</th>
-                      <th className="px-3 py-2 text-left">N° Compte</th>
-                      <th className="px-3 py-2 text-left">Clé RIB</th>
-                      <th className="px-3 py-2 text-left">Statut</th>
-                      <th className="px-3 py-2 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
-                    {domiciliations.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="text-center text-gray-500 py-4">Aucune domiciliation ajoutée.</td>
-                      </tr>
-                    ) : (
-                      domiciliations.map((d, i) => (
-                        <tr key={i} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-3 py-2 align-top">{getBanqueInfo(d.BNQ_CODE)}</td>
-                          <td className="px-3 py-2 align-top">{getGuichetInfo(d.GUI_ID)}</td>
-                          <td className="px-3 py-2 font-medium align-top">{d.DOM_NUMCPT}</td>
-                          <td className="px-3 py-2 text-blue-600 font-medium align-top">{d.DOM_RIB || "—"}</td>
-                          <td className="px-3 py-2 align-top">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${d.DOM_STATUT ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
+              {!dataReady ? (
+                <TableSkeletonWizard />
+              ) : (
+                <div className="flex flex-col gap-2 md:hidden mb-3">
+                  {domiciliations.length === 0 ? (
+                    <div className="p-4 bg-gray-50 rounded-md text-center text-gray-500">Aucune domiciliation ajoutée.</div>
+                  ) : (
+                    domiciliations.map((d, i) => (
+                      <div key={i} className="p-2 bg-white rounded-lg shadow-sm border flex flex-col gap-2">
+                        <div className="flex justify-between items-start">
+                          <div className="text-sm font-medium">{getBanqueInfo(d.BNQ_CODE)}</div>
+                          <div className="text-xs">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${d.DOM_STATUT ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
                               {d.DOM_STATUT ? "Actif" : "Inactif"}
                             </span>
-                          </td>
-                          <td className="px-3 py-2 text-right align-top space-x-1">
-                            <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(d)} title={d.DOM_STATUT ? "Désactiver" : "Activer"}>
-                              <Power className={`w-4 h-4 ${d.DOM_STATUT ? "text-gray-500" : "text-green-500"}`} />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleEdit(d)}>
-                              <Edit className="w-4 h-4 text-blue-500" />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => {
-                              setSelectedDomiciliation(d);
-                              setIsDeleteDialogOpen(true);
-                            }}>
-                              <Trash2 className="w-4 h-4 text-red-500" />
-                            </Button>
-                          </td>
+                          </div>
+                        </div>
+
+                        <div className="text-sm text-gray-600">{getGuichetInfo(d.GUI_ID)}</div>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <div className="text-xs text-gray-500">N° Compte</div>
+                            <div className="font-medium">{d.DOM_NUMCPT}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-gray-500">Clé RIB</div>
+                            <div className="text-blue-600 font-medium">{d.DOM_RIB || "—"}</div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-1">
+                          <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(d)} title={d.DOM_STATUT ? "Désactiver" : "Activer"}>
+                            <Power className={`w-4 h-4 ${d.DOM_STATUT ? "text-gray-500" : "text-green-500"}`} />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleEdit(d)}>
+                            <Edit className="w-4 h-4 text-blue-500" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => {
+                            setSelectedDomiciliation(d);
+                            setIsDeleteDialogOpen(true);
+                          }}>
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* Tableau desktop */}
+              {!dataReady ? (
+                <TableSkeletonWizard />
+              ) : (
+                <div className="hidden md:block rounded-xl border bg-white overflow-auto max-h-[360px] shadow-sm">
+                  <table className="min-w-full divide-y divide-gray-100 text-sm">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Banque</th>
+                        <th className="px-3 py-2 text-left">Guichet</th>
+                        <th className="px-3 py-2 text-left">N° Compte</th>
+                        <th className="px-3 py-2 text-left">Clé RIB</th>
+                        <th className="px-3 py-2 text-left">Statut</th>
+                        <th className="px-3 py-2 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-100">
+                      {domiciliations.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="text-center text-gray-500 py-4">Aucune domiciliation ajoutée.</td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      ) : (
+                        domiciliations.map((d, i) => (
+                          <tr key={i} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-3 py-2 align-top">{getBanqueInfo(d.BNQ_CODE)}</td>
+                            <td className="px-3 py-2 align-top">{getGuichetInfo(d.GUI_ID)}</td>
+                            <td className="px-3 py-2 font-medium align-top">{d.DOM_NUMCPT}</td>
+                            <td className="px-3 py-2 text-blue-600 font-medium align-top">{d.DOM_RIB || "—"}</td>
+                            <td className="px-3 py-2 align-top">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${d.DOM_STATUT ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
+                                {d.DOM_STATUT ? "Actif" : "Inactif"}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-right align-top space-x-1">
+                              <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(d)} title={d.DOM_STATUT ? "Désactiver" : "Activer"}>
+                                <Power className={`w-4 h-4 ${d.DOM_STATUT ? "text-gray-500" : "text-green-500"}`} />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleEdit(d)}>
+                                <Edit className="w-4 h-4 text-blue-500" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => {
+                                setSelectedDomiciliation(d);
+                                setIsDeleteDialogOpen(true);
+                              }}>
+                                <Trash2 className="w-4 h-4 text-red-500" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
               {/* Boutons de navigation (desktop) */}
               <div className="flex flex-col md:flex-row justify-between mt-6 gap-2">

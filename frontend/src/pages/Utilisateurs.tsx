@@ -152,6 +152,11 @@ export default function Utilisateurs() {
     {
       key: "UTI_SEXE",
       title: "SEXE",
+      render: (value: string) => {
+        return (
+            value === "M" ? "Masculin" : "Féminin"
+        );
+      },
     },
     {
       key: "GRP_CODE",
@@ -186,30 +191,6 @@ export default function Utilisateurs() {
         </Badge>
       ),
     },
-    {
-      key: "UTI_DATE_CREER",
-      title: "DATE DE CREATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key:"UTI_CREER_PAR",
-        title: "CREER PAR",
-    },
-    {
-      key: "UTI_DATE_MODIFIER",
-      title: "DATE DE MODIFICATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key: "UTI_MODIFIER_PAR",
-        title: "MODIFIER PAR",
-        render: (Value) => Value? Value : "_",
-    },
-    // {
-    //     key: "UTI_VERSION",
-    //     title: "VERSION MODIFIEE",
-    //     render: (Value) => Value? Value : "_",
-    // },
   ];
 
   //  Ajouter ou modifier un utilisateur

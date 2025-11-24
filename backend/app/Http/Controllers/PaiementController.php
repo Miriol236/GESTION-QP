@@ -176,7 +176,8 @@ class PaiementController extends Controller
                 'T_REGIES.REG_LIBELLE',
                 'totaux.TOTAL_GAIN',
                 'totaux.TOTAL_RETENU',
-                'totaux.MONTANT_NET'
+                'totaux.MONTANT_NET',
+                'T_PAIEMENTS.PAI_STATUT as STATUT'
             ]);
 
         $beneficiaires = $query->orderBy('T_BENEFICIAIRES.BEN_CODE', 'asc')->get();

@@ -88,30 +88,6 @@ export default function Groupe() {
         </div>
       ),
     },
-    {
-      key: "GRP_DATE_CREER",
-      title: "DATE DE CREATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key:"GRP_CREER_PAR",
-        title: "CREER PAR",
-    },
-    {
-      key: "GRP_DATE_MODIFIER",
-      title: "DATE DE MODIFICATION",
-      render: (value) => value? new Date(value).toLocaleDateString("fr-FR") : "_",
-    },
-    {
-        key: "GRP_MODIFIER_PAR",
-        title: "MODIFIER PAR",
-        render: (Value) => Value? Value : "_",
-    },
-    {
-        key: "GRP_VERSION",
-        title: "VERSION MODIFIEE",
-        render: (Value) => Value? Value : "_",
-    },
   ];
 
   // === Ajouter ou modifier un groupe ===
@@ -224,7 +200,7 @@ export default function Groupe() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      window.dispatchEvent(new Event("echeanceUpdated"));
+      window.dispatchEvent(new Event("droitUpdated"));
 
       toast({ title: "Droits mis à jour avec succès" });
       setOpenRightsModal(false);

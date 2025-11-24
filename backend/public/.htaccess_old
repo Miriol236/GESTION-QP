@@ -23,15 +23,3 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
-<IfModule mod_mime.c>
-   AddType font/ttf .ttf
-   AddType font/otf .otf
-   AddType application/font-woff .woff
-   AddType application/font-woff2 .woff2
-   AddType application/vnd.ms-fontobject .eot
-</IfModule>
-<IfModule mod_headers.c>
-   <FilesMatch "\.(ttf|ttc|otf|eot|woff|woff2)$">
-      Header set Access-Control-Allow-Origin "https://quotes-parts.oni-car.com"
-   </FilesMatch>
-</IfModule>
