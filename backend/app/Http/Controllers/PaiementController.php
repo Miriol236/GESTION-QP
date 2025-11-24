@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Paiement;
 use App\Models\Beneficiaire;
+use App\Models\Echeance;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -229,80 +230,81 @@ class PaiementController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'ECH_CODE' => 'nullable|string|max:10',
             'BEN_CODE' => 'required|string',
         ]);
 
-        $exist = Paiement::where('BEN_CODE', $request->BEN_CODE)
-            ->where('ECH_CODE', $request->ECH_CODE)->exists();
-        
-        if ($exist) {
-            return response()->json(['message' => 'Ce bénéficiaire est déjà créé dans le paiement pour cette échéance, veuillez consulter ces informations.'], 409);
+        // Récupérer l'échéance active
+        $echeance = Echeance::where('ECH_STATUT', true)->first();
+
+        if (!$echeance) {
+            return response()->json(['message' => 'Aucune échéance active trouvée.'], 404);
         }
 
-         //  Génération automatique du PAI_CODE
-        $dernierPaiement = Paiement::where('ECH_CODE', $request->ECH_CODE)
+        $echCode = $echeance->ECH_CODE;
+
+        // Vérifier si le bénéficiaire existe déjà pour cette échéance
+        $exist = Paiement::where('BEN_CODE', $request->BEN_CODE)
+            ->where('ECH_CODE', $echCode)
+            ->exists();
+        
+        if ($exist) {
+            return response()->json(['message' => 'Ce bénéficiaire est déjà créé dans le paiement pour cette échéance.'], 409);
+        }
+
+        // Génération automatique du PAI_CODE
+        $dernierPaiement = Paiement::where('ECH_CODE', $echCode)
             ->orderBy('PAI_CODE', 'desc')
             ->first();
 
-        // Extraire le numéro d’ordre s’il existe
+        $ordre = 1;
         if ($dernierPaiement && preg_match('/(\d{4})$/', $dernierPaiement->PAI_CODE, $matches)) {
             $ordre = intval($matches[1]) + 1;
-        } else {
-            $ordre = 1;
         }
 
-        // Format du numéro d’ordre sur 4 chiffres
         $numeroOrdre = str_pad($ordre, 4, '0', STR_PAD_LEFT);
-
-        //  Générer le PAI_CODE final
-        $paiementCode = $request->ECH_CODE . $numeroOrdre;
+        $paiementCode = $echCode . $numeroOrdre;
 
         $paiement = new Paiement();
         $paiement->PAI_CODE = $paiementCode;
 
-        //  Récupération du bénéficiaire avec sa domiciliation active
+        // Récupération du bénéficiaire
         $beneficiaire = Beneficiaire::with(['domiciliations' => function ($query) {
-                $query->where('DOM_STATUT', true) //  uniquement le compte actif
-                    ->with(['banque', 'guichet']); //  relations jointes
-            }])
+                $query->where('DOM_STATUT', true)
+                    ->with(['banque', 'guichet']);
+            }, 'typeBeneficiaire'])
             ->where('BEN_CODE', $request->BEN_CODE)
             ->first();
 
         if ($beneficiaire) {
+            $paiement->TYP_BENEFICIAIRE = $beneficiaire->typeBeneficiaire 
+                ? $beneficiaire->typeBeneficiaire->TYP_LIBELLE 
+                : null;
+
             $paiement->PAI_BENEFICIAIRE = trim($beneficiaire->BEN_NOM . ' ' . $beneficiaire->BEN_PRENOM);
 
-            // On prend la première domiciliation active
             $domiciliation = $beneficiaire->domiciliations->first();
-
             if ($domiciliation) {
                 $paiement->PAI_NUMCPT = $domiciliation->DOM_NUMCPT;
                 $paiement->PAI_RIB = $domiciliation->DOM_RIB;
-
-                if ($domiciliation->banque) {
-                    $paiement->PAI_BNQ_NUMERO = $domiciliation->banque->BNQ_NUMERO;
-                }
-
-                if ($domiciliation->guichet) {
-                    $paiement->PAI_GUI_CODE = $domiciliation->guichet->GUI_CODE;
-                }
+                $paiement->PAI_BNQ_NUMERO = $domiciliation->banque?->BNQ_NUMERO;
+                $paiement->PAI_GUI_CODE = $domiciliation->guichet?->GUI_CODE;
             }
         }
 
-        $paiement->PAI_STATUT       = false;
-        $paiement->PAI_VIREMENT     = 0;
-        $paiement->PAI_DATE_CREER   = now();
-        $paiement->PAI_CREER_PAR    = auth()->check()
+        $paiement->PAI_STATUT    = false;
+        $paiement->PAI_VIREMENT  = 0;
+        $paiement->PAI_DATE_CREER = now();
+        $paiement->PAI_CREER_PAR = auth()->check()
             ? auth()->user()->UTI_NOM . ' ' . auth()->user()->UTI_PRENOM
             : 'SYSTEM';
-        $paiement->BEN_CODE         = $request->BEN_CODE;
-        $paiement->REG_CODE         = auth()->check() ? auth()->user()->REG_CODE : 'SYSTEM';
-        $paiement->ECH_CODE         = $request->ECH_CODE;
+        $paiement->BEN_CODE = $request->BEN_CODE;
+        $paiement->REG_CODE = auth()->check() ? auth()->user()->REG_CODE : 'SYSTEM';
+        $paiement->ECH_CODE = $echCode;
 
         $paiement->save();
 
         return response()->json([
-            'message'  => 'Bénéficiaire créé dans paiement avec succès',
+            'message' => 'Bénéficiaire créé dans paiement avec succès',
             'PAI_CODE' => $paiement->PAI_CODE,
         ], 201);
     }

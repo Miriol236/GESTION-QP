@@ -32,7 +32,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   const [types, setTypes] = useState<any[]>([]);
   const [fonctions, setFonctions] = useState<any[]>([]);
   const [grades, setGrades] = useState<any[]>([]);
-  const [echeances, setEcheances] = useState<any[]>([]);
   const [elements, setElements] = useState<any[]>([]);
   const [editId, setEditId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -42,7 +41,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   const [selectedDetailsPaiement, setSelectedDetailsPaiement] = useState<any>(null);
 
   const [paiement, setPaiement] = useState({
-    ECH_CODE: "",
     BEN_CODE: "",
   });
 
@@ -67,7 +65,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         if (!listsLoaded) return;
 
         setPaiement({
-          ECH_CODE: paiementData.ECH_CODE || "",
           BEN_CODE: paiementData.BEN_CODE || "",
         });
 
@@ -99,17 +96,15 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
       try {
         // Charger les listes (bénéficiaires + éléments + échéances + labels utiles)
-        const [b, l, e, t, f, g] = await Promise.all([
+        const [b, l, t, f, g] = await Promise.all([
           axios.get(`${API_URL}/beneficiaires-rib`, { headers }),
           axios.get(`${API_URL}/elements-publics`, { headers }),
-          axios.get(`${API_URL}/echeances-publique`, { headers }),
           axios.get(`${API_URL}/typeBeneficiaires-public`, { headers }),
           axios.get(`${API_URL}/fonctions-public`, { headers }),
           axios.get(`${API_URL}/grades-public`, { headers }),
         ]);
         setBeneficiaires(b.data);
         setElements(l.data);
-        setEcheances(e.data);
         setTypes(t.data);
         setFonctions(f.data);
         setGrades(g.data);
@@ -119,7 +114,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         // Si mode édition
         if (paiementData) {
           setPaiement({
-            ECH_CODE: paiementData.ECH_CODE || "",
             BEN_CODE: paiementData.BEN_CODE || "",
           });
           setPaieCode(paiementData.PAI_CODE);
@@ -172,8 +166,8 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
   // Enregistrement bénéficiaire (étape 1)
   const handleNext = async () => {
-    if (!paiement.ECH_CODE || !paiement.BEN_CODE) {
-      toast.warning("Veuillez remplir tous les champs obligatoires.");
+    if (!paiement.BEN_CODE) {
+      toast.warning("Veuillez choisir un bénéficiaire obligatoire.");
       return;
     }
 
@@ -209,8 +203,8 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   // Met à jour le paiement avant de passer à l'étape 2
   const handleNextWithUpdate = async () => {
     if (!paieCode) return toast.error("Aucun paiement sélectionné !");
-    if (!paiement.ECH_CODE || !paiement.BEN_CODE) {
-      toast.warning("Veuillez remplir tous les champs obligatoires.");
+    if (!paiement.BEN_CODE) {
+      toast.warning("Veuillez choisir un bénéficiaire obligatoire.");
       return;
     }
 
@@ -356,7 +350,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     const [open, setOpen] = useState(false);
     const selected = items.find(
       (i: any) =>
-        i.ECH_CODE === value ||
         i.BEN_CODE === value ||
         i.ELT_CODE === value
     );
@@ -386,14 +379,12 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                     {items.map((item: any) => (
                       <CommandItem
                         key={
-                          item.ECH_CODE ||
                           item.BEN_CODE ||
                           item.ELT_CODE
                         }
                         onSelect={() => {
                           onSelect(
                             item.ELT_CODE ??
-                            item.ECH_CODE ??
                             item.BEN_CODE
                           );
                           setTimeout(() => setOpen(false), 100);
@@ -401,7 +392,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                       >
                         <Check
                           className={`mr-2 h-4 w-4 ${value ===
-                            (item.ECH_CODE ||
+                            (
                               item.BEN_CODE ||
                               item.ELT_CODE)
                             ? "opacity-100 text-blue-600"
@@ -490,17 +481,9 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3 }}
             >
-              {/* Top: selectors (Echéance + Bénéficiaire) */}
+              {/* Top: selectors (Bénéficiaire) */}
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <ComboBox
-                    label="Echéance *"
-                    items={echeances}
-                    value={paiement.ECH_CODE}
-                    onSelect={(v: any) => setPaiement({ ...paiement, ECH_CODE: v })}
-                    display={(f: any) => f.ECH_LIBELLE}
-                  />
-
                   <ComboBox
                     label="Bénéficiaire *"
                     items={beneficiaires}

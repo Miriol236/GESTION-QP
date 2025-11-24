@@ -77,4 +77,9 @@ class Beneficiaire extends Model
     {
         return $this->hasMany(\App\Models\Domicilier::class, 'BEN_CODE', 'BEN_CODE');
     }
+
+    public function typeBeneficiaire()
+    {
+        return $this->belongsTo(TypeBeneficiaire::class, 'TYP_CODE', 'TYP_CODE');
+    }
 }
