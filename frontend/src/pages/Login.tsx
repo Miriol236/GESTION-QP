@@ -44,6 +44,7 @@ export default function Login() {
       toast({
         title: "Connexion réussie",
         description: `Bienvenue ${user.UTI_PRENOM} ${user.UTI_NOM}`,
+        variant: "success",
       });
     } catch (error: any) {
       toast({

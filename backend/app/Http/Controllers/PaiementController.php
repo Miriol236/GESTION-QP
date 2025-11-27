@@ -53,7 +53,7 @@ class PaiementController extends Controller
                 DB::raw("CONCAT(T_BENEFICIAIRES.BEN_NOM, ' ', T_BENEFICIAIRES.BEN_PRENOM) as BENEFICIAIRE"),
                 'T_BENEFICIAIRES.BEN_SEXE',
                 'T_TYPE_BENEFICIAIRES.TYP_LIBELLE as TYPE_BENEFICIAIRE',
-                'T_BANQUES.BNQ_NUMERO',
+                'T_BANQUES.BNQ_CODE',
                 'T_BANQUES.BNQ_LIBELLE',
                 'T_GUICHETS.GUI_CODE',
                 'T_GUICHETS.GUI_NOM',
@@ -165,7 +165,7 @@ class PaiementController extends Controller
                 'T_BENEFICIAIRES.BEN_MATRICULE as MATRICULE',
                 DB::raw("CONCAT(T_BENEFICIAIRES.BEN_NOM, ' ', T_BENEFICIAIRES.BEN_PRENOM) as BENEFICIAIRE"),
                 'T_BENEFICIAIRES.BEN_SEXE as SEXE',
-                'T_BANQUES.BNQ_NUMERO',
+                'T_BANQUES.BNQ_CODE',
                 'T_BANQUES.BNQ_LIBELLE as BANQUE',
                 'T_GUICHETS.GUI_CODE',
                 'T_GUICHETS.GUI_NOM',
@@ -185,8 +185,8 @@ class PaiementController extends Controller
 
         // Formater Banque
         // $beneficiaires->transform(function ($b) {
-        //     $b->BANQUE = trim(($b->BNQ_NUMERO ? $b->BNQ_NUMERO . ' - ' : '') . ($b->BNQ_LIBELLE ?? '—'));
-        //     unset($b->BNQ_NUMERO, $b->BNQ_LIBELLE);
+        //     $b->BANQUE = trim(($b->BNQ_CODE ? $b->BNQ_CODE . ' - ' : '') . ($b->BNQ_LIBELLE ?? '—'));
+        //     unset($b->BNQ_CODE, $b->BNQ_LIBELLE);
         //     return $b;
         // });
 
@@ -286,7 +286,7 @@ class PaiementController extends Controller
             if ($domiciliation) {
                 $paiement->PAI_NUMCPT = $domiciliation->DOM_NUMCPT;
                 $paiement->PAI_RIB = $domiciliation->DOM_RIB;
-                $paiement->PAI_BNQ_NUMERO = $domiciliation->banque?->BNQ_NUMERO;
+                $paiement->PAI_BNQ_CODE = $domiciliation->banque?->BNQ_CODE;
                 $paiement->PAI_GUI_CODE = $domiciliation->guichet?->GUI_CODE;
             }
         }
@@ -346,7 +346,6 @@ class PaiementController extends Controller
         // Validation minimale
         $request->validate([
             'BEN_CODE' => 'required|string',
-            'ECH_CODE' => 'required|string',
         ]);
 
         // Récupération du bénéficiaire avec la domiciliation active
@@ -375,7 +374,7 @@ class PaiementController extends Controller
                 $rib    = $domiciliation->DOM_RIB;
 
                 if ($domiciliation->banque) {
-                    $bnqNumero = $domiciliation->banque->BNQ_NUMERO;
+                    $bnqNumero = $domiciliation->banque->BNQ_CODE;
                 }
 
                 if ($domiciliation->guichet) {
@@ -390,7 +389,7 @@ class PaiementController extends Controller
         // Mise à jour des données
         $paiement->update([
             'PAI_BENEFICIAIRE'  => $nomComplet,
-            'PAI_BNQ_NUMERO'    => $bnqNumero,
+            'PAI_BNQ_CODE'    => $bnqNumero,
             'PAI_GUI_CODE'      => $guiCode,
             'PAI_NUMCPT'        => $numCpt,
             'PAI_RIB'           => $rib,
@@ -401,7 +400,6 @@ class PaiementController extends Controller
             'PAI_VERSION'       => $nouvelleVersion,
             'BEN_CODE'          => $request->BEN_CODE ?? $paiement->BEN_CODE,
             'REG_CODE'          => auth()->check() ? auth()->user()->REG_CODE : $paiement->REG_CODE,
-            'ECH_CODE'          => $request->ECH_CODE ?? $paiement->ECH_CODE,
         ]);
 
         return response()->json([

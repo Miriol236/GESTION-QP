@@ -124,7 +124,7 @@ useEffect(() => {
               <Info label="Code bénéficiaire" value={getBeneficiairesInfo(paiement.BEN_CODE)?.code} /> */}
               <Info label="Matricule solde :" value={getBeneficiairesInfo(paiement.BEN_CODE)?.matricule} />
               <Info label="Bénéficiaire :" value={getBeneficiairesInfo(paiement.BEN_CODE)?.nomComplet} />
-              <Info label="Sexe :" value={getBeneficiairesInfo(paiement.BEN_CODE)?.sexe} />
+              <Info label="Sexe :" value={paiement.BEN_SEXE === "M" ? "Masculin" : paiement.BEN_SEXE === "F" ? "Féminin" : "_"} />
               <Info label="Type bénéficiaire :" value={getBeneficiairesInfo(paiement.BEN_CODE)?.type} />
               <Info label="Fonction :" value={getBeneficiairesInfo(paiement.BEN_CODE)?.fonction} />
               <Info label="Grade :" value={getBeneficiairesInfo(paiement.BEN_CODE)?.grade} />

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('T_GUICHETS', function (Blueprint $table) {
             $table->string('GUI_ID', 10)->primary();
             $table->string('GUI_NOM')->nullable();
-            $table->string('GUI_CODE');
+            $table->string('GUI_CODE', 10);
             $table->date('GUI_DATE_CREER');
             $table->string('GUI_CREER_PAR');
             $table->date('GUI_DATE_MODIFIER')->nullable();

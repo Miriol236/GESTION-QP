@@ -134,7 +134,10 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">;
 
-function toast({ ...props }: Toast) {
+
+type ToastVariant = "default" | "destructive" | "success" | "warning" | "error";
+
+function toast({ variant = "default", ...props }: Toast & { variant?: ToastVariant }) {
   const id = genId();
 
   const update = (props: ToasterToast) =>
@@ -149,6 +152,7 @@ function toast({ ...props }: Toast) {
     toast: {
       ...props,
       id,
+      variant,
       open: true,
       onOpenChange: (open) => {
         if (!open) dismiss();

@@ -62,7 +62,7 @@ class BeneficiaireController extends Controller
                 'T_BENEFICIAIRES.BEN_MATRICULE as MATRICULE',
                 DB::raw("CONCAT(T_BENEFICIAIRES.BEN_NOM, ' ', T_BENEFICIAIRES.BEN_PRENOM) as BENEFICIAIRE"),
                 'T_BENEFICIAIRES.BEN_SEXE as SEXE',
-                'T_BANQUES.BNQ_NUMERO',
+                'T_BANQUES.BNQ_CODE',
                 'T_BANQUES.BNQ_LIBELLE',
                 'T_GUICHETS.GUI_CODE as GUICHET',
                 'T_DOMICILIERS.DOM_NUMCPT as NUMERO_DE_COMPTE',
@@ -77,8 +77,8 @@ class BeneficiaireController extends Controller
 
         // Formater le nom de la banque
         $beneficiaires->transform(function ($b) {
-            $b->BANQUE = trim(($b->BNQ_NUMERO ? $b->BNQ_NUMERO . ' - ' : '') . ($b->BNQ_LIBELLE ?? '—'));
-            unset($b->BNQ_NUMERO, $b->BNQ_LIBELLE);
+            $b->BANQUE = trim(($b->BNQ_CODE ? $b->BNQ_CODE . ' - ' : '') . ($b->BNQ_LIBELLE ?? '—'));
+            unset($b->BNQ_CODE, $b->BNQ_LIBELLE);
             return $b;
         });
 

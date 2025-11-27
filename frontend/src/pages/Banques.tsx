@@ -49,14 +49,14 @@ export default function Banques() {
     // Filtrer par recherche si searchTerm non vide
     .filter((p) =>
       !searchTerm ||
-      String(p.BNQ_NUMERO).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(p.BNQ_CODE).toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(p.BNQ_LIBELLE).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const columns: Column[]  = [
     {
-        key: "BNQ_NUMERO",
-        title: "NUM",
+        key: "BNQ_CODE",
+        title: "CODE",
         render: (value) => (
         <div className="flex items-center gap-2">
           <span className="font-medium">{value}</span>
@@ -81,7 +81,7 @@ export default function Banques() {
     const token = localStorage.getItem("token");
 
     const payload = {
-      BNQ_NUMERO: formData.get("BNQ_NUMERO"),
+      BNQ_CODE: formData.get("BNQ_CODE"),
       BNQ_LIBELLE: formData.get("BNQ_LIBELLE"),
     };
 
@@ -159,8 +159,8 @@ export default function Banques() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label>Numéro <span className="text-red-500">*</span></Label>
-              <Input type="number" name="BNQ_NUMERO" defaultValue={editingBanque?.BNQ_NUMERO || ""} required />
+              <Label>Code <span className="text-red-500">*</span></Label>
+              <Input type="number" name="BNQ_CODE" defaultValue={editingBanque?.BNQ_CODE || ""} required />
             </div>
 
             <div>

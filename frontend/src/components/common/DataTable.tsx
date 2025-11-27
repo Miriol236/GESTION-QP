@@ -231,47 +231,53 @@ export function DataTable({
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="p-0 w-[250px]">
-                    <Command className="min-w-[260px] max-w-[380px]">
-                      <CommandGroup>
-                        {/* Option : Afficher tout */}
-                        <CommandItem
-                          onSelect={() => {
-                            setSelectedFilter(null);
-                            onFilterSelect && onFilterSelect(null);
-                          }}
-                          className="whitespace-nowrap"
-                        >
-                          <Check
-                            className={`mr-2 h-4 w-4 ${
-                              selectedFilter === null ? "opacity-100 text-blue-600" : "opacity-0"
-                            }`}
-                          />
-                          Afficher tout
-                        </CommandItem>
+                    <Command className="min-w-[260px] max-w-[380px]">  
+                      {/* Barre de recherche */}
+                      <CommandInput placeholder="Rechercher..." />
+                      {/* Liste filtrable */}
+                      <CommandList>
+                        <CommandGroup>
+                          {/* Option : Afficher tout */}
+                          <CommandItem
+                            onSelect={() => {
+                              setSelectedFilter(null);
+                              onFilterSelect && onFilterSelect(null);
+                            }}
+                            className="whitespace-nowrap"
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${
+                                selectedFilter === null ? "opacity-100 text-blue-600" : "opacity-0"
+                              }`}
+                            />
+                            Afficher tout
+                          </CommandItem>
 
-                        {/* Les filtres */}
-                        {filterItems.map((it: any, idx: number) => {
-                          const isSelected = JSON.stringify(selectedFilter) === JSON.stringify(it);
+                          {/* Les filtres */}
+                          {filterItems.map((it: any, idx: number) => {
+                            const isSelected =
+                              JSON.stringify(selectedFilter) === JSON.stringify(it);
 
-                          return (
-                            <CommandItem
-                              key={idx}
-                              onSelect={() => {
-                                setSelectedFilter(it);
-                                onFilterSelect && onFilterSelect(it);
-                              }}
-                              className="whitespace-nowrap"
-                            >
-                              <Check
-                                className={`mr-2 h-4 w-4 ${
-                                  isSelected ? "opacity-100 text-blue-600" : "opacity-0"
-                                }`}
-                              />
-                              {filterDisplay ? filterDisplay(it) : String(it)}
-                            </CommandItem>
-                          );
-                        })}
-                      </CommandGroup>
+                            return (
+                              <CommandItem
+                                key={idx}
+                                onSelect={() => {
+                                  setSelectedFilter(it);
+                                  onFilterSelect && onFilterSelect(it);
+                                }}
+                                className="whitespace-nowrap"
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${
+                                    isSelected ? "opacity-100 text-blue-600" : "opacity-0"
+                                  }`}
+                                />
+                                {filterDisplay ? filterDisplay(it) : String(it)}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
                     </Command>
                   </PopoverContent>
                 </Popover>

@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('T_BANQUES', function (Blueprint $table) {
             $table->string('BNQ_CODE', 10)->primary();
             $table->string('BNQ_LIBELLE');
-            $table->string('BNQ_NUMERO');
             $table->date('BNQ_DATE_CREER');
             $table->string('BNQ_CREER_PAR');
             $table->date('BNQ_DATE_MODIFIER')->nullable();

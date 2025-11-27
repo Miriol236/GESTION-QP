@@ -17,18 +17,27 @@ class DetailsPaiement extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            // Récupérer le dernier enregistrement
-            $last = static::orderBy('DET_CODE', 'desc')->first();
+
+            $year = date('Y');
+
+            // Récupère le dernier code de l'année en cours
+            $last = static::where('DET_CODE', 'LIKE', $year . '%')
+                        ->orderBy('DET_CODE', 'desc')
+                        ->first();
 
             if ($last) {
-                // Convertit en entier puis incrémente
-                $num = intval($last->DET_CODE) + 1;
+                // Extraire la partie numéro (après les 4 premiers chiffres)
+                $lastNumber = intval(substr($last->DET_CODE, 4));
+                $num = $lastNumber + 1;
             } else {
                 $num = 1;
             }
 
-            // Formater sur 4 chiffres
-            $model->DET_CODE = str_pad($num, 4, '0', STR_PAD_LEFT); 
+            // Formater numéro sur 4 chiffres
+            $sequence = str_pad($num, 4, '0', STR_PAD_LEFT);
+
+            // Résultat final : AAAA + 0001
+            $model->DET_CODE = $year . $sequence;
         });
     }
 

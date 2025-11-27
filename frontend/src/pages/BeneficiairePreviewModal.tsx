@@ -111,7 +111,7 @@ useEffect(() => {
             <div className="grid grid-cols-4 gap-4 text-sm">
               <Info label="Matricule solde :" value={beneficiaire.BEN_MATRICULE} />
               <Info label="Nom(s) et Prénom(s) :" value={`${beneficiaire.BEN_NOM} ${beneficiaire.BEN_PRENOM}`} />
-              <Info label="Sexe :" value={beneficiaire.BEN_SEXE === "M" ? "Masculin" : beneficiaire.BEN_SEXE === "F" ? "Fémini" : "_"} />
+              <Info label="Sexe :" value={beneficiaire.BEN_SEXE === "M" ? "Masculin" : beneficiaire.BEN_SEXE === "F" ? "Féminin" : "_"} />
               <Info label="Type :" value={getTypesInfo(beneficiaire.TYP_CODE || "—")} />
               <Info label="Fonction :" value={getFonctionsInfo(beneficiaire.FON_CODE || "—")} />
               <Info label="Grade :" value={getGradesInfo(beneficiaire.GRD_CODE || "—")} />

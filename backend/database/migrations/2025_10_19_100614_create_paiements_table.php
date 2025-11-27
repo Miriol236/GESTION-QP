@@ -15,10 +15,12 @@ return new class extends Migration
             $table->string('PAI_CODE', 10)->primary();
             $table->string('PAI_BENEFICIAIRE')->nullable();
             $table->string('TYP_BENEFICIAIRE')->nullable();
-            $table->string('PAI_BNQ_NUMERO', 10)->nullable();
+            $table->string('PAI_BNQ_LIB')->nullable();
+            $table->string('PAI_BNQ_CODE', 10)->nullable();
             $table->string('PAI_GUI_CODE', 10)->nullable();
             $table->string('PAI_NUMCPT')->nullable();
             $table->string('PAI_RIB', 2)->nullable();
+            $table->string('PAI_REG_LIB')->nullable();
             $table->boolean('PAI_STATUT');
             $table->integer('PAI_VIREMENT')->nullable();
             $table->date('PAI_DATE_VIREMENT')->nullable();

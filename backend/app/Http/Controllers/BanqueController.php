@@ -36,7 +36,7 @@ class BanqueController extends Controller
     public function indexPublic()
     {
         return response()->json(
-            \App\Models\Banque::select('BNQ_CODE', 'BNQ_NUMERO', 'BNQ_LIBELLE')
+            \App\Models\Banque::select('BNQ_CODE', 'BNQ_LIBELLE')
                 ->get()
         );
     }
@@ -79,10 +79,10 @@ class BanqueController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
+     *             required={"BNQ_CODE"},
      *             required={"BNQ_LIBELLE"},
-     *             required={"BNQ_NUMERO"},
-     *             @OA\Property(property="BNQ_LIBELLE", type="string"),
-     *             @OA\Property(property="BNQ_NUMERO", type"string")
+     *             @OA\Property(property="BNQ_CODE", type"string"),
+     *             @OA\Property(property="BNQ_LIBELLE", type="string")
      *         )
      *     ),
      *     @OA\Response(response=201, description="Banque créée avec succès"),
@@ -93,10 +93,10 @@ class BanqueController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'BNQ_NUMERO' => 'required|string|max:10|unique:T_BANQUES,BNQ_NUMERO',
+            'BNQ_CODE' => 'required|string|max:10|unique:T_BANQUES,BNQ_CODE',
             'BNQ_LIBELLE' => 'required|string|max:100',
         ],[
-            'BNQ_NUMERO.unique' => 'Une banque avec ce numéro existe déjà.'
+            'BNQ_CODE.unique' => 'Une banque avec ce code existe déjà.'
         ]);
 
         $exists = Banque::where('BNQ_LIBELLE', $request->BNQ_LIBELLE)->exists();
@@ -107,8 +107,8 @@ class BanqueController extends Controller
 
 
         $banque = new Banque();
+        $banque->BNQ_CODE = $request->BNQ_CODE;
         $banque->BNQ_LIBELLE = $request->BNQ_LIBELLE;
-        $banque->BNQ_NUMERO = $request->BNQ_NUMERO;
         $banque->BNQ_DATE_CREER = now();
         $banque->BNQ_CREER_PAR = auth()->check() ? auth()->user()->UTI_NOM." ".auth()->user()->UTI_PRENOM  : 'SYSTEM';
         $banque->save();
@@ -132,8 +132,8 @@ class BanqueController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
+     *             @OA\Property(property="BNQ_CODE", type="string"),
      *             @OA\Property(property="BNQ_LIBELLE", type="string"),
-     *             @OA\Property(property="BNQ_NUMERO", type="string"),
      *         )
      *     ),
      *     @OA\Response(response=200, description="Banque mise à jour avec succès"),
@@ -153,8 +153,8 @@ class BanqueController extends Controller
         $derniereVersion = ($banque->BNQ_VERSION ?? 0) + 1;
 
         $banque->update([
+            'BNQ_CODE' => $request->BNQ_CODE ?? $banque->BNQ_CODE,
             'BNQ_LIBELLE' => $request->BNQ_LIBELLE ?? $banque->BNQ_LIBELLE,
-            'BNQ_NUMERO' => $request->BNQ_NUMERO ?? $banque->BNQ_NUMERO,
             'BNQ_DATE_MODIFIER' => now(),
             'BNQ_MODIFIER_PAR' => auth()->check() ? auth()->user()->UTI_NOM." ".auth()->user()->UTI_PRENOM  : 'SYSTEM',
             'BNQ_VERSION' => $derniereVersion,

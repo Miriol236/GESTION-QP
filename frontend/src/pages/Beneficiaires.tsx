@@ -5,13 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import ConfirmDeleteDialog from "@/components/common/ConfirmDeleteDialog";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import BeneficiaireWizard from "./BeneficiaireWizard";
-import { toast } from "sonner";
 import { API_URL } from "@/config/api";
 import { TableSkeleton } from "@/components/loaders/TableSkeleton";
 import BeneficiairePreviewModal from "./BeneficiairePreviewModal";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { User, ChartColumnIncreasing, CheckCheck } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Beneficiaires() {
   const [beneficiaires, setBeneficiaires] = useState<any[]>([]);
@@ -26,6 +26,7 @@ export default function Beneficiaires() {
   const [isLoading, setIsLoading] = useState(true);
   const [openPreview, setOpenPreview] = useState(false);
   const [selectedBeneficiaire, setSelectedBeneficiaire] = useState<any>(null);
+  const { toast } = useToast();
 
   // Récupérer l'utilisateur courant pour déterminer les permissions
     const { user } = useAuth();
@@ -73,9 +74,12 @@ export default function Beneficiaires() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setBeneficiaires(data);
-    } catch (error) {
-      console.error(error);
-      toast.error("Erreur lors du chargement des bénéficiaires.");
+    } catch (err: any) {
+      toast({
+        title: "Erreur",
+        description:"Erreur lors du chargement des bénéficiaires",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -110,7 +114,11 @@ export default function Beneficiaires() {
         setFonctions(f.data);
         setGrades(g.data);
       })
-      .catch(() => toast.error("Erreur lors du chargement des listes."));
+      .catch(() => toast({
+        title: "Erreur",
+        description: "Erreur lors du chargement des listes.",
+        variant: "destructive",
+      }));
   }, []);
 
   // Suppression
@@ -121,10 +129,18 @@ export default function Beneficiaires() {
         await axios.delete(`${API_URL}/beneficiaires/${beneficiaireToDelete.BEN_CODE}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success("Bénéficiaire supprimé avec succès !");
+        toast({
+          title: "Succès",
+          description: "Bénéficiaire supprimé avec succès !",
+          variant: "success",
+        });
         fetchBeneficiaires();
       } catch (err: any) {
-        toast.error(err?.response?.data?.message || "Suppression échouée" );
+        toast({
+          title: "Erreur",
+          description: err?.response?.data?.message || "Suppression échouée",
+          variant: "destructive",
+        });
       } finally {
         setIsDeleteDialogOpen(false);
       }

@@ -18,11 +18,11 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Check, ChevronDown, Edit, Trash2, ArrowRight, ArrowLeft, Power, Plus, X, Save } from "lucide-react";
-import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { API_URL } from "@/config/api";
 import { TableSkeleton } from "@/components/loaders/TableSkeleton";
 import { TableSkeletonWizard } from "@/components/loaders/TableSkeletonWizard";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { onSuccess?: () => void; paiementData?: any; onFinish?: () => void; }): JSX.Element {
   const [step, setStep] = useState(1);
@@ -39,6 +39,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   const [dataReady, setDataReady] = useState(true); // true par défaut
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedDetailsPaiement, setSelectedDetailsPaiement] = useState<any>(null);
+  const { toast } = useToast();
 
   const [paiement, setPaiement] = useState({
     BEN_CODE: "",
@@ -75,8 +76,12 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
           const headers = { Authorization: `Bearer ${token}` };
           const res = await axios.get(`${API_URL}/details-paiement/${paiementData.PAI_CODE}`, { headers });
           setDetailsPaiements(res.data);
-        } catch {
-          toast.error("Erreur lors du chargement des détails de paiement.");
+        } catch (err: any) {
+          toast({
+            title: "Erreur",
+            description:"Erreur lors du chargement des détails de paiement.",
+            variant: "destructive",
+          });
         }
 
         // Une fois tout prêt — enlever délai artificiel pour accélérer l'affichage
@@ -121,8 +126,12 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
           const domRes = await axios.get(`${API_URL}/details-paiement/${paiementData.PAI_CODE}`, { headers });
           setDetailsPaiements(domRes.data);
         }
-      } catch (err) {
-        toast.error("Erreur lors du chargement des données.");
+      } catch (err: any) {
+        toast({
+          title: "Erreur",
+          description:"Erreur lors du chargement des données.",
+          variant: "destructive",
+        });
       } finally {
         setDataReady(true);
       }
@@ -139,7 +148,11 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
       axios
         .get(`${API_URL}/details-paiement/${paieCode}`, { headers })
         .then((res) => setDetailsPaiements(res.data))
-        .catch(() => toast.error("Erreur lors du chargement des détails."));
+        .catch(() => toast({
+          title: "Erreur",
+          description: "Erreur lors du chargement des détails.",
+          variant: "destructive",
+        }));
     }
   }, [paieCode]);
 
@@ -167,7 +180,11 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   // Enregistrement bénéficiaire (étape 1)
   const handleNext = async () => {
     if (!paiement.BEN_CODE) {
-      toast.warning("Veuillez choisir un bénéficiaire obligatoire.");
+      toast({
+        title: "Avertissement",
+        description: "Veuillez choisir un bénéficiaire obligatoire.",
+        variant: "warning",
+      });
       return;
     }
 
@@ -179,13 +196,21 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
       if (paiementData) {
         // Mode modification
         await axios.put(`${API_URL}/paiements/${paiementData.PAI_CODE}`, paiement, { headers });
-        toast.success("Paiement mis à jour !");
+        toast({
+          title: "Succès",
+          description: "Paiement mis à jour !",
+          variant: "success",
+        });
         window.dispatchEvent(new Event("totalUpdated"));
         setStep(2);
       } else {
         // Mode création
         const { data } = await axios.post(`${API_URL}/paiements`, paiement, { headers });
-        toast.success("Paiement enregistré !");
+        toast({
+          title: "Succès",
+          description: "Paiement enregistré !",
+          variant: "success",
+        });
         window.dispatchEvent(new Event("totalUpdated"));
         setPaieCode(data.PAI_CODE);
         setStep(2);
@@ -194,7 +219,11 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         setDetailsPaiements(res.data);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Erreur lors de l’enregistrement.");
+      toast({
+        title: "Erreur",
+        description: error.response?.data?.message || "Erreur lors de l’enregistrement.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -202,9 +231,18 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
   // Met à jour le paiement avant de passer à l'étape 2
   const handleNextWithUpdate = async () => {
-    if (!paieCode) return toast.error("Aucun paiement sélectionné !");
+    if (!paieCode) 
+      return toast({
+                title: "Erreur",
+                description: "Aucun paiement sélectionné !",
+                variant: "destructive",
+              });
     if (!paiement.BEN_CODE) {
-      toast.warning("Veuillez choisir un bénéficiaire obligatoire.");
+      toast({
+        title: "Avertissement",
+        description: "Veuillez choisir un bénéficiaire obligatoire.",
+        variant: "warning",
+      });
       return;
     }
 
@@ -214,10 +252,18 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
     try {
       await axios.put(`${API_URL}/paiements/${paieCode}`, paiement, { headers });
-      toast.success("Paiement mis à jour !");
+      toast({
+        title: "Succès",
+        description: "Paiement mis à jour !",
+        variant: "success",
+      });
       setStep(2);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Erreur lors de la mise à jour.");
+      toast({
+        title: "Erreur",
+        description: error.response?.data?.message || "Erreur lors de la mise à jour.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -226,9 +272,18 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
   // Ajouter ou modifier un paiement
   const handleAddDetailsPaiement = async () => {
-    if (!paieCode) return toast.error("Aucun paiement lié !");
+    if (!paieCode) 
+      return toast({
+                title: "Erreur",
+                description: "Aucun paiement lié !",
+                variant: "destructive",
+              });
     if (!currentDetailsPaiements.ELT_CODE || !currentDetailsPaiements.PAI_MONTANT) {
-      return toast.error("Veuillez remplir tous les champs.");
+      return toast({
+                title: "Avertissement",
+                description:"Veuillez remplir tous les champs.",
+                variant: "warning",
+              });      
     }
 
     try {
@@ -254,17 +309,29 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         PAI_MONTANT: "",
       });
 
-      toast.success(data.message || "Détails ajoutés !");
+      toast({
+        title: "Succès",
+        description: data.message || "Détails ajoutés !",
+        variant: "success",
+      });
       window.dispatchEvent(new Event("totalUpdated"));
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Erreur lors de l’ajout.");
+      toast({
+        title: "Erreur",
+        description: error?.response?.data?.message || "Erreur lors de l’ajout.",
+        variant: "destructive",
+      });
     }
   };
 
   // Modifier un détail de paiement
   const handleEdit = (d: any) => {
     if (!d || !d.ELT_CODE) {
-      toast.error("Impossible de charger les détails sélectionnés.");
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les détails sélectionnés.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -276,7 +343,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
     setIsEditing(true);
     setEditId(d.DET_CODE);
-    toast.info("Vous pouvez maintenant modifier les détails du paiement.");
   };
 
   // Supprimer un détail de paiement
@@ -292,9 +358,17 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         prev.filter((item) => item.DET_CODE !== selectedDetailsPaiement.DET_CODE)
       );
 
-        toast.success("Détail de paiement supprimé !");
+        toast({
+          title: "Succès",
+          description: "Détail de paiement supprimé !",
+          variant: "success",
+        });
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Erreur lors de la suppression.");
+      toast({
+        title: "Erreur",
+        description: error?.response?.data?.message || "Erreur lors de la suppression.",
+        variant: "destructive",
+      });
     } finally {
       setIsDeleteDialogOpen(false);
       setSelectedDetailsPaiement(null);
@@ -302,9 +376,18 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   };
 
   const handleUpdateDetailsPaiement = async () => {
-    if (!editId) return toast.error("Aucun détail sélectionné !");
+    if (!editId) 
+      return toast({
+                title: "Erreur",
+                description: "Aucun détail sélectionné !",
+                variant: "destructive",
+              });
     if (!currentDetailsPaiements.ELT_CODE || !currentDetailsPaiements.PAI_MONTANT) {
-      return toast.warning("Veuillez remplir tous les champs.");
+      return toast({
+                title: "Avertissement",
+                description: "Veuillez remplir tous les champs.",
+                variant: "warning",
+              });
     }
 
     try {
@@ -318,7 +401,11 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      toast.success(data.message || "Détails mis à jour !");
+      toast({
+        title: "Succès",
+        description: data.message || "Détails mis à jour !",
+        variant: "success",
+      });
         setIsEditing(false);
         setEditId(null);
 
@@ -336,12 +423,20 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         PAI_MONTANT: "",
       });
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Erreur lors de la mise à jour.");
+      toast({
+        title: "Erreur",
+        description: error?.response?.data?.message || "Erreur lors de la mise à jour.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleFinish = () => {
-    toast.success("Paiement finalisé avec succès !");
+    toast({
+      title: "Succès",
+      description: "Paiement finalisé avec succès !",
+      variant: "success",
+    });
     if (onFinish) onFinish();
   };
 

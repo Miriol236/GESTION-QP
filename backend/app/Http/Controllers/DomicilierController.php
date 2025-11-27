@@ -43,7 +43,7 @@ class DomicilierController extends Controller
         }
 
         // Codes sur 5 chiffres
-        $codeBanque  = str_pad($banque->BNQ_NUMERO ?? '00000', 5, '0', STR_PAD_LEFT);
+        $codeBanque  = str_pad($banque->BNQ_CODE ?? '00000', 5, '0', STR_PAD_LEFT);
         $codeGuichet = str_pad($guichet->GUI_CODE ?? '00000', 5, '0', STR_PAD_LEFT);
 
         // Numéro de compte original
@@ -120,7 +120,7 @@ class DomicilierController extends Controller
             ->join('T_GUICHETS', 'T_GUICHETS.GUI_ID', '=', 'T_DOMICILIERS.GUI_ID')
             ->select(
                 'T_DOMICILIERS.*',
-                'T_BANQUES.BNQ_NUMERO',
+                'T_BANQUES.BNQ_CODE',
                 'T_BANQUES.BNQ_LIBELLE',
                 'T_GUICHETS.GUI_CODE',
                 'T_GUICHETS.GUI_NOM'
@@ -174,7 +174,7 @@ class DomicilierController extends Controller
         }
 
         //  Codes sur 5 chiffres
-        $codeBanque  = str_pad($banque->BNQ_NUMERO ?? '00000', 5, '0', STR_PAD_LEFT);
+        $codeBanque  = str_pad($banque->BNQ_CODE ?? '00000', 5, '0', STR_PAD_LEFT);
         $codeGuichet = str_pad($guichet->GUI_CODE ?? '00000', 5, '0', STR_PAD_LEFT);
 
         //  Numéro de compte saisi (on garde les caractères spéciaux pour l’affichage)

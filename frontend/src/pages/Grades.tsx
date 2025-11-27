@@ -79,12 +79,20 @@ export default function Grades() {
         await axios.put(`${API_URL}/grades/${editingGrade.GRD_CODE}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Grade modifié avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Grade modifié avec succès",
+          variant: "success",
+        });
       } else {
         await axios.post(`${API_URL}/grades`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Grade ajouté avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Grade ajouté avec succès",
+          variant: "success",
+        });
       }
       fetchGrades();
       setIsDialogOpen(false);
@@ -106,7 +114,11 @@ export default function Grades() {
       await axios.delete(`${API_URL}/grades/${gradeToDelete.GRD_CODE}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast({ title: "Grade supprimé avec succès" });
+      toast({ 
+        title: "Succès",
+        description: "Grade supprimé avec succès",
+        variant: "success",
+      });
       fetchGrades();
     } catch (err: any) {
       toast({ title: "Erreur", description: err?.response?.data?.message || "Suppression échouée", variant: "destructive" });

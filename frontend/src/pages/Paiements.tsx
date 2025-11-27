@@ -6,13 +6,13 @@ import ConfirmDeleteDialog from "@/components/common/ConfirmDeleteDialog";
 import ConfirmValidateDialog from "@/components/common/ConfirmValidateDialog";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import PaiementWizard from "./PaiementWizard";
-import { toast } from "sonner";
 import { API_URL } from "@/config/api";
 import { TableSkeleton } from "@/components/loaders/TableSkeleton";
 import { User, DollarSign, CheckCheck, Banknote } from "lucide-react";
 import PaiementPreviewModal from "./PaiementPreviewModal";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Paiements() {
   const [paiements, setPaiements] = useState<any[]>([]);
@@ -34,6 +34,7 @@ export default function Paiements() {
   const [isLoading, setIsLoading] = useState(true);
   const [openPreview, setOpenPreview] = useState(false);
   const [selectedPaiement, setSelectedPaiement] = useState<any>(null);
+  const { toast } = useToast();
 
   // Récupérer l'utilisateur courant pour déterminer les permissions
   const { user } = useAuth();
@@ -46,8 +47,8 @@ export default function Paiements() {
     onDelete: grpCode === "0003",
     onDeleteAll: grpCode === "0003",
     onViews: grpCode === "0003" || grpCode === "0002" || grpCode === "0001",
-    onValidateVirement: grpCode === "0001",
-    onStatusUpdate: grpCode === "0001",
+    // onValidateVirement: grpCode === "0001",
+    // onStatusUpdate: grpCode === "0001",
   };
 
   // Handlers réutilisables (passés au DataTable seulement si permitted)
@@ -78,8 +79,11 @@ export default function Paiements() {
       });
       setPaiements(data);
     } catch (error) {
-      console.error(error);
-      toast.error("Erreur lors du chargement des paiements.");
+      toast({
+        title: "Erreur",
+        description:"Erreur lors du chargement des paiements.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -100,7 +104,11 @@ export default function Paiements() {
         setBeneficiaires(b.data);
         setEcheances(e.data);
       })
-      .catch(() => toast.error("Erreur lors du chargement des listes."));
+      .catch(() => toast({
+        title: "Erreur",
+        description: "Erreur lors du chargement des listes.",
+        variant: "destructive",
+      }));
   }, []);
 
   // Data displayed in the table, filtered by selected echeance if any
@@ -130,26 +138,38 @@ export default function Paiements() {
         await axios.delete(`${API_URL}/paiements/${paiementToDelete.PAI_CODE}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast.success("Paiement supprimé avec succès !");
+        toast({
+          title: "Succès",
+          description: "Paiement supprimé avec succès !",
+          variant: "success",
+        });
         fetchPaiements();
         window.dispatchEvent(new Event("totalUpdated"));
       } catch (err: any) {
-        toast.error(err?.response?.data?.message || "Suppression échouée" );
+        toast({
+          title: "Erreur",
+          description: err?.response?.data?.message || "Suppression échouée",
+          variant: "destructive",
+        });
       } finally {
         setIsDeleteDialogOpen(false);
       }
     };
 
   // Valider virement pour les lignes sélectionnées (appelée depuis DataTable)
-  const handleValidateVirement = (rows: any[]) => {
-      if (!rows || rows.length === 0) {
-          toast.error("Aucun paiement sélectionné !");
-          return;
-      }
+  // const handleValidateVirement = (rows: any[]) => {
+  //     if (!rows || rows.length === 0) {
+  //         toast({
+  //           title: "Erreur",
+  //           description: "Aucun paiement sélectionné.",
+  //           variant: "destructive",
+  //         });
+  //         return;
+  //     }
 
-      setSelectedRowsForVirement(rows);
-      setIsValidateVirementDialogOpen(true);
-  };
+  //     setSelectedRowsForVirement(rows);
+  //     setIsValidateVirementDialogOpen(true);
+  // };
 
   const handleConfirmValidateVirement = async () => {
       if (!selectedRowsForVirement || selectedRowsForVirement.length === 0) return;
@@ -178,28 +198,47 @@ export default function Paiements() {
           if (selectedRowsForVirement.length === 1) {
               // Single validation
               if (data.message && data.message.includes("Virement validé")) {
-                  toast.success("Virement validé avec succès.");
+                  toast({
+                    title: "Succès",
+                    description: data?.message || "Virement validé avec succès",
+                    variant: "success",
+                  });
                   fetchPaiements();
                   window.dispatchEvent(new Event("totalUpdated"));
               } else {
-                  toast.error(data.message || "Erreur lors de la validation du virement.");
+                  toast({
+                    title: "Erreur",
+                    description: data?.message || "Erreur lors de validation du virement.",
+                    variant: "destructive",
+                  });
               }
           } else {
               // Bulk validation
               if (data.updated > 0) {
-                  toast.success(`${data.updated} virement(s) validé(s) avec succès.`);
+                  toast({
+                    title: "Succès",
+                    description: (`${data.updated} virement(s) validé(s) avec succès.`),
+                    variant: "success",
+                  });
                   fetchPaiements();
                   window.dispatchEvent(new Event("totalUpdated"));
               }
 
               if (data.failed && data.failed.length > 0) {
                   const failedMessages = data.failed.map((f: any) => `${f.PAI_CODE}: ${f.reason}`).join(', ');
-                  toast.error(`Échecs de validation: ${failedMessages}`);
+                  toast({
+                    title: "Erreur",
+                    description: (`Échecs de validation: ${failedMessages}`),
+                    variant: "destructive",
+                  });
               }
           }
       } catch (err: any) {
-          console.error(err);
-          toast.error(err?.response?.data?.message || "Erreur lors de la validation des virements.");
+          toast({
+            title: "Erreur",
+            description: err?.response?.data?.message || "Erreur lors de la validation des virements.",
+            variant: "destructive",
+          });
       } finally {
           setIsValidateVirementDialogOpen(false);
           setSelectedRowsForVirement([]);
@@ -207,15 +246,19 @@ export default function Paiements() {
   };
 
   // Mettre à jour le statut pour les lignes sélectionnées (appelée depuis DataTable)
-  const handleStatusUpdate = (rows: any[]) => {
-    if (!rows || rows.length === 0) {
-      toast.error("Aucun paiement sélectionné !");
-      return;
-    }
+  // const handleStatusUpdate = (rows: any[]) => {
+  //   if (!rows || rows.length === 0) {
+  //     toast({
+  //       title: "Erreur",
+  //       description: "Aucun paiement sélectionné !",
+  //       variant: "destructive",
+  //     });
+  //     return;
+  //   }
 
-    setSelectedRowsForStatus(rows);
-    setIsValidateStatusDialogOpen(true);
-  };
+  //   setSelectedRowsForStatus(rows);
+  //   setIsValidateStatusDialogOpen(true);
+  // };
 
   const handleConfirmValidateStatus = async () => {
     if (!selectedRowsForStatus || selectedRowsForStatus.length === 0) return;
@@ -241,22 +284,38 @@ export default function Paiements() {
 
       // Afficher un toast success pour chaque scénario
       if (selectedRowsForStatus.length === 1) {
-        toast.success(`Statut du paiement ${selectedRowsForStatus[0].PAI_CODE} mis à jour avec succès.`);
+        toast({
+          title: "Succès",
+          description: (`Statut du paiement ${selectedRowsForStatus[0].PAI_CODE} mis à jour avec succès.`),
+          variant: "success",
+        });
       } else if (data.updated > 0) {
-        toast.success(`${data.updated} statut(s) mis à jour avec succès.`);
+        toast({
+          title: "Succès",
+          description: (`${data.updated} statut(s) mis à jour avec succès.`),
+          variant: "success",
+        });
       }
 
       // Gestion des échecs
       if (data.failed && data.failed.length > 0) {
         const failedMessages = data.failed.map((f: any) => `${f.PAI_CODE}: ${f.reason}`).join(', ');
-        toast.error(`Échecs de mise à jour: ${failedMessages}`);
+        toast({
+          title: "Erreur",
+          description: (`Échecs de mise à jour: ${failedMessages}`),
+          variant: "destructive",
+        });
       }
 
       fetchPaiements();
       window.dispatchEvent(new Event("totalUpdated"));
     } catch (err: any) {
       console.error(err);
-      toast.error(err?.response?.data?.message || "Erreur lors de la mise à jour du statut.");
+      toast({
+        title: "Erreur",
+        description: err?.response?.data?.message || "Erreur lors de la mise à jour du statut.",
+        variant: "destructive",
+      });
     } finally {
       setIsValidateStatusDialogOpen(false);
       setSelectedRowsForStatus([]);
@@ -265,7 +324,11 @@ export default function Paiements() {
 
   const handleDeleteVirement = (rows: any[]) => {
       if (!rows || rows.length === 0) {
-          toast.error("Aucun paiement sélectionné !");
+          toast({
+            title: "Erreur",
+            description: "Aucun paiement sélectionné !",
+            variant: "destructive",
+          });
           return;
       }
 
@@ -281,7 +344,7 @@ export default function Paiements() {
 
           const body = { ids: selectedRowsToDelete.map(r => r.PAI_CODE) };
 
-          console.log("envoie", {url: `${API_URL}/paiements/supprimer-virements`, body});
+          // console.log("envoie", {url: `${API_URL}/paiements/supprimer-virements`, body});
 
           const { data } = await axios.delete(`${API_URL}/paiements/supprimer-virements`, {
               data: body,
@@ -292,18 +355,30 @@ export default function Paiements() {
           });
 
           if (data.deleted > 0) {
-              toast.success(`${data.deleted} paiement(s) supprimé(s) avec succès.`);
+              toast({
+                title: "Succès",
+                description: (`${data.deleted} paiement(s) supprimé(s) avec succès.`),
+                variant: "success",
+              });
               fetchPaiements();
               window.dispatchEvent(new Event("totalUpdated"));
           }
 
           if (data.failed && data.failed.length > 0) {
               const failedMessages = data.failed.map((f: any) => `${f.PAI_CODE}: ${f.reason}`).join(', ');
-              toast.error(`Échecs de suppression: ${failedMessages}`);
+              toast({
+                title: "Erreur",
+                description: (`Échecs de suppression: ${failedMessages}`),
+                variant: "destructive",
+              });
           }
       } catch (err: any) {
-          console.error(err);
-          toast.error(err?.response?.data?.message || "Erreur lors de la suppression des virements.");
+          // console.error(err);
+          toast({
+            title: "Erreur",
+            description: err?.response?.data?.message || "Erreur lors de la suppression des virements.",
+            variant: "destructive",
+          });
       } finally {
           setIsDeleteAllDialogOpen(false);
           setSelectedRowsToDelete([]);
@@ -588,8 +663,8 @@ export default function Paiements() {
               setSelectedPaiement(b);
               setOpenPreview(true);
             }}
-            onValidateVirement={can.onValidateVirement ? handleValidateVirement : undefined}
-            onStatusUpdate={can.onStatusUpdate ? handleStatusUpdate : undefined}
+            // onValidateVirement={can.onValidateVirement ? handleValidateVirement : undefined}
+            // onStatusUpdate={can.onStatusUpdate ? handleStatusUpdate : undefined}
             rowKey="PAI_CODE"
             filterItems={echeances.map((e) => ({
               ...e,

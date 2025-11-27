@@ -92,7 +92,11 @@ export default function Echeances() {
         // Émettre un événement global pour prévenir le Header
         window.dispatchEvent(new Event("echeanceUpdated"));
 
-        toast({ title: "Echéance modifiée avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Echéance modifiée avec succès",
+          variant: "success",
+        });
       } else {
         await axios.post(`${API_URL}/echeances`, payload, {
           headers: { Authorization: `Bearer ${token}` },
@@ -100,7 +104,11 @@ export default function Echeances() {
 
         // Émettre un événement global pour prévenir le Header
         window.dispatchEvent(new Event("echeanceUpdated"));
-        toast({ title: "Echéance ajoutée avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Echéance ajoutée avec succès",
+          variant: "success",
+        });
       }
       fetchEcheances();
       setIsDialogOpen(false);
@@ -126,7 +134,11 @@ export default function Echeances() {
       // Émettre un événement global pour prévenir le Header
       window.dispatchEvent(new Event("echeanceUpdated"));
 
-      toast({ title: "Echéance supprimée avec succès" });
+      toast({ 
+        title: "Succès",
+        description: "Echéance supprimée avec succès",
+        variant: "success",
+      });
       fetchEcheances();
     } catch (err: any) {
       toast({ title: "Erreur", description: err?.response?.data?.message || "Suppression échouée", variant: "destructive" });
@@ -145,7 +157,11 @@ export default function Echeances() {
       // Émettre un événement global pour prévenir le Header
       window.dispatchEvent(new Event("echeanceUpdated"));
 
-      toast({ title: "Echéance activée avec succès" });
+      toast({ 
+        title: "Succès",
+        description: "Echéance activée avec succès",
+        variant: "success",
+      });
       fetchEcheances(); // Recharge la liste
     } catch (error : any) {
       toast({ title: "Erreur", description: error?.response?.data?.message || "Impossible d'activer", variant: "destructive" });

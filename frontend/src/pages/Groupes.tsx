@@ -105,12 +105,20 @@ export default function Groupe() {
         await axios.put(`${API_URL}/groupes/${editingGroupe.GRP_CODE}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Groupe modifié avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Groupe modifié avec succès",
+          variant: "success",
+        });
       } else {
         await axios.post(`${API_URL}/groupes`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Groupe ajouté avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Groupe ajouté avec succès",
+          variant: "success"
+        });
       }
       fetchGroupes();
       setIsDialogOpen(false);
@@ -132,7 +140,11 @@ export default function Groupe() {
       await axios.delete(`${API_URL}/groupes/${groupeToDelete.GRP_CODE}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast({ title: "Groupe supprimé avec succès" });
+      toast({ 
+        title: "Succès",
+        description: "Groupe supprimé avec succès",
+        variant: "success",
+      });
       fetchGroupes();
     } catch (err: any) {
       toast({
@@ -202,7 +214,11 @@ export default function Groupe() {
 
       window.dispatchEvent(new Event("droitUpdated"));
 
-      toast({ title: "Droits mis à jour avec succès" });
+      toast({
+        title: "Succès", 
+        description: "Droits mis à jour avec succès",
+        variant: "success", 
+      });
       setOpenRightsModal(false);
     } catch (err) {
       toast({

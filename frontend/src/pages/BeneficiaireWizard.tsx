@@ -18,10 +18,10 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Check, ChevronDown, Edit, Trash2, ArrowRight, ArrowLeft, Power, Plus, X, Save } from "lucide-react";
-import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { API_URL } from "@/config/api";
 import { TableSkeletonWizard } from "@/components/loaders/TableSkeletonWizard";
+import { useToast } from "@/hooks/use-toast";
 
 export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFinish }: { onSuccess?: () => void; beneficiaireData?: any; onFinish?: () => void; }) {
   const [step, setStep] = useState(1);
@@ -38,6 +38,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
   const [dataReady, setDataReady] = useState(true); // true par défaut
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedDomiciliation, setSelectedDomiciliation] = useState<any>(null);
+  const { toast } = useToast();
 
   const [beneficiaire, setBeneficiaire] = useState({
     BEN_MATRICULE: "",
@@ -85,8 +86,12 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
           const headers = { Authorization: `Bearer ${token}` };
           const res = await axios.get(`${API_URL}/domiciliations/${beneficiaireData.BEN_CODE}`, { headers });
           setDomiciliations(res.data);
-        } catch {
-          toast.error("Erreur lors du chargement des domiciliations.");
+        } catch (err: any) {
+          toast({
+            title: "Erreur",
+            description:"Erreur lors du chargement des domiciliations",
+            variant: "destructive",
+          });
         }
 
         // Une fois tout prêt — enlever délai artificiel pour accélérer l'affichage
@@ -137,8 +142,12 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
           const domRes = await axios.get(`${API_URL}/domiciliations/${beneficiaireData.BEN_CODE}`, { headers });
           setDomiciliations(domRes.data);
         }
-      } catch (err) {
-        toast.error("Erreur lors du chargement des données.");
+      } catch (err: any) {
+        toast({
+          title: "Erreur",
+          description:"Erreur lors du chargement des données",
+          variant: "destructive",
+        });
       } finally {
         setDataReady(true);
       }
@@ -155,14 +164,18 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
       axios
         .get(`${API_URL}/domiciliations/${benefCode}`, { headers })
         .then((res) => setDomiciliations(res.data))
-        .catch(() => toast.error("Erreur lors du chargement des domiciliations."));
+        .catch(() => toast({
+          title: "Erreur",
+          description: "Erreur lors du chargement des domiciliations.",
+          variant: "destructive",
+        }));
     }
   }, [benefCode]);
 
   // Utilitaires d'affichage
   const getBanqueInfo = (code: string) => {
     const b = banques.find((bnq) => String(bnq.BNQ_CODE).trim() === String(code).trim());
-    return b ? `${b.BNQ_NUMERO} - ${b.BNQ_LIBELLE || "—"}` : code;
+    return b ? `${b.BNQ_LIBELLE || "—"}` : code;
   };
 
   const getGuichetInfo = (id: string) => {
@@ -175,7 +188,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
     const guichet = guichets.find(g => String(g.GUI_ID).trim() === String(GUI_ID).trim());
     if (!banque || !guichet || !DOM_NUMCPT) return "";
 
-    const codeBanque = String(banque.BNQ_NUMERO || "00000").padStart(5, "0");
+    const codeBanque = String(banque.BNQ_CODE || "00000").padStart(5, "0");
     const codeGuichet = String(guichet.GUI_CODE || "00000").padStart(5, "0");
 
     const numCompte = DOM_NUMCPT.toUpperCase().trim();
@@ -206,7 +219,11 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
   // Enregistrement bénéficiaire (étape 1)
   const handleNext = async () => {
     if (!beneficiaire.BEN_NOM || !beneficiaire.BEN_PRENOM || !beneficiaire.TYP_CODE) {
-      toast.error("Veuillez remplir tous les champs obligatoires.");
+      toast({
+          title: "Avertissement",
+          description: "Veuillez remplir tous les champs obligatoires.",
+          variant: "warning",
+        });
       return;
     }
 
@@ -218,20 +235,32 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
       if (beneficiaireData) {
         // Mode modification
         await axios.put(`${API_URL}/beneficiaires/${beneficiaireData.BEN_CODE}`, beneficiaire, { headers });
-        toast.success("Bénéficiaire mis à jour !");
+        toast({
+          title: "Succès",
+          description: "Bénéficiaire mis à jour !",
+          variant: "success",
+        });
         setStep(2);
       } else {
         // Mode création
         const { data } = await axios.post(`${API_URL}/beneficiaires`, beneficiaire, { headers });
-        toast.success("Bénéficiaire enregistré !");
+        toast({
+          title: "Succès",
+          description: "Bénéficiaire enregistré !",
+          variant: "success",
+        });
         setBenefCode(data.BEN_CODE);
         setStep(2);
 
         const res = await axios.get(`${API_URL}/domiciliations/${data.BEN_CODE}`, { headers });
         setDomiciliations(res.data);
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Erreur lors de l’enregistrement.");
+    } catch (err: any) {
+        toast({
+          title: "Erreur",
+          description: err?.response?.data?.message || "Erreur lors de l'enregistrement",
+          variant: "destructive",
+        });
     } finally {
       setLoading(false);
     }
@@ -239,9 +268,18 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
 
   // Met à jour le bénéficiaire avant de passer à l'étape 2
   const handleNextWithUpdate = async () => {
-    if (!benefCode) return toast.error("Aucun bénéficiaire sélectionné !");
+    if (!benefCode) 
+      return toast({
+          title: "Erreur",
+          description: "Aucun bénéficiaire sélectionné.",
+          variant: "destructive",
+        });
     if (!beneficiaire.BEN_NOM || !beneficiaire.BEN_PRENOM || !beneficiaire.TYP_CODE) {
-      toast.error("Veuillez remplir tous les champs obligatoires.");
+      toast({
+          title: "Avertissement",
+          description: "Veuillez remplir tous les champs obligatoires.",
+          variant: "warning",
+        });
       return;
     }
 
@@ -251,10 +289,18 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
 
     try {
       await axios.put(`${API_URL}/beneficiaires/${benefCode}`, beneficiaire, { headers });
-      toast.success("Bénéficiaire mis à jour !");
+      toast({
+          title: "Succès",
+          description: "Bénéficiaire mis à jour !",
+          variant: "success",
+        });
       setStep(2);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Erreur lors de la mise à jour.");
+        toast({
+          title: "Erreur",
+          description: "Erreur lors de la mise à jour",
+          variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -263,9 +309,18 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
 
   // Ajouter ou modifier une domiciliation
   const handleAddDomiciliation = async () => {
-    if (!benefCode) return toast.error("Aucun bénéficiaire lié !");
+    if (!benefCode) 
+      return toast({
+          title: "Erreur",
+          description: "Aucun bénéficiaire lié",
+          variant: "destructive",
+        });
     if (!currentDomiciliation.BNQ_CODE || !currentDomiciliation.GUI_ID) {
-      return toast.error("Veuillez remplir tous les champs.");
+      return toast({
+          title: "Avertissement",
+          description: "Veuillez remplir tous les champs obligatoires.",
+          variant: "warning",
+        });
     }
 
     const ribKey = calculerCleRib(
@@ -300,16 +355,28 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
         DOM_RIB: "",
       });
 
-      toast.success(data.message || "Domiciliation ajoutée !");
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Erreur lors de l’ajout.");
+      toast({
+          title: "Succès",
+          description: "Domiciliation ajoutée",
+          variant: "success",
+        });
+    } catch (err: any) {
+        toast({
+          title: "Erreur",
+          description: err?.response?.data?.message || "Erreur lors de l'ajout.",
+          variant: "destructive",
+      });
     }
   };
 
   // Modifier une domiciliation
   const handleEdit = (d: any) => {
     if (!d || !d.DOM_CODE) {
-      toast.error("Impossible de charger la domiciliation sélectionnée.");
+      toast({
+        title: "Erreur",
+        description: "Impossible de chargé la domiciliation sélectionnée.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -323,7 +390,11 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
 
     setIsEditing(true);
     setEditId(d.DOM_CODE);
-    toast.info("Domiciliation chargée pour modification !");
+    // toast({
+    //   title: "Avertissement",
+    //   description: "Domiciliation chargée pour modification.",
+    //   variant: "warning",
+    // });
   };
 
   // Supprimer une domiciliation
@@ -339,9 +410,17 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
         prev.filter((item) => item.DOM_CODE !== selectedDomiciliation.DOM_CODE)
       );
 
-      toast.success("Domiciliation supprimée avec succès !");
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Erreur lors de la suppression.");
+      toast({
+        title: "Succès",
+        description: "Domiciliation supprimée avec succès !",
+        variant: "success",
+      });
+    } catch (err: any) {
+        toast({
+          title: "Erreur",
+          description: err?.response?.data?.message || "Erreur lors de suppression.",
+          variant: "destructive",
+      });
     } finally {
       setIsDeleteDialogOpen(false);
       setSelectedDomiciliation(null);
@@ -349,9 +428,18 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
   };
 
   const handleUpdateDomiciliation = async () => {
-    if (!editId) return toast.error("Aucune domiciliation sélectionnée !");
+    if (!editId) 
+      return toast({
+                  title: "Erreur",
+                  description: "Aucune domiciliation sélectionnée.",
+                  variant: "destructive",
+              });
     if (!currentDomiciliation.BNQ_CODE || !currentDomiciliation.GUI_ID) {
-      return toast.error("Veuillez remplir tous les champs.");
+      return toast({
+          title: "Avertissement",
+          description: "Veuillez remplir tous les champs obligatoires.",
+          variant: "warning",
+      });
     }
 
     try {
@@ -366,7 +454,11 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      toast.success("Domiciliation mise à jour !");
+      toast({
+        title: "Succès",
+        description: "Domiciliation mise à jour !",
+        variant: "success",
+      });
       setIsEditing(false);
       setEditId(null);
 
@@ -385,13 +477,21 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
         DOM_RIB: "",
       });
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Erreur lors de la mise à jour.");
+      toast({
+        title: "Erreur",
+        description: error?.response?.data?.message || "Erreur lors de la mise à jour.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleToggleStatus = async (d: any) => {
     if (!d || !d.DOM_CODE) {
-      return toast.error("Aucune domiciliation sélectionnée !");
+      return toast({
+                title: "Erreur",
+                description: "Aucune domiciliation sélectionnée.",
+                variant: "destructive",
+              });
     }
 
     const token = localStorage.getItem("token");
@@ -420,14 +520,26 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
       const res = await axios.get(`${API_URL}/domiciliations/${benefCode}`, { headers });
       setDomiciliations(res.data);
 
-      toast.success(response.data.message);
+      toast({
+        title: "Succès",
+        description: response.data.message,
+        variant: "success",
+      });
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Erreur lors du changement de statut.");
+      toast({
+        title: "Erreur",
+        description: error?.response?.data?.message || "Erreur lors du chargement de statut.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleFinish = () => {
-    toast.success("Bénéficiaire et domiciliations enregistrés !");
+    toast({
+      title: "Succès",
+      description: "Bénéficiaire et domiciliations enregistrés !",
+      variant: "success",
+    });
     if (onFinish) onFinish();
     if (onSuccess) onSuccess();
   };
@@ -756,7 +868,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                   items={banques}
                   value={currentDomiciliation.BNQ_CODE}
                   onSelect={(v: any) => setCurrentDomiciliation({ ...currentDomiciliation, BNQ_CODE: v, GUI_ID: "" })}
-                  display={(b: any) => `${b.BNQ_NUMERO} - ${b.BNQ_LIBELLE}`}
+                  display={(b: any) => `${b.BNQ_LIBELLE}`}
                 />
 
                 {/* Guichet */}
@@ -779,7 +891,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                       const banque = banques.find(
                         (b) => String(b.BNQ_CODE).trim() === String(currentDomiciliation.BNQ_CODE).trim()
                       );
-                      const isPrimaire = banque ? banquesPrimaires.includes(String(banque.BNQ_NUMERO)) : false;
+                      const isPrimaire = banque ? banquesPrimaires.includes(String(banque.BNQ_CODE)) : false;
                       if (isPrimaire) {
                         num = num.replace(/\D/g, "").slice(0, 11);
                       }
@@ -788,9 +900,9 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                     }}
                     placeholder={
                       currentDomiciliation.BNQ_CODE &&
-                      banques.find((b) => String(b.BNQ_CODE).trim() === String(currentDomiciliation.BNQ_CODE).trim())?.BNQ_NUMERO &&
+                      banques.find((b) => String(b.BNQ_CODE).trim() === String(currentDomiciliation.BNQ_CODE).trim())?.BNQ_CODE &&
                       banquesPrimaires.includes(
-                        banques.find((b) => String(b.BNQ_CODE).trim() === String(currentDomiciliation.BNQ_CODE).trim())?.BNQ_NUMERO
+                        banques.find((b) => String(b.BNQ_CODE).trim() === String(currentDomiciliation.BNQ_CODE).trim())?.BNQ_CODE
                       )
                         ? "11 chiffres uniquement"
                         : ""

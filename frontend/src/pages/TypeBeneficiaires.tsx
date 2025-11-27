@@ -79,12 +79,20 @@ export default function TypeBeneficiaires() {
         await axios.put(`${API_URL}/typeBeneficiaires/${editingTypeBeneficiaire.TYP_CODE}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Type de bénéficiaires modifié avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Type de bénéficiaires modifié avec succès",
+          variant: "success",
+         });
       } else {
         await axios.post(`${API_URL}/typeBeneficiaires`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Type de bénéficiaires ajouté avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Type de bénéficiaires ajouté avec succès",
+          variant: "success",
+         });
       }
       fetchTypeBeneficiaires();
       setIsDialogOpen(false);
@@ -106,7 +114,11 @@ export default function TypeBeneficiaires() {
       await axios.delete(`${API_URL}/typeBeneficiaires/${typeBeneficiaireToDelete.TYP_CODE}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast({ title: "Type de bénéficiaires supprimé avec succès" });
+      toast({ 
+        title: "Succès",
+        description: "Type de bénéficiaires supprimé avec succès",
+        variant: "success",
+       });
       fetchTypeBeneficiaires();
     } catch (err: any) {
       toast({ title: "Erreur", description: err?.response?.data?.message || "Suppression échouée", variant: "destructive" });

@@ -90,12 +90,20 @@ export default function Regies() {
         await axios.put(`${API_URL}/regies/${editingRegie.REG_CODE}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Régie modifiée avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Régie modifiée avec succès",
+          variant: "success",
+         });
       } else {
         await axios.post(`${API_URL}/regies`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Régie ajoutée avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Régie ajoutée avec succès",
+          variant: "success",
+         });
       }
       fetchRegies();
       setIsDialogOpen(false);
@@ -117,7 +125,11 @@ export default function Regies() {
       await axios.delete(`${API_URL}/regies/${regieToDelete.REG_CODE}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast({ title: "Régie supprimée avec succès" });
+      toast({ 
+        title: "Succès",
+        description: "Régie supprimée avec succès",
+        variant: "success",
+       });
       fetchRegies();
     } catch (err: any) {
       toast({ title: "Erreur", description: err?.response?.data?.message || "Suppression échouée", variant: "destructive" });

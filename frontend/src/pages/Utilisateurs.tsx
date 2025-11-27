@@ -103,8 +103,9 @@ export default function Utilisateurs() {
 
       //  Message de confirmation
       toast({
-        title: "Statut modifié",
+        title: "Succès",
         description: `${user.UTI_PRENOM} ${user.UTI_NOM} est maintenant ${newStatus ? "Actif" : "Inactif"}.`,
+        variant: "success",
       });
 
       //  Rafraîchir depuis le backend 
@@ -214,12 +215,20 @@ export default function Utilisateurs() {
         await axios.put(`${API_URL}/utilisateurs/${editingUtilisateur.UTI_CODE}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Utilisateur modifié avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Utilisateur modifié avec succès",
+          variant: "success", 
+        });
       } else {
         await axios.post(`${API_URL}/utilisateurs`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Utilisateur ajouté avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Utilisateur ajouté avec succès",
+          variant: "success" 
+        });
       }
       fetchUtilisateurs();
       setIsDialogOpen(false);

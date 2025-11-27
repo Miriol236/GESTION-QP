@@ -12,27 +12,26 @@ class Banque extends Model
     protected $keyType = 'string';
     public $timestamps = false;
 
-    protected static function boot()
-    {
-        parent::boot();
+    // protected static function boot()
+    // {
+    //     parent::boot();
 
-        static::creating(function ($model) {
-            $last = static::orderBy('BNQ_CODE', 'desc')->first();
+    //     static::creating(function ($model) {
+    //         $last = static::orderBy('BNQ_CODE', 'desc')->first();
 
-            if ($last && is_numeric($last->BNQ_CODE)) {
-                $num = intval($last->BNQ_CODE) + 1;
-            } else {
-                $num = 1;
-            }
+    //         if ($last && is_numeric($last->BNQ_CODE)) {
+    //             $num = intval($last->BNQ_CODE) + 1;
+    //         } else {
+    //             $num = 1;
+    //         }
 
-            $model->BNQ_CODE = str_pad($num, 2, '0', STR_PAD_LEFT);
-        });
-    }
+    //         $model->BNQ_CODE = str_pad($num, 2, '0', STR_PAD_LEFT);
+    //     });
+    // }
 
     protected $fillable = [
         'BNQ_CODE',
         'BNQ_LIBELLE',
-        'BNQ_NUMERO',
         'BNQ_DATE_CREER',
         'BNQ_CREER_PAR',
         'BNQ_DATE_MODIFIER',

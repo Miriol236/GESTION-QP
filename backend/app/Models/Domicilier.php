@@ -17,18 +17,27 @@ class Domicilier extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            // Récupère le dernier enregistrement
-            $last = static::orderBy('DOM_CODE', 'desc')->first();
+
+            $year = date('Y');
+
+            // Récupère le dernier code de l'année en cours
+            $last = static::where('DOM_CODE', 'LIKE', $year . '%')
+                        ->orderBy('DOM_CODE', 'desc')
+                        ->first();
 
             if ($last) {
-                // Convertit en entier puis incrémente
-                $num = intval($last->DOM_CODE) + 1;
+                // Extraire la partie numéro (après les 4 premiers chiffres)
+                $lastNumber = intval(substr($last->DOM_CODE, 4));
+                $num = $lastNumber + 1;
             } else {
                 $num = 1;
             }
 
-            // Formate sur 3 chiffres : 001, 002, 003...
-            $model->DOM_CODE = str_pad($num, 3, '0', STR_PAD_LEFT);
+            // Formater numéro sur 4 chiffres
+            $sequence = str_pad($num, 4, '0', STR_PAD_LEFT);
+
+            // Résultat final : AAAA + 0001
+            $model->DOM_CODE = $year . $sequence;
         });
     }
 

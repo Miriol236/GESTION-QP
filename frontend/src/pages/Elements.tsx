@@ -105,13 +105,21 @@ export default function Element() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        toast({ title: "Elément modifié avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Elément modifié avec succès",
+          variant: "success",
+        });
       } else {
         await axios.post(`${API_URL}/elements`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        toast({ title: "Elément ajouté avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Elément ajouté avec succès",
+          variant: "success",
+        });
       }
       fetchElements();
       setIsDialogOpen(false);
@@ -134,7 +142,11 @@ export default function Element() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      toast({ title: "Elément supprimé avec succès" });
+      toast({ 
+        title: "Succès",
+        description: "Elément supprimé avec succès",
+        variant: "success",
+      });
       fetchElements();
     } catch (err: any) {
       toast({ title: "Erreur", description: err?.response?.data?.message || "Suppression échouée", variant: "destructive" });

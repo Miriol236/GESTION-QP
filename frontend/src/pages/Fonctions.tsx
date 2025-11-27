@@ -79,12 +79,20 @@ export default function Fonctions() {
         await axios.put(`${API_URL}/fonctions/${editingFonction.FON_CODE}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Fonction modifiée avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Fonction modifiée avec succès",
+          variant: "success",
+        });
       } else {
         await axios.post(`${API_URL}/fonctions`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Fonction ajoutée avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Fonction ajoutée avec succès",
+          variant: "success",
+        });
       }
       fetchFonctions();
       setIsDialogOpen(false);
@@ -106,7 +114,11 @@ export default function Fonctions() {
       await axios.delete(`${API_URL}/fonctions/${fonctionToDelete.FON_CODE}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast({ title: "Fonction supprimée avec succès" });
+      toast({ 
+        title: "Succès",
+        description: "Fonction supprimée avec succès",
+        variant: "success",
+      });
       fetchFonctions();
     } catch (err: any) {
       toast({ title: "Erreur", description: err?.response?.data?.message || "Suppression échouée", variant: "destructive" });

@@ -1,10 +1,10 @@
+
 import { Navigate, Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import Header from "./Header";
 import { useAuth } from "@/contexts/AuthContext";
 import Footer from "./Footer";
-
 export function MainLayout() {
   const { user, isLoading } = useAuth();
 

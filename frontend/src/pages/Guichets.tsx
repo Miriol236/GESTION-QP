@@ -119,15 +119,23 @@ export default function Guichets() {
 
     try {
       if (editingGuichet) {
-        await axios.put(`${API_URL}/guichets/${editingGuichet.GUI_CODE}`, payload, {
+        await axios.put(`${API_URL}/guichets/${editingGuichet.GUI_ID}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Guichet modifié avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Guichet modifié avec succès",
+          variant: "success",
+         });
       } else {
         await axios.post(`${API_URL}/guichets`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        toast({ title: "Guichet ajouté avec succès" });
+        toast({ 
+          title: "Succès",
+          description: "Guichet ajouté avec succès",
+          variant: "success",
+         });
       }
       fetchGuichets();
       setIsDialogOpen(false);
@@ -147,10 +155,14 @@ export default function Guichets() {
     if (!guichetToDelete) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`${API_URL}/guichets/${guichetToDelete.GUI_CODE}`, {
+      await axios.delete(`${API_URL}/guichets/${guichetToDelete.GUI_ID}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast({ title: "Guichet supprimé avec succès" });
+      toast({ 
+        title: "Succès",
+        description: "Guichet supprimé avec succès",
+        variant: "success",
+       });
       fetchGuichets();
     } catch (err: any) {
       toast({ title: "Erreur", description: err?.response?.data?.message || "Suppression échouée", variant: "destructive" });
