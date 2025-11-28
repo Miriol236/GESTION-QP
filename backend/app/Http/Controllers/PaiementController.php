@@ -62,7 +62,7 @@ class PaiementController extends Controller
                 'totaux.TOTAL_GAIN',
                 'totaux.TOTAL_RETENU',
                 'totaux.MONTANT_NET'
-            )
+            )            
             ->join('T_BENEFICIAIRES', 'T_BENEFICIAIRES.BEN_CODE', '=', 'T_PAIEMENTS.BEN_CODE')
             ->leftJoin('T_DOMICILIERS', function($join){
                 $join->on('T_DOMICILIERS.BEN_CODE', '=', 'T_BENEFICIAIRES.BEN_CODE')
@@ -75,7 +75,7 @@ class PaiementController extends Controller
                 $join->on('totaux.PAI_CODE', '=', 'T_PAIEMENTS.PAI_CODE');
             })
             ->when($user->REG_CODE, fn($q) => $q->where('T_PAIEMENTS.REG_CODE', $user->REG_CODE))
-            ->orderBy('T_PAIEMENTS.BEN_CODE', 'desc')
+            ->orderBy('T_PAIEMENTS.PAI_BENEFICIAIRE', 'asc')
             ->get();
 
         return response()->json($paiements);

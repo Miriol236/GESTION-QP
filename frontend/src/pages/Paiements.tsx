@@ -111,11 +111,6 @@ export default function Paiements() {
       }));
   }, []);
 
-  // Data displayed in the table, filtered by selected echeance if any
-  // const displayedPaiements = selectedEcheance
-  //   ? paiements.filter((p) => String(p.ECH_CODE) === String(selectedEcheance.ECH_CODE))
-  //   : paiements;
-
   const [searchTerm, setSearchTerm] = useState("");
 
   const displayedPaiements = paiements

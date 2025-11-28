@@ -63,6 +63,7 @@ export interface DataTableProps {
   filterPlaceholder?: string;
   // Key to use as stable row id for selection (defaults to first column key)
   rowKey?: string;
+  rowKey2?: string;
 }
 
 export function DataTable({

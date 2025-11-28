@@ -108,7 +108,7 @@ class DetailsPaiementController extends Controller
 
         if (empty($ech)) {
             $currentEcheance = DB::table('T_ECHEANCES')
-                // ->where('ECH_STATUT', true)
+                ->where('ECH_STATUT', true)
                 ->orderBy('ECH_CODE', 'desc')
                 ->first();
 
