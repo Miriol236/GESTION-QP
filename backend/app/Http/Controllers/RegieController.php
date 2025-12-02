@@ -32,6 +32,14 @@ class RegieController extends Controller
         return response()->json($regies);
     }
 
+    public function indexPublic()
+    {
+        return response()->json(
+            \App\Models\Regie::select('REG_CODE', 'REG_LIBELLE', 'REG_SIGLE')
+                ->get()
+        );
+    }
+
     /**
      * @OA\Get(
      *     path="/api/regies/{code}",

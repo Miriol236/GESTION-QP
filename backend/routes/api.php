@@ -99,6 +99,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/regies', [RegieController::class, 'store'])->middleware('fonctionnalite:0008');
     Route::put('/regies/{id}', [RegieController::class, 'update'])->middleware('fonctionnalite:0008');
     Route::delete('/regies/{id}', [RegieController::class, 'destroy'])->middleware('fonctionnalite:0008');
+    Route::get('/regies-publiques', [RegieController::class, 'indexPublic']);
 
     // Routes banques
     Route::get('/banques', [BanqueController::class, 'index'])->middleware('fonctionnalite:0009');

@@ -1,12 +1,4 @@
 import React from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -45,6 +37,7 @@ export interface DataTableProps {
   onManageRoles?: (row: any) => void;
   onPrint?: () => void;
   onSearchChange?: (value: string) => void;
+  onSearchChange2?: (value: string) => void;
   // Callback when the user validates virement for selected rows (receives selected rows)
   onValidateVirement?: (rows: any[]) => void;
   // Callback when the user requests a status update for selected rows (receives selected rows)
@@ -55,12 +48,16 @@ export interface DataTableProps {
   addButtonText?: string;
   // Optional filter items to show a small combo next to title
   filterItems?: any[];
+  filterItems2?: any[];
   // Optional function to get a display string for an item
   filterDisplay?: (item: any) => string;
+  filterDisplay2?: (item: any) => string;
   // Called when an item is selected (or null when cleared)
   onFilterSelect?: (item: any | null) => void;
+  onFilterSelect2?: (item: any | null) => void;
   // placeholder label for the filter combo
   filterPlaceholder?: string;
+  filterPlaceholder2?: string;
   // Key to use as stable row id for selection (defaults to first column key)
   rowKey?: string;
   rowKey2?: string;
@@ -82,19 +79,27 @@ export function DataTable({
   onManageRoles,
   onPrint,
   onSearchChange,
+  onSearchChange2,
   onValidateVirement,
   onStatusUpdate,
   onViews,
   loading = false,
   addButtonText = "Ajouter",
   filterItems = [],
+  filterItems2 = [],
   filterDisplay,
+  filterDisplay2,
   onFilterSelect,
+  onFilterSelect2,
   filterPlaceholder = "Filtrer...",
+  filterPlaceholder2 = "Filtrer...",
   rowKey,
+  rowKey2,
 }: DataTableProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedFilter, setSelectedFilter] = React.useState<any | null>(null);
+  const [selectedFilter2, setSelectedFilter2] = React.useState<any | null>(null);
+
   // stable key used to identify rows
   const stableRowKey = React.useMemo(() => rowKey ?? (columns && columns.length > 0 ? columns[0].key : "id"), [rowKey, columns]);
   
@@ -221,24 +226,34 @@ export function DataTable({
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           {title && (
-            <div className="flex items-center gap-3">
-              <CardTitle className="text-lg font-semibold text-foreground">{title}</CardTitle>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+              <CardTitle className="text-lg font-semibold text-foreground">
+                {title}
+              </CardTitle>
+
+              {/* Pour Echéances */}
               {filterItems && filterItems.length > 0 && (
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="px-2 py-1">
-                      {selectedFilter ? (filterDisplay ? filterDisplay(selectedFilter) : String(selectedFilter)) : filterPlaceholder}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="px-2 py-1 w-full sm:w-auto flex justify-between"
+                    >
+                      {selectedFilter
+                        ? filterDisplay
+                          ? filterDisplay(selectedFilter)
+                          : String(selectedFilter)
+                        : filterPlaceholder}
                       <ChevronDown className="ml-2 h-4 w-4" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="p-0 w-[250px]">
-                    <Command className="min-w-[260px] max-w-[380px]">  
-                      {/* Barre de recherche */}
+
+                  <PopoverContent className="p-0 w-[220px] sm:w-[250px]">
+                    <Command className="min-w-[230px] sm:min-w-[260px] max-w-[380px]">
                       <CommandInput placeholder="Rechercher..." />
-                      {/* Liste filtrable */}
                       <CommandList>
                         <CommandGroup>
-                          {/* Option : Afficher tout */}
                           <CommandItem
                             onSelect={() => {
                               setSelectedFilter(null);
@@ -248,13 +263,14 @@ export function DataTable({
                           >
                             <Check
                               className={`mr-2 h-4 w-4 ${
-                                selectedFilter === null ? "opacity-100 text-blue-600" : "opacity-0"
+                                selectedFilter === null
+                                  ? "opacity-100 text-blue-600"
+                                  : "opacity-0"
                               }`}
                             />
                             Afficher tout
                           </CommandItem>
 
-                          {/* Les filtres */}
                           {filterItems.map((it: any, idx: number) => {
                             const isSelected =
                               JSON.stringify(selectedFilter) === JSON.stringify(it);
@@ -270,10 +286,83 @@ export function DataTable({
                               >
                                 <Check
                                   className={`mr-2 h-4 w-4 ${
-                                    isSelected ? "opacity-100 text-blue-600" : "opacity-0"
+                                    isSelected
+                                      ? "opacity-100 text-blue-600"
+                                      : "opacity-0"
                                   }`}
                                 />
                                 {filterDisplay ? filterDisplay(it) : String(it)}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              )}
+
+              {/* Pour régies */}
+              {filterItems2 && filterItems2.length > 0 && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="px-2 py-1 w-full sm:w-auto flex justify-between"
+                    >
+                      {selectedFilter2
+                        ? filterDisplay2
+                          ? filterDisplay2(selectedFilter2)
+                          : String(selectedFilter2)
+                        : filterPlaceholder2}
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+
+                  <PopoverContent className="p-0 w-[220px] sm:w-[250px]">
+                    <Command className="min-w-[230px] sm:min-w-[260px] max-w-[380px]">
+                      <CommandInput placeholder="Rechercher..." />
+                      <CommandList>
+                        <CommandGroup>
+                          <CommandItem
+                            onSelect={() => {
+                              setSelectedFilter2(null);
+                              onFilterSelect2 && onFilterSelect2(null);
+                            }}
+                            className="whitespace-nowrap"
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${
+                                selectedFilter2 === null
+                                  ? "opacity-100 text-blue-600"
+                                  : "opacity-0"
+                              }`}
+                            />
+                            Afficher tout
+                          </CommandItem>
+
+                          {filterItems2.map((it: any, idx: number) => {
+                            const isSelected =
+                              JSON.stringify(selectedFilter2) === JSON.stringify(it);
+
+                            return (
+                              <CommandItem
+                                key={idx}
+                                onSelect={() => {
+                                  setSelectedFilter2(it);
+                                  onFilterSelect2 && onFilterSelect2(it);
+                                }}
+                                className="whitespace-nowrap"
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${
+                                    isSelected
+                                      ? "opacity-100 text-blue-600"
+                                      : "opacity-0"
+                                  }`}
+                                />
+                                {filterDisplay2 ? filterDisplay2(it) : String(it)}
                               </CommandItem>
                             );
                           })}
@@ -592,87 +681,87 @@ export function DataTable({
                 )}
               </tbody>
             </table>
+            {/* Pagination (utilisant sortedData.length) */}
+            <div className="flex items-center justify-between mb-4 px-2">
+              {/* Indicateur de page */}
+              <p className="text-sm text-muted-foreground">
+                Page {currentPage} sur {Math.ceil(sortedData.length / rowsPerPage) || 1}
+              </p>
+
+              {/* Sélecteur du nombre de lignes (inchangé) */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Lignes :</span>
+                <select
+                  value={rowsPerPage}
+                  onChange={(e) => {
+                    setRowsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="border rounded-md px-2 py-1 text-sm"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={30}>30</option>
+                  <option value={40}>40</option>
+                  <option value={50}>50</option>
+                  <option value={60}>60</option>
+                  <option value={70}>70</option>
+                  <option value={80}>80</option>
+                  <option value={90}>90</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+
+              {/* Boutons de navigation (inchangés) */}
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(1)}
+                  title="Première page"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  title="Page précédente"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={currentPage === Math.ceil(sortedData.length / rowsPerPage) || sortedData.length === 0}
+                  onClick={() =>
+                    setCurrentPage((prev) =>
+                      Math.min(prev + 1, Math.ceil(sortedData.length / rowsPerPage))
+                    )
+                  }
+                  title="Page suivante"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={currentPage === Math.ceil(sortedData.length / rowsPerPage) || sortedData.length === 0}
+                  onClick={() =>
+                    setCurrentPage(Math.ceil(sortedData.length / rowsPerPage))
+                  }
+                  title="Dernière page"
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
-      </CardContent>
-      {/* Pagination (utilisant sortedData.length) */}
-        <div className="flex items-center justify-between mb-4 px-2">
-          {/* Indicateur de page */}
-          <p className="text-sm text-muted-foreground">
-            Page {currentPage} sur {Math.ceil(sortedData.length / rowsPerPage) || 1}
-          </p>
-
-          {/* Sélecteur du nombre de lignes (inchangé) */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Lignes :</span>
-            <select
-              value={rowsPerPage}
-              onChange={(e) => {
-                setRowsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="border rounded-md px-2 py-1 text-sm"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={30}>30</option>
-              <option value={40}>40</option>
-              <option value={50}>50</option>
-              <option value={60}>60</option>
-              <option value={70}>70</option>
-              <option value={80}>80</option>
-              <option value={90}>90</option>
-              <option value={100}>100</option>
-            </select>
-          </div>
-
-          {/* Boutons de navigation (inchangés) */}
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(1)}
-              title="Première page"
-            >
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              title="Page précédente"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={currentPage === Math.ceil(sortedData.length / rowsPerPage) || sortedData.length === 0}
-              onClick={() =>
-                setCurrentPage((prev) =>
-                  Math.min(prev + 1, Math.ceil(sortedData.length / rowsPerPage))
-                )
-              }
-              title="Page suivante"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={currentPage === Math.ceil(sortedData.length / rowsPerPage) || sortedData.length === 0}
-              onClick={() =>
-                setCurrentPage(Math.ceil(sortedData.length / rowsPerPage))
-              }
-              title="Dernière page"
-            >
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+      </CardContent>      
     </Card>
   );
 }

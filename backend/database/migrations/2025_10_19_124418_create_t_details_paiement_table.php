@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('T_DETAILS_PAIEMENT', function (Blueprint $table) {
-            $table->string('DET_CODE', 10)->primary();
+            $table->string('DET_CODE', 12)->primary();
             $table->string('PAI_MONTANT')->nullable();
             $table->string('ELT_CODE', 10)->nullable();
             $table->string('PAI_CODE', 10)->nullable();

@@ -26,11 +26,21 @@ class PaiementController extends Controller
      *     @OA\Response(response=200, description="Liste des paiements récupérée avec succès")
      * )
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
         if (!$user) {
             return response()->json(['message' => 'Utilisateur non authentifié.'], 401);
+        }
+
+        // Filtre échéance : si non envoyé, prendre la dernière active
+        $echCodeFilter = $request->input('ech_code');
+        if (empty($echCodeFilter)) {
+            $currentEcheance = DB::table('T_ECHEANCES')
+                ->where('ECH_STATUT', true)
+                ->orderBy('ECH_CODE', 'desc')
+                ->first();
+            $echCodeFilter = $currentEcheance?->ECH_CODE;
         }
 
         // Sous-requête pour calculer total gain et total retenu par paiement
@@ -74,7 +84,10 @@ class PaiementController extends Controller
             ->leftJoinSub($totauxSub, 'totaux', function($join){
                 $join->on('totaux.PAI_CODE', '=', 'T_PAIEMENTS.PAI_CODE');
             })
+            // Filtrer par régie utilisateur
             ->when($user->REG_CODE, fn($q) => $q->where('T_PAIEMENTS.REG_CODE', $user->REG_CODE))
+            // Filtrer par échéance
+            ->when($echCodeFilter, fn($q) => $q->where('T_PAIEMENTS.ECH_CODE', $echCodeFilter))
             ->orderBy('T_PAIEMENTS.PAI_BENEFICIAIRE', 'asc')
             ->get();
 

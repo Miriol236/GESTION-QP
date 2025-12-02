@@ -34,7 +34,7 @@ class BeneficiaireController extends Controller
             return response()->json(['message' => 'Utilisateur non authentifié.'], 401);
         }
 
-        $beneficiaires = Beneficiaire::orderBy('BEN_CODE', 'desc')->get();
+        $beneficiaires = Beneficiaire::orderBy('BEN_NOM', 'asc')->get();
 
         return response()->json($beneficiaires);
     }

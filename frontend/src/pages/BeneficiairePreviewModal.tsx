@@ -178,7 +178,7 @@ useEffect(() => {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t text-right bg-gray-50">
+        <div className="p-1 border-t text-right bg-gray-50">
           <Button variant="default" onClick={onClose}>
             <X className="w-4 h-4" />
             Fermer

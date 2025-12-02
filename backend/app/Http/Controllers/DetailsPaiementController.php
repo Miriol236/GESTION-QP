@@ -105,6 +105,7 @@ class DetailsPaiementController extends Controller
         }
 
         $ech = $request->input('ech_code');
+        $reg = $request->input('reg_code'); // <-- nouveau paramètre
 
         if (empty($ech)) {
             $currentEcheance = DB::table('T_ECHEANCES')
@@ -123,33 +124,38 @@ class DetailsPaiementController extends Controller
                 'T_PAIEMENTS.PAI_CODE',
                 'T_PAIEMENTS.PAI_STATUT',
                 'T_PAIEMENTS.ECH_CODE',
+                'T_PAIEMENTS.REG_CODE',
                 DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 1 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS GAIN'),
                 DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 2 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS RETENU')
             )
             ->groupBy(
                 'T_PAIEMENTS.PAI_CODE',
                 'T_PAIEMENTS.PAI_STATUT',
-                'T_PAIEMENTS.ECH_CODE'
+                'T_PAIEMENTS.ECH_CODE',
+                'T_PAIEMENTS.REG_CODE'
             );
 
-        if (!empty($user->REG_CODE)) {
+        // ---- Filtre régie ----
+        if (!empty($reg)) {
+            $paiements->where('T_PAIEMENTS.REG_CODE', $reg);
+        } elseif (!empty($user->REG_CODE)) {
             $paiements->where('T_PAIEMENTS.REG_CODE', $user->REG_CODE);
         }
 
+        // ---- Filtre échéance ----
         if (!empty($ech)) {
             $paiements->where('T_PAIEMENTS.ECH_CODE', $ech);
         }
 
         $list = $paiements->get();
 
-        // ---- Calcul propre ----
+        // ---- Calcul des totaux ----
         $totalGain = 0;
         $totalRetenu = 0;
         $totalNet = 0;
         $totalPaye = 0;
 
         foreach ($list as $p) {
-
             $gain = $p->GAIN ?? 0;
             $retenu = $p->RETENU ?? 0;
             $net = $gain - $retenu;
@@ -159,11 +165,10 @@ class DetailsPaiementController extends Controller
             $totalNet += $net;
 
             if ($p->PAI_STATUT == 1) {
-                $totalPaye += $net; //  On paye seulement le NET
+                $totalPaye += $net;
             }
         }
 
-        // ---- Taux ----
         $tauxPaiement = ($totalNet > 0)
             ? round(($totalPaye / $totalNet) * 100, 2)
             : 0;
@@ -175,6 +180,7 @@ class DetailsPaiementController extends Controller
             'total_paye'     => $totalPaye,
             'taux_paiement'  => $tauxPaiement,
             'ech_code'       => $ech,
+            'reg_code'       => $reg, // on renvoie le code régie filtré
         ]);
     }
 

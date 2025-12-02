@@ -148,18 +148,18 @@ export default function Beneficiaires() {
 
   //  Colonnes du tableau
   const columns: Column[] = [
-    // {
-    //   key: "BEN_CODE",
-    //   title: "CODE",
-    //   render: (value: string) => {
-    //     const ben = beneficiaires.find(b => b.BEN_CODE === value);
-    //     return (
-    //       <div  className="bg-primary/10 font-semibold text-primary">
-    //         {ben ? ben.BEN_CODE : "—"}
-    //       </div>
-    //     );
-    //   },
-    // },
+    {
+      key: "BEN_CODE",
+      title: "CODE",
+      render: (value: string) => {
+        const ben = beneficiaires.find(b => b.BEN_CODE === value);
+        return (
+          <div  className="bg-primary/10 font-semibold text-primary">
+            {ben ? ben.BEN_CODE : "—"}
+          </div>
+        );
+      },
+    },
     {
       key: "BEN_NOM",
       title: "BENEFICIAIRE",
@@ -300,7 +300,7 @@ export default function Beneficiaires() {
             onEdit={can.onEdit ? handleEdit : undefined}
             onDelete={can.onDelete ? handleDelete : undefined}
             addButtonText="Nouveau"
-            onDeleteAll={(rows) => (rows)}
+            // onDeleteAll={(rows) => (rows)}
             searchPlaceholder="Rechercher un bénéficiaire..."
             onSearchChange={(value: string) => setSearchTerm(value)}
             // onPrint={handlePrint}
@@ -320,7 +320,7 @@ export default function Beneficiaires() {
         open={openPreview}
         onClose={() => {
           setOpenPreview(false);
-          fetchBeneficiaires();
+          // fetchBeneficiaires();
         }}
         beneficiaire={selectedBeneficiaire}
       />

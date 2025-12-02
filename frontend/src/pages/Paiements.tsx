@@ -20,6 +20,7 @@ export default function Paiements() {
   const [types, setTypes] = useState<any[]>([]);
   const [beneficiaires, setBeneficiaires] = useState<any[]>([]);
   const [echeances, setEcheances] = useState<any[]>([]);
+  const [regies, setRegies] = useState<any[]>([]);
   const [selectedEcheance, setSelectedEcheance] = useState<any | null>(null);
   const [paiementToDelete, setPaiementToDelete] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -34,6 +35,7 @@ export default function Paiements() {
   const [isLoading, setIsLoading] = useState(true);
   const [openPreview, setOpenPreview] = useState(false);
   const [selectedPaiement, setSelectedPaiement] = useState<any>(null);
+  const [selectedRegie, setSelectedRegie] = useState<any | null>(null);
   const { toast } = useToast();
 
   // Récupérer l'utilisateur courant pour déterminer les permissions
@@ -50,6 +52,8 @@ export default function Paiements() {
     // onValidateVirement: grpCode === "0001",
     // onStatusUpdate: grpCode === "0001",
   };
+
+  const showRegieFilter = grpCode === "0001" || grpCode === "0002";
 
   // Handlers réutilisables (passés au DataTable seulement si permitted)
   const handleAdd = () => {
@@ -70,27 +74,42 @@ export default function Paiements() {
   };
 
   //  Charger les paiements depuis l’API
-  const fetchPaiements = async () => {
-    setIsLoading(true);
+  const fetchPaiements = async (ech_code: string | null = null) => {
+    // setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const { data } = await axios.get(`${API_URL}/paiements`, {
+
+      // Ajoute le paramètre ech_code si une échéance est sélectionnée
+      const url = ech_code
+        ? `${API_URL}/paiements?ech_code=${ech_code}`
+        : `${API_URL}/paiements`;
+
+        // console.log("Fetching paiements from URL:", url);
+
+      const { data } = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      // console.log("Paiements reçus:", data);
+
+
       setPaiements(data);
     } catch (error) {
       toast({
         title: "Erreur",
-        description:"Erreur lors du chargement des paiements.",
+        description: "Erreur lors du chargement des paiements.",
         variant: "destructive",
       });
-    } finally {
+    } 
+    finally {
       setIsLoading(false);
     }
   };
 
+  // Initial
   useEffect(() => {
     fetchPaiements();
+    fetchTotals(null);
   }, []);
 
   useEffect(() => {
@@ -99,10 +118,12 @@ export default function Paiements() {
     Promise.all([
       axios.get(`${API_URL}/info-beneficiaires`, { headers }),
       axios.get(`${API_URL}/echeances-publique`, { headers }),
+      axios.get(`${API_URL}/regies-publiques`, { headers }),
     ])
-      .then(([b, e]) => {
+      .then(([b, e, r]) => {
         setBeneficiaires(b.data);
         setEcheances(e.data);
+        setRegies(r.data);
       })
       .catch(() => toast({
         title: "Erreur",
@@ -113,17 +134,27 @@ export default function Paiements() {
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  const displayedPaiements = paiements
-    // Filtrer par échéance si sélectionnée
-    .filter((p) =>
-      !selectedEcheance || String(p.ECH_CODE) === String(selectedEcheance.ECH_CODE)
-    )
-    // Filtrer par recherche si searchTerm non vide
-    .filter((p) =>
+  // const displayedPaiements = paiements.filter((p) =>
+  //   !searchTerm ||
+  //   String(p.PAI_BENEFICIAIRE).toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //   String(p.PAI_CODE).toLowerCase().includes(searchTerm.toLowerCase())
+  // );
+
+  const displayedPaiements = paiements.filter((p) => {
+    // Recherche
+    const matchesSearch =
       !searchTerm ||
       String(p.PAI_BENEFICIAIRE).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(p.PAI_CODE).toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      String(p.PAI_CODE).toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Filtre échéance
+    const matchesEcheance = !selectedEcheance || p.ECH_CODE === selectedEcheance.ECH_CODE;
+
+    // Filtre régie
+    const matchesRegie = !selectedRegie || p.REG_CODE === selectedRegie.REG_CODE; // adapter REG_CODE à ton objet
+
+    return matchesSearch && matchesEcheance && matchesRegie;
+  });
 
   // Suppression
     const handleConfirmDelete = async () => {
@@ -181,7 +212,7 @@ export default function Paiements() {
               body = { ids: selectedRowsForVirement.map(r => r.PAI_CODE) }; // route multiple
           }
 
-          console.log("envoie", {url, body});
+          // console.log("envoie", {url, body});
 
           const { data } = await axios.put(url, body, {
               headers: {
@@ -386,22 +417,28 @@ export default function Paiements() {
     icon: any;
     color: string;
     bgColor: string;
+    taux: string;
   }
 
   const [stats, setStats] = useState<Stat[]>([]);
 
-  const fetchTotals = async (ech_code: string | null = null) => {
+  const fetchTotals = async (ech_code: string | null = null, reg_code: string | null = null) => {
     try {
       const token = localStorage.getItem("token");
 
-      // On ajoute le paramètre ech_code si défini
-      const url = ech_code
-        ? `${API_URL}/total-paiement?ech_code=${ech_code}`
-        : `${API_URL}/total-paiement`;
+      let url = `${API_URL}/total-paiement`;
+      const params: any = {};
+      if (ech_code) params.ech_code = ech_code;
+      if (reg_code) params.reg_code = reg_code;
+
+      // console.log("Fetching paiements from URL:", url);
 
       const { data } = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
+        params, // <-- ici
       });
+
+      // console.log("Totaux reçus:", data);
 
       const formatAmount = (a: number) =>
         Number(a).toLocaleString("fr-FR") + " F CFA";
@@ -414,6 +451,7 @@ export default function Paiements() {
           icon: DollarSign,
           color: "text-green-600",
           bgColor: "bg-green-50",
+          taux:""
         },
         {
           title: "Montant Total Retenu",
@@ -422,6 +460,7 @@ export default function Paiements() {
           icon: DollarSign,
           color: "text-red-600",
           bgColor: "bg-red-50",
+          taux:""
         },
         {
           title: "Montant Total Net à Payer",
@@ -430,6 +469,7 @@ export default function Paiements() {
           icon: DollarSign,
           color: "text-blue-600",
           bgColor: "bg-blue-50",
+          taux:""
         },
         {
           title: "Montant déjà Payé",
@@ -437,6 +477,7 @@ export default function Paiements() {
           icon: CheckCheck,
           color: "text-green-600",
           bgColor: "bg-green-50",
+          taux: formatPercent(data.taux_paiement),
         },
       ]);
     } catch (error) {
@@ -444,10 +485,13 @@ export default function Paiements() {
     }
   };
 
+  // les totaux lorsque l'échéance change
   useEffect(() => {
-    // On déclenche le fetch quand selectedEcheance change
-    fetchTotals(selectedEcheance ? selectedEcheance.ECH_CODE : null);
-  }, [selectedEcheance]);
+    const echCode = selectedEcheance ? selectedEcheance.ECH_CODE : null;
+    const regCode = selectedRegie ? selectedRegie.REG_CODE : null;
+    fetchTotals(echCode, regCode);
+    fetchPaiements(echCode); 
+  }, [selectedEcheance, selectedRegie]);
 
   useEffect(() => {
     const handleTotalUpdated = () => {
@@ -463,6 +507,18 @@ export default function Paiements() {
 
   //  Colonnes du tableau
   const columns: Column[] = [
+    {
+      key: "PAI_CODE",
+      title: "CODE",
+      render: (value: string) => {
+        const ben = paiements.find(b => b.PAI_CODE === value);
+        return (
+          <div  className="bg-primary/10 font-semibold text-primary">
+            {ben ? ben.PAI_CODE : "—"}
+          </div>
+        );
+      },
+    },
     {
         key: "PAI_BENEFICIAIRE",
         title: "BENEFICIAIRE",
@@ -614,7 +670,11 @@ export default function Paiements() {
       </div>
 
       {/* Statistiques */}
-      <div className="grid gap-2 grid-cols-[repeat(auto-fit,minmax(150px,1fr))]">
+      <div className="grid gap-2 
+                grid-cols-1 
+                sm:grid-cols-2 
+                md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]">
+
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -622,18 +682,37 @@ export default function Paiements() {
               key={stat.title}
               className="hover:shadow-sm transition-shadow rounded-xl"
             >
-              <CardHeader className="flex flex-row items-center justify-between p-2 pb-0">
-                <div className={`${stat.bgColor} p-1.5 rounded-md`}>
-                  <Icon className={`h-4 w-4 ${stat.color}`} />
+              <CardHeader className="p-2 pb-0">
+                <div className="flex flex-row items-start justify-between">
+                  
+                  {/* Icône + taux */}
+                  <div className="flex flex-col items-center">
+                    <div className={`${stat.bgColor} p-1.5 rounded-md`}>
+                      <Icon className={`h-4 w-4 ${stat.color}`} />
+                    </div>                    
+                  </div>
+
+                  {/* Titre */}
+                  <CardTitle className="text-xs font-semibold text-right">
+                    {stat.title}
+                  </CardTitle>
                 </div>
-                <CardTitle className="text-xs font-semibold text-right">
-                  {stat.title}
-                </CardTitle>
               </CardHeader>
 
               <CardContent className="px-2 pb-2">
-                <div className="text-lg font-bold text-right leading-tight">
-                  {stat.value}
+                <div className="flex items-center justify-between leading-tight">
+                  
+                  {/* Taux à gauche */}
+                  {stat.taux && (
+                    <span className="text-[14px] font-semibold text-gray-600">
+                      {stat.taux}
+                    </span>
+                  )}
+
+                  {/* Valeur à droite */}
+                  <span className="text-lg font-bold text-right">
+                    {stat.value}
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -665,15 +744,24 @@ export default function Paiements() {
               ...e,
               label: `Échéance : ${e.ECH_LIBELLE}`
             }))}
+            rowKey2="PAI_CODE"
+              filterItems2={showRegieFilter ? regies.map((e) => ({
+              ...e,
+              label: `Régie : ${e.REG_SIGLE}`
+            })) : undefined}
             filterDisplay={(it: any) => it.label || it.ECH_LIBELLE}
+            filterDisplay2={showRegieFilter ? ((it) => it.label || it.REG_SIGLE) : undefined}
             onFilterSelect={(it) => setSelectedEcheance(it)}
+            onFilterSelect2={showRegieFilter ? (it) => setSelectedRegie(it) : undefined}
             onEdit={can.onEdit ? handleEdit : undefined}
             onDelete={can.onDelete ? handleDelete : undefined}
             addButtonText="Nouveau"
-            onDeleteAll={can.onDeleteAll ? handleDeleteVirement : undefined}
+            // onDeleteAll={can.onDeleteAll ? handleDeleteVirement : undefined}
             searchPlaceholder="Rechercher un bénéficiaire..."
             onSearchChange={(value: string) => setSearchTerm(value)}
             filterPlaceholder="Filtrer par échéance..."
+            onSearchChange2={(value: string) => setSearchTerm(value)}            
+            filterPlaceholder2={showRegieFilter ? "Filtrer par régie..." : undefined}
           />
         </CardContent>
       </Card>
@@ -714,7 +802,7 @@ export default function Paiements() {
         open={openPreview}
         onClose={() => {
           setOpenPreview(false);
-          fetchPaiements();
+          // fetchPaiements();
         }}
         paiement={selectedPaiement}
       />
