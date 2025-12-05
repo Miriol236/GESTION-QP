@@ -6,9 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Tags, Package, AlignVerticalJustifyStartIcon } from "lucide-react";
 import ConfirmDeleteDialog from "@/components/common/ConfirmDeleteDialog";
 import axios from "axios";
 import { API_URL } from "@/config/api";
@@ -21,38 +19,91 @@ export default function Echeances() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const [suggestion, setSuggestion] = useState({ annee: "", mois: "" });
+
+  const years = Array.from({ length: 31 }, (_, i) => 2020 + i); // 2020 → 2050
+  const months = [
+    { value: "01", label: "Janvier" },
+    { value: "02", label: "Février" },
+    { value: "03", label: "Mars" },
+    { value: "04", label: "Avril" },
+    { value: "05", label: "Mai" },
+    { value: "06", label: "Juin" },
+    { value: "07", label: "Juillet" },
+    { value: "08", label: "Août" },
+    { value: "09", label: "Septembre" },
+    { value: "10", label: "Octobre" },
+    { value: "11", label: "Novembre" },
+    { value: "12", label: "Décembre" },
+  ];
+
+  // Fonction utilitaire pour calculer le prochain trimestre
+  function nextQuarter(echCode: string | number) {
+    const code = echCode.toString();
+    const year = parseInt(code.slice(0, 4), 10);
+    const month = parseInt(code.slice(4, 6), 10);
+
+    const trimestres = [3, 6, 9, 12];
+    const index = trimestres.indexOf(month);
+
+    if (index === -1) return { annee: year, mois: 3 }; // fallback
+
+    if (index === trimestres.length - 1) {
+      return { annee: year + 1, mois: 3 }; // dernier trimestre → année suivante
+    }
+
+    return { annee: year, mois: trimestres[index + 1] };
+  }
 
   //  Chargement initial
   useEffect(() => {
     fetchEcheances();
   }, []);
 
-  // Récupération des échéances
   const fetchEcheances = async () => {
-      try {
-        setIsLoading(true);
-        const token = localStorage.getItem("token");
-        const res = await axios.get(`${API_URL}/echeances`, {
-            headers: { Authorization: `Bearer ${token}` },
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_URL}/echeances`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setEcheances(res.data);
+
+      // récupérer le dernier ECH_CODE existant (ou actif)
+      if (res.data.length > 0) {
+        const sorted = res.data.sort((a, b) => b.ECH_CODE - a.ECH_CODE);
+        const last = sorted[0];
+        const next = nextQuarter(last.ECH_CODE);
+        setSuggestion({
+          annee: next.annee.toString(),
+          mois: next.mois.toString().padStart(2, "0"),
         });
-        setEcheances(res.data);
-        } catch (error) {
-        console.error("Erreur lors du chargement des échéances :", error);
-        } finally {
-            setIsLoading(false);
       }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  const displayed = echeances
-    // Filtrer par recherche si searchTerm non vide
-    .filter((p) =>
+  const displayed = echeances.filter(
+    (p) =>
       !searchTerm ||
       String(p.ECH_LIBELLE).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const columns: Column[]  = [
+  const columns: Column[] = [
+    {
+      key: "ECH_CODE",
+      title: "CODE",
+      render: (value) => (
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{value}</span>
+        </div>
+      ),
+    },
     {
       key: "ECH_LIBELLE",
       title: "LIBELLE",
@@ -66,14 +117,16 @@ export default function Echeances() {
       key: "ECH_STATUT",
       title: "STATUT",
       render: (value: boolean) => (
-        <Badge variant={value ? "default" : "secondary"} className={value ? "bg-green-500/20 text-green-700" : ""}>
+        <Badge
+          variant={value ? "default" : "secondary"}
+          className={value ? "bg-green-500/20 text-green-700" : ""}
+        >
           {value ? "En cours..." : "Traité"}
         </Badge>
       ),
     },
   ];
 
-  //  Ajouter ou modifier une échéance
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget as HTMLFormElement);
@@ -81,18 +134,19 @@ export default function Echeances() {
 
     const payload = {
       ECH_LIBELLE: formData.get("ECH_LIBELLE"),
+      ECH_ANNEE: formData.get("ECH_ANNEE"),
+      ECH_MOIS: formData.get("ECH_MOIS"),
     };
 
     try {
       if (editingEcheance) {
-        await axios.put(`${API_URL}/echeances/${editingEcheance.ECH_CODE}`, payload, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        // Émettre un événement global pour prévenir le Header
+        await axios.put(
+          `${API_URL}/echeances/${editingEcheance.ECH_CODE}`,
+          payload,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         window.dispatchEvent(new Event("echeanceUpdated"));
-
-        toast({ 
+        toast({
           title: "Succès",
           description: "Echéance modifiée avec succès",
           variant: "success",
@@ -101,10 +155,8 @@ export default function Echeances() {
         await axios.post(`${API_URL}/echeances`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-
-        // Émettre un événement global pour prévenir le Header
         window.dispatchEvent(new Event("echeanceUpdated"));
-        toast({ 
+        toast({
           title: "Succès",
           description: "Echéance ajoutée avec succès",
           variant: "success",
@@ -122,7 +174,6 @@ export default function Echeances() {
     }
   };
 
-  // Suppression
   const handleConfirmDelete = async () => {
     if (!echeanceToDelete) return;
     try {
@@ -130,18 +181,19 @@ export default function Echeances() {
       await axios.delete(`${API_URL}/echeances/${echeanceToDelete.ECH_CODE}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      // Émettre un événement global pour prévenir le Header
       window.dispatchEvent(new Event("echeanceUpdated"));
-
-      toast({ 
+      toast({
         title: "Succès",
         description: "Echéance supprimée avec succès",
         variant: "success",
       });
       fetchEcheances();
     } catch (err: any) {
-      toast({ title: "Erreur", description: err?.response?.data?.message || "Suppression échouée", variant: "destructive" });
+      toast({
+        title: "Erreur",
+        description: err?.response?.data?.message || "Suppression échouée",
+        variant: "destructive",
+      });
     } finally {
       setIsDeleteDialogOpen(false);
     }
@@ -150,48 +202,56 @@ export default function Echeances() {
   const handleActivateEcheance = async (echeanceActivate) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.put(`${API_URL}/echeances/${echeanceActivate.ECH_CODE}/activer`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      // Émettre un événement global pour prévenir le Header
+      await axios.put(
+        `${API_URL}/echeances/${echeanceActivate.ECH_CODE}/activer`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       window.dispatchEvent(new Event("echeanceUpdated"));
-
-      toast({ 
+      toast({
         title: "Succès",
         description: "Echéance activée avec succès",
         variant: "success",
       });
-      fetchEcheances(); // Recharge la liste
-    } catch (error : any) {
-      toast({ title: "Erreur", description: error?.response?.data?.message || "Impossible d'activer", variant: "destructive" });
+      fetchEcheances();
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description:
+          error?.response?.data?.message || "Impossible d'activer",
+        variant: "destructive",
+      });
     }
   };
 
-  if(isLoading) {
-    return <TableSkeleton />;
-  }
+  if (isLoading) return <TableSkeleton />;
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h1 className="text-xl font-bold text-primary">
-        Gestion des Echéances
-      </h1>
+      <h1 className="text-xl font-bold text-primary">Gestion des Echéances</h1>
 
       <DataTable
         title={`Effectif (${displayed.length})`}
         columns={columns}
         data={displayed}
-        onAdd={() => { setEditingEcheance(null); setIsDialogOpen(true); }}
-        onStatut={(u) => { handleActivateEcheance(u); }}
-        onEdit={(u) => { setEditingEcheance(u); setIsDialogOpen(true); }}
-        onDelete={(u) => { setEcheanceToDelete(u); setIsDeleteDialogOpen(true); }}
+        onAdd={() => {
+          setEditingEcheance(null);
+          setIsDialogOpen(true);
+        }}
+        onStatut={(u) => handleActivateEcheance(u)}
+        onEdit={(u) => {
+          setEditingEcheance(u);
+          setIsDialogOpen(true);
+        }}
+        onDelete={(u) => {
+          setEcheanceToDelete(u);
+          setIsDeleteDialogOpen(true);
+        }}
         addButtonText="Nouveau"
         searchPlaceholder="Rechercher une échéance..."
         onSearchChange={(value: string) => setSearchTerm(value)}
       />
 
-      {/* Dialog ajout/modification */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -200,14 +260,70 @@ export default function Echeances() {
             </DialogTitle>
           </DialogHeader>
 
+          {/* Suggestion prochaine échéance */}
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
+            <p className="text-sm text-blue-700">
+              Prochaine échéance suggérée :{" "}
+              <strong>
+                {suggestion.annee && suggestion.mois
+                  ? `${suggestion.annee}-${suggestion.mois}`
+                  : "-"}
+              </strong>
+            </p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Année <span className="text-red-500">*</span></Label>
+                <select
+                  name="ECH_ANNEE"
+                  className="border rounded p-2 w-full"
+                  required
+                  defaultValue={editingEcheance ? editingEcheance.ECH_ANNEE : suggestion.annee}
+                >
+                  {years.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <Label>Mois <span className="text-red-500">*</span></Label>
+                <select
+                  name="ECH_MOIS"
+                  className="border rounded p-2 w-full"
+                  required
+                  defaultValue={editingEcheance ? editingEcheance.ECH_MOIS : suggestion.mois}
+                >
+                  {months.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div>
               <Label>Libellé <span className="text-red-500">*</span></Label>
-              <Input name="ECH_LIBELLE" defaultValue={editingEcheance?.ECH_LIBELLE || ""} required />
+              <Input
+                name="ECH_LIBELLE"
+                defaultValue={editingEcheance?.ECH_LIBELLE || ""}
+                required
+              />
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+              >
+                Annuler
+              </Button>
               <Button type="submit" variant="default">
                 {editingEcheance ? "Modifier" : "Ajouter"}
               </Button>
@@ -216,7 +332,6 @@ export default function Echeances() {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation suppression */}
       <ConfirmDeleteDialog
         open={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}

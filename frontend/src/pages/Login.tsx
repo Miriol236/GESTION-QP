@@ -63,19 +63,27 @@ export default function Login() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300 relative overflow-hidden">
 
       {/*  Texte défilant en haut ----> animate-marquee */}
-      <div className="absolute top-6 w-full overflow-hidden">
+      <div className="absolute top-16 w-full overflow-hidden">
         <div className="text-2xl font-bold text-center text-primary">
-          Bienvenue sur la plateforme de Gestion des Quotes-Parts 
+          BIENVENUE SUR LA PLATEFORME DE GESTION DES QUÔTES-PARTS
         </div>
       </div>
+
 
       {/*  Contenu principal */}
       <div className="w-full max-w-md px-4 mt-12">
         <Card className="shadow-lg border border-gray-300 bg-white">
           <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-semibold">Authentification</CardTitle>
-          <div className="mx-auto w-24 h-24 bg-gradient-primary rounded-full flex items-center justify-center mb-4">
+          <CardTitle className="text-2xl font-semibold">AUTHENTIFICATION</CardTitle>
+          {/* <div className="mx-auto w-24 h-24 bg-gradient-primary rounded-full flex items-center justify-center mb-4">
             <User className="text-white w-20 h-20" />
+          </div> */}
+          <div className="mx-auto w-32 h-32 flex items-center justify-center mb-4">
+            <img
+              src="/armoirie.png"
+              alt="User"
+              className="w-full h-full object-contain"
+            />
           </div>
         </CardHeader>
 
@@ -135,8 +143,17 @@ export default function Login() {
       </div>
 
       {/*  Footer avec copyright */}
-      <footer className="absolute bottom-4 text-sm text-muted-foreground text-center">
-        © {new Date().getFullYear()} Développé par l’Office National d’Informatique — Tous droits réservés.
+      {/* <footer className="absolute bottom-4 text-sm text-muted-foreground text-center">
+        © {new Date().getFullYear()} Développé par l’Office National d’Informatique - Tous droits réservés.
+      </footer> */}
+      <footer className="absolute bottom-4 text-sm text-muted-foreground text-center flex items-center justify-center gap-2">
+        © {new Date().getFullYear()} Développé par l’Office National d’Informatique
+        <img
+          src="/logo.jpg"
+          alt="ONI"
+          className="inline-block w-5 h-5 object-contain"
+        /> 
+        - Tous droits réservés.
       </footer>
 
       {/*  Animation du texte défilant */}

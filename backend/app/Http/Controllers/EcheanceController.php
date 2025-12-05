@@ -88,25 +88,36 @@ class EcheanceController extends Controller
     {
         $request->validate([
             'ECH_LIBELLE' => 'required|string|max:100',
+            'ECH_ANNEE' => 'required|digits:4',
+            'ECH_MOIS' => 'required|digits:2',
         ]);
 
-        // Vérifier si une échéance avec le même libellé existe déjà
-        $exists = Echeance::where('ECH_LIBELLE', $request->ECH_LIBELLE)->exists();
-        if ($exists) {
+        // Vérifier doublon libellé
+        if (Echeance::where('ECH_LIBELLE', $request->ECH_LIBELLE)->exists()) {
             return response()->json(['message' => 'Une échéance avec ce nom existe déjà.'], 409);
         }
 
-        //  Désactiver toutes les autres échéances avant d’ajouter la nouvelle
+        // Désactiver les autres échéances
         Echeance::where('ECH_STATUT', true)->update(['ECH_STATUT' => false]);
 
-        //  Créer la nouvelle échéance avec ECH_STATUT = true automatiquement
+        // Générer le code ECH_CODE sans l'enregistrer dans une colonne séparée
+        $ECH_CODE = $request->ECH_ANNEE . $request->ECH_MOIS; // exemple 202512
+
+        // Vérifier duplicata de code
+        if (Echeance::where('ECH_CODE', $ECH_CODE)->exists()) {
+            return response()->json(['message' => 'Cette échéance existe déjà.'], 409);
+        }
+
+        // Créer l'échéance
         $echeance = new Echeance();
+        $echeance->ECH_CODE = $ECH_CODE; // <-- On stocke uniquement dans la colonne existante
         $echeance->ECH_LIBELLE = $request->ECH_LIBELLE;
-        $echeance->ECH_STATUT = true; // Valeur automatique
+        $echeance->ECH_STATUT = true;
         $echeance->ECH_DATE_CREER = now();
         $echeance->ECH_CREER_PAR = auth()->check()
             ? auth()->user()->UTI_NOM . ' ' . auth()->user()->UTI_PRENOM
             : 'SYSTEM';
+        
         $echeance->save();
 
         return response()->json(['message' => 'Échéance créée avec succès !'], 201);

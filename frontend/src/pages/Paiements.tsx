@@ -534,7 +534,7 @@ export default function Paiements() {
       title: "BANQUE",
       render: (value) => (
         <div className="flex items-center gap-2">
-          <Banknote className="h-4 w-4 text-primary" />
+          {/* <Banknote className="h-4 w-4 text-primary" /> */}
           <span className="font-medium">{value}</span>
         </div>
       ),
@@ -545,7 +545,7 @@ export default function Paiements() {
       render: (value, record) => (
         <div className="flex items-center gap-2">
           <span className="font-medium">
-            {record.GUI_CODE ? `${record.GUI_CODE} - ` : ''}{record.GUI_NOM || '—'}
+            {record.GUI_CODE ? `${record.GUI_CODE}` : ''}
           </span>
         </div>
       ),
@@ -686,10 +686,16 @@ export default function Paiements() {
                 <div className="flex flex-row items-start justify-between">
                   
                   {/* Icône + taux */}
-                  <div className="flex flex-col items-center">
+                  <div className="flex items-center gap-2">
                     <div className={`${stat.bgColor} p-1.5 rounded-md`}>
                       <Icon className={`h-4 w-4 ${stat.color}`} />
-                    </div>                    
+                    </div>
+
+                    {stat.taux && (
+                      <span className="text-[14px] font-semibold text-gray-600">
+                        {stat.taux}
+                      </span>
+                    )}
                   </div>
 
                   {/* Titre */}
@@ -699,21 +705,10 @@ export default function Paiements() {
                 </div>
               </CardHeader>
 
-              <CardContent className="px-2 pb-2">
-                <div className="flex items-center justify-between leading-tight">
-                  
-                  {/* Taux à gauche */}
-                  {stat.taux && (
-                    <span className="text-[14px] font-semibold text-gray-600">
-                      {stat.taux}
-                    </span>
-                  )}
-
-                  {/* Valeur à droite */}
-                  <span className="text-lg font-bold text-right">
-                    {stat.value}
-                  </span>
-                </div>
+              <CardContent className="px-2 pb-2"> 
+                <div className="text-lg font-bold text-right leading-tight">                  
+                    {stat.value} 
+                </div> 
               </CardContent>
             </Card>
           );

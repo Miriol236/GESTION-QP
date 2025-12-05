@@ -31,7 +31,7 @@ class DetailsPaiementController extends Controller
             'PAI_MONTANT' => 'required|string',
         ]);
 
-        //  Vérifie si cet élément existe déjà pour la même échéance
+        // Vérifier doublon
         $exists = DetailsPaiement::where('ELT_CODE', $request->ELT_CODE)
             ->where('PAI_CODE', $request->PAI_CODE)
             ->exists();
@@ -42,8 +42,34 @@ class DetailsPaiementController extends Controller
             ], 409);
         }
 
-        //  Enregistrement
+        // Récupérer l'échéance
+        $paiement = DB::table('T_PAIEMENTS')->where('PAI_CODE', $request->PAI_CODE)->first();
+
+        if (!$paiement) {
+            return response()->json(['message' => 'Paiement introuvable.'], 404);
+        }
+
+        $echCode = $paiement->ECH_CODE;
+
+        // Récupérer le dernier DET_CODE existant pour cette ECH_CODE
+        $last = DB::table('T_DETAILS_PAIEMENT')
+            ->join('T_PAIEMENTS', 'T_PAIEMENTS.PAI_CODE', '=', 'T_DETAILS_PAIEMENT.PAI_CODE')
+            ->where('T_PAIEMENTS.ECH_CODE', $echCode)
+            ->orderByRaw('CAST(T_DETAILS_PAIEMENT.DET_CODE AS UNSIGNED) DESC')
+            ->value('T_DETAILS_PAIEMENT.DET_CODE');
+
+        if ($last) {
+            $lastOrder = intval(substr($last, -6));
+            $numeroOrdre = str_pad($lastOrder + 1, 6, '0', STR_PAD_LEFT);
+        } else {
+            $numeroOrdre = "000001";
+        }
+
+        $detCode = $echCode . $numeroOrdre;
+
+        // Enregistrement
         $detailsPaiement = new DetailsPaiement();
+        $detailsPaiement->DET_CODE = $detCode;
         $detailsPaiement->PAI_MONTANT = $request->PAI_MONTANT;
         $detailsPaiement->ELT_CODE = $request->ELT_CODE;
         $detailsPaiement->PAI_CODE = $request->PAI_CODE;

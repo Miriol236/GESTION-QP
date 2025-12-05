@@ -13,15 +13,15 @@ class Echeance extends Model
     public $timestamps = false;
 
     // Générer le code automatique
-    protected static function boot()
-    {
-        parent::boot();
+    // protected static function boot()
+    // {
+    //     parent::boot();
 
-        static::creating(function ($model) {
-            // Génère automatiquement l'année et le mois au format AAAAMM
-            $model->ECH_CODE = date('Ym'); // Ex : 202510
-        });
-    }
+    //     static::creating(function ($model) {
+    //         // Génère automatiquement l'année et le mois au format AAAAMM
+    //         $model->ECH_CODE = date('Ym'); // Ex : 202510
+    //     });
+    // }
 
     protected $fillable = [
         'ECH_CODE',

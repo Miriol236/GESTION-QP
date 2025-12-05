@@ -14,7 +14,15 @@ export default function Footer({ className = "" }: { className?: string }) {
       © {year} — Développé par{" "}
       <span className="font-medium text-foreground ml-1">
         Office National d’Informatique
-      </span> - Tous droits réservés
+      </span>
+
+      <img
+        src="/logo.jpg"
+        alt="ONI"
+        className="inline-block w-5 h-5 object-contain mx-2"
+      />
+
+      — Tous droits réservés
     </footer>
   );
 }
