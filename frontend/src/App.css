@@ -40,3 +40,9 @@
 .read-the-docs {
   color: #888;
 }
+
+.data-table {
+  font-family: 'Inter', sans-serif; /* ou 'Roboto', etc. */
+  font-size: 8px; /* taille personnalisée */
+}
+

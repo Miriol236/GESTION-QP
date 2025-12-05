@@ -45,14 +45,6 @@ const menuItems = [
       { title: "Paiements QP", url: "/paiements", icon: CreditCard, foncCode: "0014" },
     ],
   },
-  // {
-  //   title: "Paiements QP",
-  //   icon: CreditCard,
-  //   children: [
-  //     { title: "Gestion des paiements", url: "/paiements", icon: HandCoins, foncCode: "0014" },
-  //     { title: "Liste des paiements", url: "/", icon: Banknote, foncCode: "0000" },
-  //   ],
-  // },
   {
     title: "Paramètres",
     icon: Settings,

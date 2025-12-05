@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('PAI_REG_LIB')->nullable();
             $table->boolean('PAI_STATUT');
             $table->integer('PAI_VIREMENT')->nullable();
+            $table->foreign('PAI_VIREMENT')->references('VIR_CODE')->on('T_VIREMENTS');
             $table->date('PAI_DATE_VIREMENT')->nullable();
             $table->date('PAI_DATE_CREER')->nullable();
             $table->string('PAI_CREER_PAR')->nullable();

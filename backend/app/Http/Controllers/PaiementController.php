@@ -71,9 +71,11 @@ class PaiementController extends Controller
                 'T_DOMICILIERS.DOM_RIB as CLE_RIB',
                 'totaux.TOTAL_GAIN',
                 'totaux.TOTAL_RETENU',
-                'totaux.MONTANT_NET'
+                'totaux.MONTANT_NET',
+                'T_VIREMENTS.VIR_LIBELLE as VIREMENT'
             )            
             ->join('T_BENEFICIAIRES', 'T_BENEFICIAIRES.BEN_CODE', '=', 'T_PAIEMENTS.BEN_CODE')
+            ->join('T_VIREMENTS', 'T_VIREMENTS.VIR_CODE', '=', 'T_PAIEMENTS.PAI_VIREMENT')
             ->leftJoin('T_DOMICILIERS', function($join){
                 $join->on('T_DOMICILIERS.BEN_CODE', '=', 'T_BENEFICIAIRES.BEN_CODE')
                     ->where('T_DOMICILIERS.DOM_STATUT', true); // RIB actif

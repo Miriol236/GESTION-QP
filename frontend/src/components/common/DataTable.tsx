@@ -6,7 +6,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { 
   Search, Plus, Power, Edit, Trash2, Eye, Tags, Check,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  ChevronUp, ChevronDown, ArrowUpDown, Printer // Ajouté ArrowUpDown pour l'icône de tri
+  ChevronUp, ChevronDown, ArrowUpDown, Printer, Filter // Ajouté ArrowUpDown pour l'icône de tri
 } from "lucide-react"; // Import mis à jour
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -38,6 +38,7 @@ export interface DataTableProps {
   onPrint?: () => void;
   onSearchChange?: (value: string) => void;
   onSearchChange2?: (value: string) => void;
+  onSearchChange3?: (value: string) => void;
   // Callback when the user validates virement for selected rows (receives selected rows)
   onValidateVirement?: (rows: any[]) => void;
   // Callback when the user requests a status update for selected rows (receives selected rows)
@@ -49,18 +50,23 @@ export interface DataTableProps {
   // Optional filter items to show a small combo next to title
   filterItems?: any[];
   filterItems2?: any[];
+  filterItems3?: any[];
   // Optional function to get a display string for an item
   filterDisplay?: (item: any) => string;
   filterDisplay2?: (item: any) => string;
+  filterDisplay3?: (item: any) => string;
   // Called when an item is selected (or null when cleared)
   onFilterSelect?: (item: any | null) => void;
   onFilterSelect2?: (item: any | null) => void;
+  onFilterSelect3?: (item: any | null) => void;
   // placeholder label for the filter combo
   filterPlaceholder?: string;
   filterPlaceholder2?: string;
+  filterPlaceholder3?: string;
   // Key to use as stable row id for selection (defaults to first column key)
   rowKey?: string;
   rowKey2?: string;
+  rowKey3?: string;
 }
 
 export function DataTable({
@@ -80,6 +86,7 @@ export function DataTable({
   onPrint,
   onSearchChange,
   onSearchChange2,
+  onSearchChange3,
   onValidateVirement,
   onStatusUpdate,
   onViews,
@@ -87,18 +94,24 @@ export function DataTable({
   addButtonText = "Ajouter",
   filterItems = [],
   filterItems2 = [],
+  filterItems3 = [],
   filterDisplay,
   filterDisplay2,
+  filterDisplay3,
   onFilterSelect,
   onFilterSelect2,
+  onFilterSelect3,
   filterPlaceholder = "Filtrer...",
   filterPlaceholder2 = "Filtrer...",
+  filterPlaceholder3 = "Filtrer...",
   rowKey,
   rowKey2,
+  rowKey3,
 }: DataTableProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedFilter, setSelectedFilter] = React.useState<any | null>(null);
   const [selectedFilter2, setSelectedFilter2] = React.useState<any | null>(null);
+  const [selectedFilter3, setSelectedFilter3] = React.useState<any | null>(null);
 
   // stable key used to identify rows
   const stableRowKey = React.useMemo(() => rowKey ?? (columns && columns.length > 0 ? columns[0].key : "id"), [rowKey, columns]);
@@ -240,6 +253,9 @@ export function DataTable({
                       size="sm"
                       className="px-2 py-1 w-full sm:w-auto flex justify-between"
                     >
+                      {/* Icône de filtre */}
+                      <Filter className="h-4 w-4 text-gray-500" />
+                      
                       {selectedFilter
                         ? filterDisplay
                           ? filterDisplay(selectedFilter)
@@ -311,6 +327,9 @@ export function DataTable({
                       size="sm"
                       className="px-2 py-1 w-full sm:w-auto flex justify-between"
                     >
+                      {/* Icône de filtre */}
+                      <Filter className="h-4 w-4 text-gray-500" />
+
                       {selectedFilter2
                         ? filterDisplay2
                           ? filterDisplay2(selectedFilter2)
@@ -363,6 +382,63 @@ export function DataTable({
                                   }`}
                                 />
                                 {filterDisplay2 ? filterDisplay2(it) : String(it)}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              )}
+
+              {/* Pour statut */}
+              {filterItems3 && filterItems3.length > 0 && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="px-2 py-1 w-full sm:w-auto flex justify-between"
+                    >
+                      {/* Icône de filtre */}
+                      <Filter className="h-4 w-4 text-gray-500" />
+
+                      {selectedFilter3
+                        ? filterDisplay3
+                          ? filterDisplay3(selectedFilter3)
+                          : String(selectedFilter3)
+                        : filterPlaceholder3}
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+
+                  <PopoverContent className="p-0 w-[220px] sm:w-[250px]">
+                    <Command className="min-w-[230px] sm:min-w-[260px] max-w-[380px]">
+                      <CommandInput placeholder="Rechercher..." />
+                      <CommandList>
+                        <CommandGroup>
+                          {filterItems3.map((it: any, idx: number) => {
+                            const isSelected =
+                              JSON.stringify(selectedFilter3) === JSON.stringify(it);
+
+                            return (
+                              <CommandItem
+                                key={idx}
+                                onSelect={() => {
+                                  setSelectedFilter3(it);
+                                  onFilterSelect3 && onFilterSelect3(it);
+                                }}
+                                className="whitespace-nowrap"
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${
+                                    isSelected
+                                      ? "opacity-100 text-blue-600"
+                                      : "opacity-0"
+                                  }`}
+                                />
+                                {filterDisplay3 ? filterDisplay3(it) : String(it)}
                               </CommandItem>
                             );
                           })}

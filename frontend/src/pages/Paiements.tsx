@@ -36,6 +36,7 @@ export default function Paiements() {
   const [openPreview, setOpenPreview] = useState(false);
   const [selectedPaiement, setSelectedPaiement] = useState<any>(null);
   const [selectedRegie, setSelectedRegie] = useState<any | null>(null);
+  const [selectedStatut, setSelectedStatut] = useState<boolean | null>(null); 
   const { toast } = useToast();
 
   // Récupérer l'utilisateur courant pour déterminer les permissions
@@ -54,6 +55,12 @@ export default function Paiements() {
   };
 
   const showRegieFilter = grpCode === "0001" || grpCode === "0002";
+
+  const statutOptions = [
+    { label: "Statut : Tous", value: null },
+    { label: "Statut : Payé", value: true },
+    { label: "Statut : Non payé", value: false },
+  ];
 
   // Handlers réutilisables (passés au DataTable seulement si permitted)
   const handleAdd = () => {
@@ -151,9 +158,13 @@ export default function Paiements() {
     const matchesEcheance = !selectedEcheance || p.ECH_CODE === selectedEcheance.ECH_CODE;
 
     // Filtre régie
-    const matchesRegie = !selectedRegie || p.REG_CODE === selectedRegie.REG_CODE; // adapter REG_CODE à ton objet
+    const matchesRegie = !selectedRegie || p.REG_CODE === selectedRegie.REG_CODE;
 
-    return matchesSearch && matchesEcheance && matchesRegie;
+    // Filtre statut
+    const matchesStatut =
+      selectedStatut === null || (selectedStatut ? p.PAI_STATUT !== 0 : p.PAI_STATUT === 0);
+
+    return matchesSearch && matchesEcheance && matchesRegie && matchesStatut;
   });
 
   // Suppression
@@ -600,22 +611,13 @@ export default function Paiements() {
       },
     },
     {
-        key: "PAI_VIREMENT",
+        key: "VIREMENT",
         title: "VIREMENT",
-        render: (value: string) => {
-            const pai = paiements.find(b => b.PAI_VIREMENT === value);
-            const montant = pai ? Number(pai.PAI_VIREMENT) : 0;
-
-            return (
-            <div
-                className={`font-semibold ${
-                montant === 0 ? "text-red-500" : "text-green-600"
-                }`}
-            >
-                {pai ? montant : ""}
-            </div>
-            );
-        },
+        render: (value) => (
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{value}</span>
+        </div>
+      ),
     },
   ];
 
@@ -744,10 +746,14 @@ export default function Paiements() {
               ...e,
               label: `Régie : ${e.REG_SIGLE}`
             })) : undefined}
+            rowKey3="PAI_CODE"
+            filterItems3={statutOptions}
             filterDisplay={(it: any) => it.label || it.ECH_LIBELLE}
             filterDisplay2={showRegieFilter ? ((it) => it.label || it.REG_SIGLE) : undefined}
+            filterDisplay3={(it: any) => it.label || it.PAI_STATUT}
             onFilterSelect={(it) => setSelectedEcheance(it)}
             onFilterSelect2={showRegieFilter ? (it) => setSelectedRegie(it) : undefined}
+            onFilterSelect3={(it) => setSelectedStatut(it.value)}
             onEdit={can.onEdit ? handleEdit : undefined}
             onDelete={can.onDelete ? handleDelete : undefined}
             addButtonText="Nouveau"
@@ -757,6 +763,8 @@ export default function Paiements() {
             filterPlaceholder="Filtrer par échéance..."
             onSearchChange2={(value: string) => setSearchTerm(value)}            
             filterPlaceholder2={showRegieFilter ? "Filtrer par régie..." : undefined}
+            onSearchChange3={(value: string) => setSearchTerm(value)}
+            filterPlaceholder3="Filtrer par statut..."
           />
         </CardContent>
       </Card>

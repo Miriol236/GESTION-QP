@@ -17,7 +17,7 @@ export default function Footer({ className = "" }: { className?: string }) {
       </span>
 
       <img
-        src="/logo.jpg"
+        src={`${import.meta.env.BASE_URL}logo.jpg`}
         alt="ONI"
         className="inline-block w-5 h-5 object-contain mx-2"
       />

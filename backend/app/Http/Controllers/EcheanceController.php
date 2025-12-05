@@ -156,24 +156,47 @@ class EcheanceController extends Controller
             return response()->json(['message' => 'Echéance non trouvée'], 404);
         }
 
+        // Recalcul du nouveau code si année/mois modifiés
+        if ($request->ECH_ANNEE && $request->ECH_MOIS) {
+            $nouveauCode = $request->ECH_ANNEE . str_pad($request->ECH_MOIS, 2, '0', STR_PAD_LEFT);
+
+            // Vérifier si ce nouveau code existe déjà
+            if ($nouveauCode != $code && Echeance::where('ECH_CODE', $nouveauCode)->exists()) {
+                return response()->json([
+                    'message' => 'Une échéance avec cette année et ce mois existe déjà.'
+                ], 409);
+            }
+        } else {
+            $nouveauCode = $code; // aucune modification
+        }
+
+        // Vérifier le libellé
         $exists = Echeance::where('ECH_LIBELLE', $request->ECH_LIBELLE)
             ->where('ECH_CODE', '!=', $code)
             ->exists();
 
         if ($exists) {
-            return response()->json(['message' => 'Une échéance avec ce nom existe déjà.'], 409);
+            return response()->json([
+                'message' => 'Une échéance avec ce nom existe déjà.'
+            ], 409);
         }
 
         $derniereVersion = ($echeance->ECH_VERSION ?? 0) + 1;
 
+        // Mise à jour des valeurs
         $echeance->update([
+            'ECH_CODE' => $nouveauCode,
             'ECH_LIBELLE' => $request->ECH_LIBELLE ?? $echeance->ECH_LIBELLE,
             'ECH_DATE_MODIFIER' => now(),
-            'ECH_MODIFIER_PAR' => auth()->check() ? auth()->user()->UTI_NOM." ".auth()->user()->UTI_PRENOM : 'SYSTEM',
+            'ECH_MODIFIER_PAR' => auth()->check()
+                ? auth()->user()->UTI_NOM . " " . auth()->user()->UTI_PRENOM
+                : 'SYSTEM',
             'ECH_VERSION' => $derniereVersion,
         ]);
 
-        return response()->json(['message' => 'Echéance mise à jour avec succès !']);
+        return response()->json([
+            'message' => 'Echéance mise à jour avec succès !'
+        ]);
     }
 
     /**

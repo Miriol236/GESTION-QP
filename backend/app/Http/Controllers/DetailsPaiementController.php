@@ -131,7 +131,8 @@ class DetailsPaiementController extends Controller
         }
 
         $ech = $request->input('ech_code');
-        $reg = $request->input('reg_code'); // <-- nouveau paramètre
+        $reg = $request->input('reg_code');
+        $statut = $request->input('statut'); // <-- NOUVEAU
 
         if (empty($ech)) {
             $currentEcheance = DB::table('T_ECHEANCES')
@@ -142,7 +143,7 @@ class DetailsPaiementController extends Controller
             $ech = $currentEcheance?->ECH_CODE;
         }
 
-        // ---- Regrouper les détails par paiement ----
+        // -------- Requête de base ----------
         $paiements = DB::table('T_DETAILS_PAIEMENT')
             ->join('T_ELEMENTS', 'T_ELEMENTS.ELT_CODE', '=', 'T_DETAILS_PAIEMENT.ELT_CODE')
             ->join('T_PAIEMENTS', 'T_PAIEMENTS.PAI_CODE', '=', 'T_DETAILS_PAIEMENT.PAI_CODE')
@@ -161,21 +162,27 @@ class DetailsPaiementController extends Controller
                 'T_PAIEMENTS.REG_CODE'
             );
 
-        // ---- Filtre régie ----
+        // -------- Filtre régie ----------
         if (!empty($reg)) {
             $paiements->where('T_PAIEMENTS.REG_CODE', $reg);
         } elseif (!empty($user->REG_CODE)) {
             $paiements->where('T_PAIEMENTS.REG_CODE', $user->REG_CODE);
         }
 
-        // ---- Filtre échéance ----
+        // -------- Filtre échéance ----------
         if (!empty($ech)) {
             $paiements->where('T_PAIEMENTS.ECH_CODE', $ech);
         }
 
+        // -------- Filtre statut ----------
+        // statut = "all" | 1 | 0
+        if ($statut !== null && $statut !== "all") {
+            $paiements->where('T_PAIEMENTS.PAI_STATUT', intval($statut));
+        }
+
         $list = $paiements->get();
 
-        // ---- Calcul des totaux ----
+        // -------- Totaux ----------
         $totalGain = 0;
         $totalRetenu = 0;
         $totalNet = 0;
@@ -206,8 +213,8 @@ class DetailsPaiementController extends Controller
             'total_paye'     => $totalPaye,
             'taux_paiement'  => $tauxPaiement,
             'ech_code'       => $ech,
-            'reg_code'       => $reg, // on renvoie le code régie filtré
+            'reg_code'       => $reg,
+            'statut'         => $statut, // <-- renvoyé au front
         ]);
     }
-
 }

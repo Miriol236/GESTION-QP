@@ -20,20 +20,14 @@ export default function Echeances() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const [suggestion, setSuggestion] = useState({ annee: "", mois: "" });
+  const [annee, setAnnee] = useState("");
+  const [mois, setMois] = useState("");
 
   const years = Array.from({ length: 31 }, (_, i) => 2020 + i); // 2020 → 2050
   const months = [
-    { value: "01", label: "Janvier" },
-    { value: "02", label: "Février" },
     { value: "03", label: "Mars" },
-    { value: "04", label: "Avril" },
-    { value: "05", label: "Mai" },
     { value: "06", label: "Juin" },
-    { value: "07", label: "Juillet" },
-    { value: "08", label: "Août" },
     { value: "09", label: "Septembre" },
-    { value: "10", label: "Octobre" },
-    { value: "11", label: "Novembre" },
     { value: "12", label: "Décembre" },
   ];
 
@@ -134,8 +128,9 @@ export default function Echeances() {
 
     const payload = {
       ECH_LIBELLE: formData.get("ECH_LIBELLE"),
-      ECH_ANNEE: formData.get("ECH_ANNEE"),
-      ECH_MOIS: formData.get("ECH_MOIS"),
+      ECH_ANNEE: annee,
+      ECH_MOIS: mois,
+      ECH_CODE: `${annee}${mois}`
     };
 
     try {
@@ -236,11 +231,21 @@ export default function Echeances() {
         data={displayed}
         onAdd={() => {
           setEditingEcheance(null);
+          setAnnee(suggestion.annee);
+          setMois(suggestion.mois);
           setIsDialogOpen(true);
         }}
         onStatut={(u) => handleActivateEcheance(u)}
         onEdit={(u) => {
           setEditingEcheance(u);
+
+          const code = u.ECH_CODE.toString();
+          const an = code.slice(0, 4);
+          const ms = code.slice(4, 6);
+
+          setAnnee(an);
+          setMois(ms);
+
           setIsDialogOpen(true);
         }}
         onDelete={(u) => {
@@ -280,7 +285,8 @@ export default function Echeances() {
                   name="ECH_ANNEE"
                   className="border rounded p-2 w-full"
                   required
-                  defaultValue={editingEcheance ? editingEcheance.ECH_ANNEE : suggestion.annee}
+                  value={annee}
+                  onChange={(e) => setAnnee(e.target.value)}
                 >
                   {years.map((year) => (
                     <option key={year} value={year}>
@@ -296,7 +302,8 @@ export default function Echeances() {
                   name="ECH_MOIS"
                   className="border rounded p-2 w-full"
                   required
-                  defaultValue={editingEcheance ? editingEcheance.ECH_MOIS : suggestion.mois}
+                  value={mois}
+                  onChange={(e) => setMois(e.target.value)}
                 >
                   {months.map((m) => (
                     <option key={m.value} value={m.value}>

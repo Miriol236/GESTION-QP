@@ -80,7 +80,7 @@ export default function Login() {
           </div> */}
           <div className="mx-auto w-32 h-32 flex items-center justify-center mb-4">
             <img
-              src="/armoirie.png"
+              src={`${import.meta.env.BASE_URL}armoirie.png`}
               alt="User"
               className="w-full h-full object-contain"
             />
@@ -149,7 +149,7 @@ export default function Login() {
       <footer className="absolute bottom-4 text-sm text-muted-foreground text-center flex items-center justify-center gap-2">
         © {new Date().getFullYear()} Développé par l’Office National d’Informatique
         <img
-          src="/logo.jpg"
+          src={`${import.meta.env.BASE_URL}logo.jpg`}
           alt="ONI"
           className="inline-block w-5 h-5 object-contain"
         /> 
