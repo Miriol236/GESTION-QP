@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\Route;
 // });
 
 Route::get('/{any}', function () {
-    return file_get_contents(public_path('index.html'));
-})->where('any', '.*');
+    return file_get_contents(public_path('front/index.html'));
+})->where('any', '^(?!api|front|storage|assets|images|css|js|favicon).*$');
 
 Route::get('/api/documentation', function () {
     return redirect('/api/docs');

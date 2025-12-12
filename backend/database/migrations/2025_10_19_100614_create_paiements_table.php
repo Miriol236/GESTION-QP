@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('T_PAIEMENTS', function (Blueprint $table) {
+        Schema::create('t_paiements', function (Blueprint $table) {
             $table->string('PAI_CODE', 10)->primary();
             $table->string('PAI_BENEFICIAIRE')->nullable();
             $table->string('TYP_BENEFICIAIRE')->nullable();
@@ -44,6 +44,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('T_PAIEMENTS');
+        Schema::dropIfExists('t_paiements');
     }
 };

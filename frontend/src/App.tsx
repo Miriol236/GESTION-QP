@@ -31,9 +31,9 @@ const App = () => (
       <AuthProvider>
         <Toaster />
         <Sonner />
-        {/* <BrowserRouter> */}
-        <BrowserRouter basename="/backend/public">
-        {/* <BrowserRouter basename="/public"> */}
+        <BrowserRouter>
+        {/* <BrowserRouter basename="/backend"> */}
+        {/* <BrowserRouter basename="/"> */}
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/login" element={<Login />} />

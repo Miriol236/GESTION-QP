@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('T_GRADES', function (Blueprint $table) {
+        Schema::create('t_grades', function (Blueprint $table) {
             $table->string('GRD_CODE', 10)->primary();
             $table->string('GRD_LIBELLE');
             $table->date('GRD_DATE_CREER');
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('T_GRADES');
+        Schema::dropIfExists('t_grades');
     }
 };

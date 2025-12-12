@@ -9,11 +9,11 @@ use App\Models\Echeance;
 use Illuminate\Support\Facades\DB;
 
 /**
-* @OA\Tag(
-*     name="Paiements",
-*     description="Gestion des paiements des quôtes-parts"
-* )
-*/
+ * @OA\Tag(
+ *     name="Paiements",
+ *     description="Gestion des paiements des quôtes-parts"
+ * )
+ */
 class PaiementController extends Controller
 {
     /**
@@ -23,7 +23,8 @@ class PaiementController extends Controller
      *     summary="Lister tous les paiements",
      *     description="Retourne la liste complète des paiements enregistrés.",
      *     security={{"sanctum": {}}},
-     *     @OA\Response(response=200, description="Liste des paiements récupérée avec succès")
+     *     @OA\Response(response=200, description="Liste des paiements récupérée avec succès"),
+     *     @OA\Response(response=401, description="Utilisateur non authentifié")
      * )
      */
     public function index(Request $request)
@@ -36,7 +37,7 @@ class PaiementController extends Controller
         // Filtre échéance : si non envoyé, prendre la dernière active
         $echCodeFilter = $request->input('ech_code');
         if (empty($echCodeFilter)) {
-            $currentEcheance = DB::table('T_ECHEANCES')
+            $currentEcheance = DB::table('t_echeances')
                 ->where('ECH_STATUT', true)
                 ->orderBy('ECH_CODE', 'desc')
                 ->first();
@@ -44,58 +45,69 @@ class PaiementController extends Controller
         }
 
         // Sous-requête pour calculer total gain et total retenu par paiement
-        $totauxSub = DB::table('T_DETAILS_PAIEMENT')
-            ->join('T_ELEMENTS', 'T_ELEMENTS.ELT_CODE', '=', 'T_DETAILS_PAIEMENT.ELT_CODE')
+        $totauxSub = DB::table('t_details_paiement')
+            ->join('t_elements', 't_elements.ELT_CODE', '=', 't_details_paiement.ELT_CODE')
             ->select(
-                'T_DETAILS_PAIEMENT.PAI_CODE',
-                DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 1 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS TOTAL_GAIN'),
-                DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 2 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS TOTAL_RETENU'),
-                DB::raw('(SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 1 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) -
-                        SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 2 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END)) AS MONTANT_NET')
+                't_details_paiement.PAI_CODE',
+                DB::raw('SUM(CASE WHEN t_elements.ELT_SENS = 1 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) AS TOTAL_GAIN'),
+                DB::raw('SUM(CASE WHEN t_elements.ELT_SENS = 2 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) AS TOTAL_RETENU'),
+                DB::raw('(SUM(CASE WHEN t_elements.ELT_SENS = 1 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) -
+                        SUM(CASE WHEN t_elements.ELT_SENS = 2 THEN t_details_paiement.PAI_MONTANT ELSE 0 END)) AS MONTANT_NET')
             )
-            ->groupBy('T_DETAILS_PAIEMENT.PAI_CODE');
+            ->groupBy('t_details_paiement.PAI_CODE');
 
         // Requête principale
         $paiements = Paiement::query()
             ->select(
-                'T_PAIEMENTS.*',
-                'T_BENEFICIAIRES.BEN_MATRICULE',
-                DB::raw("CONCAT(T_BENEFICIAIRES.BEN_NOM, ' ', T_BENEFICIAIRES.BEN_PRENOM) as BENEFICIAIRE"),
-                'T_BENEFICIAIRES.BEN_SEXE',
-                'T_TYPE_BENEFICIAIRES.TYP_LIBELLE as TYPE_BENEFICIAIRE',
-                'T_BANQUES.BNQ_CODE',
-                'T_BANQUES.BNQ_LIBELLE',
-                'T_GUICHETS.GUI_CODE',
-                'T_GUICHETS.GUI_NOM',
-                'T_DOMICILIERS.DOM_NUMCPT as NUMERO_DE_COMPTE',
-                'T_DOMICILIERS.DOM_RIB as CLE_RIB',
+                't_paiements.*',
+                't_beneficiaires.BEN_MATRICULE',
+                DB::raw("CONCAT(t_beneficiaires.BEN_NOM, ' ', t_beneficiaires.BEN_PRENOM) as BENEFICIAIRE"),
+                't_beneficiaires.BEN_SEXE',
+                't_type_beneficiaires.TYP_LIBELLE as TYPE_BENEFICIAIRE',
+                't_banques.BNQ_CODE',
+                't_banques.BNQ_LIBELLE',
+                't_guichets.GUI_CODE',
+                't_guichets.GUI_NOM',
+                't_domiciliers.DOM_NUMCPT as NUMERO_DE_COMPTE',
+                't_domiciliers.DOM_RIB as CLE_RIB',
                 'totaux.TOTAL_GAIN',
                 'totaux.TOTAL_RETENU',
                 'totaux.MONTANT_NET',
-                'T_VIREMENTS.VIR_LIBELLE as VIREMENT'
+                't_virements.VIR_LIBELLE as VIREMENT'
             )            
-            ->join('T_BENEFICIAIRES', 'T_BENEFICIAIRES.BEN_CODE', '=', 'T_PAIEMENTS.BEN_CODE')
-            ->join('T_VIREMENTS', 'T_VIREMENTS.VIR_CODE', '=', 'T_PAIEMENTS.PAI_VIREMENT')
-            ->leftJoin('T_DOMICILIERS', function($join){
-                $join->on('T_DOMICILIERS.BEN_CODE', '=', 'T_BENEFICIAIRES.BEN_CODE')
-                    ->where('T_DOMICILIERS.DOM_STATUT', true); // RIB actif
+            ->join('t_beneficiaires', 't_beneficiaires.BEN_CODE', '=', 't_paiements.BEN_CODE')
+            ->join('t_virements', 't_virements.VIR_CODE', '=', 't_paiements.PAI_VIREMENT')
+            ->leftJoin('t_domiciliers', function($join){
+                $join->on('t_domiciliers.BEN_CODE', '=', 't_beneficiaires.BEN_CODE')
+                    ->where('t_domiciliers.DOM_STATUT', true); // RIB actif
             })
-            ->leftJoin('T_BANQUES', 'T_BANQUES.BNQ_CODE', '=', 'T_DOMICILIERS.BNQ_CODE')
-            ->leftJoin('T_GUICHETS', 'T_GUICHETS.GUI_ID', '=', 'T_DOMICILIERS.GUI_ID')
-            ->leftJoin('T_TYPE_BENEFICIAIRES', 'T_TYPE_BENEFICIAIRES.TYP_CODE', '=', 'T_BENEFICIAIRES.TYP_CODE')
+            ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
+            ->leftJoin('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
+            ->leftJoin('t_type_beneficiaires', 't_type_beneficiaires.TYP_CODE', '=', 't_beneficiaires.TYP_CODE')
             ->leftJoinSub($totauxSub, 'totaux', function($join){
-                $join->on('totaux.PAI_CODE', '=', 'T_PAIEMENTS.PAI_CODE');
+                $join->on('totaux.PAI_CODE', '=', 't_paiements.PAI_CODE');
             })
             // Filtrer par régie utilisateur
-            ->when($user->REG_CODE, fn($q) => $q->where('T_PAIEMENTS.REG_CODE', $user->REG_CODE))
+            ->when($user->REG_CODE, fn($q) => $q->where('t_paiements.REG_CODE', $user->REG_CODE))
             // Filtrer par échéance
-            ->when($echCodeFilter, fn($q) => $q->where('T_PAIEMENTS.ECH_CODE', $echCodeFilter))
-            ->orderBy('T_PAIEMENTS.PAI_BENEFICIAIRE', 'asc')
+            ->when($echCodeFilter, fn($q) => $q->where('t_paiements.ECH_CODE', $echCodeFilter))
+            ->orderBy('t_paiements.PAI_BENEFICIAIRE', 'asc')
             ->get();
 
         return response()->json($paiements);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/paiements/beneficiaires",
+     *     tags={"Paiements"},
+     *     summary="Lister les bénéficiaires avec RIB actif",
+     *     description="Retourne la liste des bénéficiaires qui ont au moins un RIB actif.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Response(response=200, description="Liste des bénéficiaires récupérée avec succès"),
+     *     @OA\Response(response=401, description="Utilisateur non authentifié")
+     * )
+     */
     public function getBenStatus()
     {
         $user = auth()->user();
@@ -139,7 +151,18 @@ class PaiementController extends Controller
 
         return response()->json($paiement);
     }
-
+    
+    /**
+     * @OA\Get(
+     *     path="/api/paiements/all",
+     *     tags={"Paiements"},
+     *     summary="Lister tous les bénéficiaires avec RIB actif et détails paiements",
+     *     description="Retourne la liste complète des bénéficiaires avec RIB actif et informations sur leurs paiements.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Response(response=200, description="Liste des bénéficiaires récupérée avec succès"),
+     *     @OA\Response(response=401, description="Utilisateur non authentifié")
+     * )
+     */
     public function getAll()
     {
         $user = auth()->user();
@@ -149,54 +172,54 @@ class PaiementController extends Controller
         }
 
         // Sous-requête pour calculer total gain et total retenu par paiement
-        $totauxSub = DB::table('T_DETAILS_PAIEMENT')
-            ->join('T_ELEMENTS', 'T_ELEMENTS.ELT_CODE', '=', 'T_DETAILS_PAIEMENT.ELT_CODE')
+        $totauxSub = DB::table('t_details_paiement')
+            ->join('t_elements', 't_elements.ELT_CODE', '=', 't_details_paiement.ELT_CODE')
             ->select(
-                'T_DETAILS_PAIEMENT.PAI_CODE',
-                DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 1 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS TOTAL_GAIN'),
-                DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 2 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS TOTAL_RETENU'),
-                DB::raw('(SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 1 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) -
-                        SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 2 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END)) AS MONTANT_NET')
+                't_details_paiement.PAI_CODE',
+                DB::raw('SUM(CASE WHEN t_elements.ELT_SENS = 1 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) AS TOTAL_GAIN'),
+                DB::raw('SUM(CASE WHEN t_elements.ELT_SENS = 2 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) AS TOTAL_RETENU'),
+                DB::raw('(SUM(CASE WHEN t_elements.ELT_SENS = 1 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) -
+                        SUM(CASE WHEN t_elements.ELT_SENS = 2 THEN t_details_paiement.PAI_MONTANT ELSE 0 END)) AS MONTANT_NET')
             )
-            ->groupBy('T_DETAILS_PAIEMENT.PAI_CODE');
+            ->groupBy('t_details_paiement.PAI_CODE');
 
         $query = Beneficiaire::query()
-            ->join('T_DOMICILIERS', function ($join) {
-                $join->on('T_DOMICILIERS.BEN_CODE', '=', 'T_BENEFICIAIRES.BEN_CODE')
-                    ->where('T_DOMICILIERS.DOM_STATUT', true); // RIB actif uniquement
+            ->join('t_domiciliers', function ($join) {
+                $join->on('t_domiciliers.BEN_CODE', '=', 't_beneficiaires.BEN_CODE')
+                    ->where('t_domiciliers.DOM_STATUT', true); // RIB actif uniquement
             })
-            ->leftJoin('T_PAIEMENTS', 'T_PAIEMENTS.BEN_CODE', '=', 'T_BENEFICIAIRES.BEN_CODE')
+            ->leftJoin('t_paiements', 't_paiements.BEN_CODE', '=', 't_beneficiaires.BEN_CODE')
             ->leftJoinSub($totauxSub, 'totaux', function($join){
-                $join->on('totaux.PAI_CODE', '=', 'T_PAIEMENTS.PAI_CODE');
+                $join->on('totaux.PAI_CODE', '=', 't_paiements.PAI_CODE');
             })
-            ->leftJoin('T_BANQUES', 'T_BANQUES.BNQ_CODE', '=', 'T_DOMICILIERS.BNQ_CODE')
-            ->leftJoin('T_GUICHETS', 'T_GUICHETS.GUI_ID', '=', 'T_DOMICILIERS.GUI_ID')
-            ->leftJoin('T_TYPE_BENEFICIAIRES', 'T_TYPE_BENEFICIAIRES.TYP_CODE', '=', 'T_BENEFICIAIRES.TYP_CODE')
-            ->leftJoin('T_FONCTIONS', 'T_FONCTIONS.FON_CODE', '=', 'T_BENEFICIAIRES.FON_CODE')
-            ->leftJoin('T_GRADES', 'T_GRADES.GRD_CODE', '=', 'T_BENEFICIAIRES.GRD_CODE')
-            ->leftJoin('T_REGIES', 'T_REGIES.REG_CODE', '=', 'T_PAIEMENTS.REG_CODE')
+            ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
+            ->leftJoin('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
+            ->leftJoin('t_type_beneficiaires', 't_type_beneficiaires.TYP_CODE', '=', 't_beneficiaires.TYP_CODE')
+            ->leftJoin('t_fonctions', 't_fonctions.FON_CODE', '=', 't_beneficiaires.FON_CODE')
+            ->leftJoin('t_grades', 't_grades.GRD_CODE', '=', 't_beneficiaires.GRD_CODE')
+            ->leftJoin('t_regies', 't_regies.REG_CODE', '=', 't_paiements.REG_CODE')
             ->select([
-                'T_BENEFICIAIRES.BEN_CODE as CODE',
-                'T_BENEFICIAIRES.BEN_MATRICULE as MATRICULE',
-                DB::raw("CONCAT(T_BENEFICIAIRES.BEN_NOM, ' ', T_BENEFICIAIRES.BEN_PRENOM) as BENEFICIAIRE"),
-                'T_BENEFICIAIRES.BEN_SEXE as SEXE',
-                'T_BANQUES.BNQ_CODE',
-                'T_BANQUES.BNQ_LIBELLE as BANQUE',
-                'T_GUICHETS.GUI_CODE',
-                'T_GUICHETS.GUI_NOM',
-                'T_DOMICILIERS.DOM_NUMCPT as NUMERO_DE_COMPTE',
-                'T_DOMICILIERS.DOM_RIB as CLE_RIB',
-                'T_TYPE_BENEFICIAIRES.TYP_LIBELLE as TYPE_BENEFICIAIRE',
-                'T_FONCTIONS.FON_LIBELLE as FONCTION',
-                'T_GRADES.GRD_LIBELLE as GRADE',
-                'T_REGIES.REG_LIBELLE',
+                't_beneficiaires.BEN_CODE as CODE',
+                't_beneficiaires.BEN_MATRICULE as MATRICULE',
+                DB::raw("CONCAT(t_beneficiaires.BEN_NOM, ' ', t_beneficiaires.BEN_PRENOM) as BENEFICIAIRE"),
+                't_beneficiaires.BEN_SEXE as SEXE',
+                't_banques.BNQ_CODE',
+                't_banques.BNQ_LIBELLE as BANQUE',
+                't_guichets.GUI_CODE',
+                't_guichets.GUI_NOM',
+                't_domiciliers.DOM_NUMCPT as NUMERO_DE_COMPTE',
+                't_domiciliers.DOM_RIB as CLE_RIB',
+                't_type_beneficiaires.TYP_LIBELLE as TYPE_BENEFICIAIRE',
+                't_fonctions.FON_LIBELLE as FONCTION',
+                't_grades.GRD_LIBELLE as GRADE',
+                't_regies.REG_LIBELLE',
                 'totaux.TOTAL_GAIN',
                 'totaux.TOTAL_RETENU',
                 'totaux.MONTANT_NET',
-                'T_PAIEMENTS.PAI_STATUT as STATUT'
+                't_paiements.PAI_STATUT as STATUT'
             ]);
 
-        $beneficiaires = $query->orderBy('T_BENEFICIAIRES.BEN_CODE', 'asc')->get();
+        $beneficiaires = $query->orderBy('t_beneficiaires.BEN_CODE', 'asc')->get();
 
         // Formater Banque
         // $beneficiaires->transform(function ($b) {
@@ -487,6 +510,33 @@ class PaiementController extends Controller
         return $results;
     }
 
+    /**
+     * @OA\Patch(
+     *     path="/api/paiements/valider/{id}",
+     *     tags={"Paiements"},
+     *     summary="Valider le statut d'un paiement",
+     *     description="Met à jour le statut d'un paiement pour le marquer comme payé. Peut gérer un paiement unique ou plusieurs via ids.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=false,
+     *         description="Code du paiement à valider (laisser vide pour valider plusieurs paiements via request body)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=false,
+     *         description="Tableau d'identifiants pour validation multiple",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="ids", type="array", @OA\Items(type="string"))
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Statut(s) validé(s) avec succès"),
+     *     @OA\Response(response=400, description="Erreur de validation ou aucun ID fourni"),
+     *     @OA\Response(response=404, description="Paiement introuvable"),
+     *     @OA\Response(response=401, description="Non authentifié")
+     * )
+     */
     public function validerStatut(Request $request, $id = null)
     {
         if ($id) {
@@ -560,6 +610,33 @@ class PaiementController extends Controller
         }
     }
 
+    /**
+     * @OA\Patch(
+     *     path="/api/paiements/virement/{id}",
+     *     tags={"Paiements"},
+     *     summary="Valider un virement pour un paiement",
+     *     description="Valide le virement d'un paiement. Peut gérer un paiement unique ou plusieurs via request body.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=false,
+     *         description="Code du paiement pour valider le virement (laisser vide pour plusieurs paiements)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=false,
+     *         description="Tableau d'identifiants pour validation multiple des virements",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="ids", type="array", @OA\Items(type="string"))
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Virement(s) validé(s) avec succès"),
+     *     @OA\Response(response=400, description="Paiement non payé ou aucun ID fourni"),
+     *     @OA\Response(response=404, description="Paiement introuvable"),
+     *     @OA\Response(response=401, description="Non authentifié")
+     * )
+     */
     public function validerVirement(Request $request, $id = null)
     {
         if ($id) {
@@ -626,6 +703,25 @@ class PaiementController extends Controller
         }
     }
 
+    /**
+     * @OA\Delete(
+     *     path="/api/paiements/delete",
+     *     tags={"Paiements"},
+     *     summary="Supprimer plusieurs paiements",
+     *     description="Supprime plusieurs paiements en fournissant un tableau d'identifiants. Ne supprime que les paiements non traités.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         description="Tableau d'identifiants de paiements à supprimer",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="ids", type="array", @OA\Items(type="string"))
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Suppression terminée avec succès"),
+     *     @OA\Response(response=400, description="Erreur de suppression"),
+     *     @OA\Response(response=401, description="Non authentifié")
+     * )
+     */
     public function deletePaiement(Request $request)
     {
         // Suppression multiple uniquement

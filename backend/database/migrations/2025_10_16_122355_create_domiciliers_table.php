@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('T_DOMICILIERS', function (Blueprint $table) {
+        Schema::create('t_domiciliers', function (Blueprint $table) {
             $table->string('DOM_CODE', 10)->primary();
             $table->string('DOM_NUMCPT')->nullable();
             $table->string('DOM_RIB', 2)->nullable();
@@ -24,9 +24,9 @@ return new class extends Migration
             $table->string('BEN_CODE', 15);
             $table->string('BNQ_CODE', 10);
             $table->string('GUI_ID', 10);
-            $table->foreign('BEN_CODE')->references('BEN_CODE')->on('T_BENEFICIAIRES');
-            $table->foreign('BNQ_CODE')->references('BNQ_CODE')->on('T_BANQUES');
-            $table->foreign('GUI_ID')->references('GUI_ID')->on('T_GUICHETS');
+            $table->foreign('BEN_CODE')->references('BEN_CODE')->on('t_beneficiaires');
+            $table->foreign('BNQ_CODE')->references('BNQ_CODE')->on('t_banques');
+            $table->foreign('GUI_ID')->references('GUI_ID')->on('t_guichets');
         });
     }
 
@@ -35,6 +35,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('T_DOMICILIERS');
+        Schema::dropIfExists('t_domiciliers');
     }
 };

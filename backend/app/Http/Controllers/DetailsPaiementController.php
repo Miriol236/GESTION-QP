@@ -11,13 +11,13 @@ class DetailsPaiementController extends Controller
     public function showByPaiement($PAI_CODE)
     {
         $data = DetailsPaiement::where('PAI_CODE', $PAI_CODE)
-            ->join('T_ELEMENTS', 'T_ELEMENTS.ELT_CODE', '=', 'T_DETAILS_PAIEMENT.ELT_CODE')
+            ->join('t_elements', 't_elements.ELT_CODE', '=', 't_details_paiement.ELT_CODE')
             ->select(
-                'T_DETAILS_PAIEMENT.*',
-                'T_ELEMENTS.ELT_LIBELLE',
-                'T_ELEMENTS.ELT_SENS',
+                't_details_paiement.*',
+                't_elements.ELT_LIBELLE',
+                't_elements.ELT_SENS',
             )
-            ->orderBy('T_DETAILS_PAIEMENT.DET_CODE')
+            ->orderBy('t_details_paiement.DET_CODE')
             ->get();
 
         return response()->json($data);
@@ -26,8 +26,8 @@ class DetailsPaiementController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'ELT_CODE' => 'required|string|exists:T_ELEMENTS,ELT_CODE',
-            'PAI_CODE' => 'required|string|exists:T_PAIEMENTS,PAI_CODE',
+            'ELT_CODE' => 'required|string|exists:t_elements,ELT_CODE',
+            'PAI_CODE' => 'required|string|exists:t_paiements,PAI_CODE',
             'PAI_MONTANT' => 'required|string',
         ]);
 
@@ -43,7 +43,7 @@ class DetailsPaiementController extends Controller
         }
 
         // Récupérer l'échéance
-        $paiement = DB::table('T_PAIEMENTS')->where('PAI_CODE', $request->PAI_CODE)->first();
+        $paiement = DB::table('t_paiements')->where('PAI_CODE', $request->PAI_CODE)->first();
 
         if (!$paiement) {
             return response()->json(['message' => 'Paiement introuvable.'], 404);
@@ -52,11 +52,11 @@ class DetailsPaiementController extends Controller
         $echCode = $paiement->ECH_CODE;
 
         // Récupérer le dernier DET_CODE existant pour cette ECH_CODE
-        $last = DB::table('T_DETAILS_PAIEMENT')
-            ->join('T_PAIEMENTS', 'T_PAIEMENTS.PAI_CODE', '=', 'T_DETAILS_PAIEMENT.PAI_CODE')
-            ->where('T_PAIEMENTS.ECH_CODE', $echCode)
-            ->orderByRaw('CAST(T_DETAILS_PAIEMENT.DET_CODE AS UNSIGNED) DESC')
-            ->value('T_DETAILS_PAIEMENT.DET_CODE');
+        $last = DB::table('t_details_paiement')
+            ->join('t_paiements', 't_paiements.PAI_CODE', '=', 't_details_paiement.PAI_CODE')
+            ->where('t_paiements.ECH_CODE', $echCode)
+            ->orderByRaw('CAST(t_details_paiement.DET_CODE AS UNSIGNED) DESC')
+            ->value('t_details_paiement.DET_CODE');
 
         if ($last) {
             $lastOrder = intval(substr($last, -6));
@@ -90,7 +90,7 @@ class DetailsPaiementController extends Controller
         }
 
         $request->validate([
-            'ELT_CODE' => 'required|string|exists:T_ELEMENTS,ELT_CODE',
+            'ELT_CODE' => 'required|string|exists:t_elements,ELT_CODE',
             'PAI_MONTANT' => 'required|string',
         ]);
 
@@ -135,7 +135,7 @@ class DetailsPaiementController extends Controller
         $statut = $request->input('statut'); // <-- NOUVEAU
 
         if (empty($ech)) {
-            $currentEcheance = DB::table('T_ECHEANCES')
+            $currentEcheance = DB::table('t_echeances')
                 ->where('ECH_STATUT', true)
                 ->orderBy('ECH_CODE', 'desc')
                 ->first();
@@ -144,40 +144,40 @@ class DetailsPaiementController extends Controller
         }
 
         // -------- Requête de base ----------
-        $paiements = DB::table('T_DETAILS_PAIEMENT')
-            ->join('T_ELEMENTS', 'T_ELEMENTS.ELT_CODE', '=', 'T_DETAILS_PAIEMENT.ELT_CODE')
-            ->join('T_PAIEMENTS', 'T_PAIEMENTS.PAI_CODE', '=', 'T_DETAILS_PAIEMENT.PAI_CODE')
+        $paiements = DB::table('t_details_paiement')
+            ->join('t_elements', 't_elements.ELT_CODE', '=', 't_details_paiement.ELT_CODE')
+            ->join('t_paiements', 't_paiements.PAI_CODE', '=', 't_details_paiement.PAI_CODE')
             ->select(
-                'T_PAIEMENTS.PAI_CODE',
-                'T_PAIEMENTS.PAI_STATUT',
-                'T_PAIEMENTS.ECH_CODE',
-                'T_PAIEMENTS.REG_CODE',
-                DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 1 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS GAIN'),
-                DB::raw('SUM(CASE WHEN T_ELEMENTS.ELT_SENS = 2 THEN T_DETAILS_PAIEMENT.PAI_MONTANT ELSE 0 END) AS RETENU')
+                't_paiements.PAI_CODE',
+                't_paiements.PAI_STATUT',
+                't_paiements.ECH_CODE',
+                't_paiements.REG_CODE',
+                DB::raw('SUM(CASE WHEN t_elements.ELT_SENS = 1 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) AS GAIN'),
+                DB::raw('SUM(CASE WHEN t_elements.ELT_SENS = 2 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) AS RETENU')
             )
             ->groupBy(
-                'T_PAIEMENTS.PAI_CODE',
-                'T_PAIEMENTS.PAI_STATUT',
-                'T_PAIEMENTS.ECH_CODE',
-                'T_PAIEMENTS.REG_CODE'
+                't_paiements.PAI_CODE',
+                't_paiements.PAI_STATUT',
+                't_paiements.ECH_CODE',
+                't_paiements.REG_CODE'
             );
 
         // -------- Filtre régie ----------
         if (!empty($reg)) {
-            $paiements->where('T_PAIEMENTS.REG_CODE', $reg);
+            $paiements->where('t_paiements.REG_CODE', $reg);
         } elseif (!empty($user->REG_CODE)) {
-            $paiements->where('T_PAIEMENTS.REG_CODE', $user->REG_CODE);
+            $paiements->where('t_paiements.REG_CODE', $user->REG_CODE);
         }
 
         // -------- Filtre échéance ----------
         if (!empty($ech)) {
-            $paiements->where('T_PAIEMENTS.ECH_CODE', $ech);
+            $paiements->where('t_paiements.ECH_CODE', $ech);
         }
 
         // -------- Filtre statut ----------
         // statut = "all" | 1 | 0
         if ($statut !== null && $statut !== "all") {
-            $paiements->where('T_PAIEMENTS.PAI_STATUT', intval($statut));
+            $paiements->where('t_paiements.PAI_STATUT', intval($statut));
         }
 
         $list = $paiements->get();

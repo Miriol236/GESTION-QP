@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Fonction extends Model
 {
-    protected $table = 'T_FONCTIONS';
+    protected $table = 't_fonctions';
     protected $primaryKey = 'FON_CODE'; // clé primaire personnalisée
     public $incrementing = false; // pas d'auto-incrément
     protected $keyType = 'string';

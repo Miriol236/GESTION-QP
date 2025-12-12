@@ -1,151 +1,368 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, DollarSign, CreditCard, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Filter, Check, ChevronDown, DollarSign, CheckCheck } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { API_URL } from "@/config/api";
+import axios from "axios";
+import { useToast } from "@/hooks/use-toast";
+import { Bar, Pie } from "react-chartjs-2";
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend } from "chart.js";
+import { useAuth } from "@/contexts/AuthContext";
 
-// const stats = [
-//   {
-//     title: "Total Bénéficiaires",
-//     value: "1,234",
-//     description: "+12% ce mois",
-//     icon: Users,
-//     color: "text-primary",
-//     bgColor: "bg-primary-light",
-//   },
-//   {
-//     title: "Montant Total Payé",
-//     value: "45.2M DA",
-//     description: "+8% ce mois",
-//     icon: DollarSign,
-//     color: "text-green-600",
-//     bgColor: "bg-green-50",
-//   },
-//   {
-//     title: "Paiements en cours",
-//     value: "156",
-//     description: "En attente de validation",
-//     icon: CreditCard,
-//     color: "text-orange-600",
-//     bgColor: "bg-orange-50",
-//   },
-//   {
-//     title: "Taux de traitement",
-//     value: "94.5%",
-//     description: "+2.3% ce mois",
-//     icon: TrendingUp,
-//     color: "text-blue-600",
-//     bgColor: "bg-blue-50",
-//   },
-// ];
+// Ajouter ArcElement pour Pie chart
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
-// const recentPayments = [
-//   { id: 1, beneficiary: "Ahmed Bensalem", amount: "45,000 DA", status: "Validé", date: "12/10/2025" },
-//   { id: 2, beneficiary: "Fatima Zahra", amount: "38,500 DA", status: "En attente", date: "12/10/2025" },
-//   { id: 3, beneficiary: "Mohammed Karim", amount: "42,000 DA", status: "Validé", date: "11/10/2025" },
-//   { id: 4, beneficiary: "Amina Larbi", amount: "39,800 DA", status: "Validé", date: "11/10/2025" },
-//   { id: 5, beneficiary: "Yacine Meziane", amount: "41,200 DA", status: "Rejeté", date: "10/10/2025" },
-// ];
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+
+interface Stat {
+  title: string;
+  value: string;
+  icon: any;
+  color: string;
+  bgColor: string;
+  taux?: string;
+}
 
 export default function Dashboard() {
+  const { toast } = useToast();
+
+  const [stats, setStats] = useState<Stat[]>([]);
+  const [echeances, setEcheances] = useState<any[]>([]);
+  const [regies, setRegies] = useState<any[]>([]);
+  const [selectedEcheance, setSelectedEcheance] = useState<string | null>(null);
+  const [selectedRegie, setSelectedRegie] = useState<string | null>(null);
+
+  const [echeanceOpen, setEcheanceOpen] = useState(false);
+  const [regieOpen, setRegieOpen] = useState(false);
+
+  const [chartData, setChartData] = useState({
+    labels: [],
+    datasets: [],
+  });
+
+  const { user, isLoading } = useAuth(); // <- récupère `user` depuis ton contexte
+
+  // Vérifie si le filtre Régie doit s'afficher
+  const showRegieFilter = user?.REG_CODE === null;
+
+  // Récupération des listes
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const headers = { Authorization: `Bearer ${token}` };
+
+    Promise.all([
+      axios.get(`${API_URL}/echeances-publique`, { headers }),
+      axios.get(`${API_URL}/regies-publiques`, { headers }),
+    ])
+      .then(([e, r]) => {
+        setEcheances(e.data);
+        setRegies(r.data);
+      })
+      .catch(() =>
+        toast({
+          title: "Erreur",
+          description: "Erreur lors du chargement des listes.",
+          variant: "destructive",
+        })
+      );
+  }, []);
+
+  // Fetch statistiques
+  const fetchTotals = async (ech_code: string | null = null, reg_code: string | null = null) => {
+    try {
+      const token = localStorage.getItem("token");
+      const params: any = {};
+      if (ech_code) params.ech_code = ech_code;
+      if (reg_code) params.reg_code = reg_code;
+
+      const { data } = await axios.get(`${API_URL}/totals-by-user`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params,
+      });
+
+      const formatAmount = (a: number) => Number(a).toLocaleString("fr-FR") + " F CFA";
+      const formatPercent = (p?: number) => (p != null ? p.toFixed(2) + " %" : "0.00 %");
+
+      const newStats: Stat[] = [
+        {
+          title: "Montant Total Net à Payer",
+          value: formatAmount(data.total_net),
+          icon: DollarSign,
+          color: "text-blue-600",
+          bgColor: "bg-blue-50",
+        },
+        {
+          title: "Montant déjà Viré",
+          value: formatAmount(data.total_paye),
+          icon: CheckCheck,
+          color: "text-green-600",
+          bgColor: "bg-green-50",
+          taux: formatPercent(data.taux_paiement),
+        },
+        {
+          title: "Reste à virer",
+          value: formatAmount(data.reste_a_payer),
+          icon: CheckCheck,
+          color: "text-red-600",
+          bgColor: "bg-red-50",
+          taux: formatPercent(data.taux_reste_a_payer),
+        },
+      ];
+
+      setStats(newStats);
+
+      // Pie Chart uniquement avec Net à Payer, Déjà Viré et Reste à Virer
+      setChartData({
+        labels: [
+          `Net à Payer (${formatAmount(data.total_net)})`,
+          `Déjà Viré (${formatPercent(data.taux_paiement)})`,
+          `Reste à Virer (${formatPercent(data.taux_reste_a_payer)})`,
+        ],
+        datasets: [
+          {
+            data: [data.total_net, data.total_paye, data.reste_a_payer],
+            backgroundColor: [
+              "rgba(59,130,246,0.6)",  // bleu pour Net à payer
+              "rgba(34,197,94,0.6)",   // vert pour déjà vire
+              "rgba(239,68,68,0.6)",   // rouge pour reste à virer
+            ],
+            borderColor: [
+              "rgba(59,130,246,1)",
+              "rgba(34,197,94,1)",
+              "rgba(239,68,68,1)",
+            ],
+            borderWidth: 1,
+          },
+        ],
+      });
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Erreur",
+        description: "Impossible de récupérer les totaux.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Re-fetch stats à chaque filtre
+  useEffect(() => {
+    fetchTotals(selectedEcheance, selectedRegie);
+  }, [selectedEcheance, selectedRegie]);
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Tableau de bord</h1>
-        <p className="text-muted-foreground mt-1">
-          Vue d'ensemble du système de gestion des quotes-parts
-        </p>
+    <div className="space-y-6 animate-fade-in">
+      {/* FILTRES */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        {/* Échéances */}
+        {echeances.length > 0 && (
+          <Popover open={echeanceOpen} onOpenChange={setEcheanceOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="px-2 py-1 flex justify-between w-full sm:w-auto"
+              >
+                <Filter className="h-4 w-4 text-gray-500" />
+                {selectedEcheance
+                  ? echeances.find((e) => e.ECH_CODE === selectedEcheance)?.ECH_LIBELLE
+                  : "Filtrer par Échéance"}
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+
+            <PopoverContent className="p-0 w-[220px] sm:w-[250px]">
+              <Command className="min-w-[230px] sm:min-w-[260px] max-w-[380px]">
+                <CommandInput placeholder="Rechercher..." />
+                <CommandList>
+                  <CommandGroup>
+                    <CommandItem
+                      onSelect={() => {
+                        setSelectedEcheance(null);
+                        setEcheanceOpen(false); // ferme le Popover
+                      }}
+                    >
+                      <Check className={`${!selectedEcheance ? "opacity-100" : "opacity-0"} mr-2`} />
+                      Afficher tout
+                    </CommandItem>
+                    {echeances.map((e, idx) => (
+                      <CommandItem
+                        key={idx}
+                        onSelect={() => {
+                          setSelectedEcheance(e.ECH_CODE);
+                          setEcheanceOpen(false); // ferme le Popover
+                        }}
+                      >
+                        <Check
+                          className={`${selectedEcheance === e.ECH_CODE ? "opacity-100" : "opacity-0"} mr-2`}
+                        />
+                        {e.ECH_LIBELLE}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        )}
+
+        {/* Régies */}        
+        {/* Filtre Régie : visible uniquement pour les utilisateurs sans régie */}
+        {showRegieFilter && regies.length > 0 && (
+          <Popover open={regieOpen} onOpenChange={setRegieOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="px-2 py-1 flex justify-between w-full sm:w-auto"
+              >
+                <Filter className="h-4 w-4 text-gray-500" />
+                {selectedRegie
+                  ? regies.find((r) => r.REG_CODE === selectedRegie)?.REG_SIGLE
+                  : "Filtrer par Régie"}
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+
+            <PopoverContent className="p-0 w-[220px] sm:w-[250px]">
+              <Command className="min-w-[230px] sm:min-w-[260px] max-w-[380px]">
+                <CommandInput placeholder="Rechercher..." />
+                <CommandList>
+                  <CommandGroup>
+                    <CommandItem
+                      onSelect={() => {
+                        setSelectedRegie(null);
+                        setRegieOpen(false);
+                      }}
+                    >
+                      <Check className={`${!selectedRegie ? "opacity-100" : "opacity-0"} mr-2`} />
+                      Afficher tout
+                    </CommandItem>
+                    {regies.map((r, idx) => (
+                      <CommandItem
+                        key={idx}
+                        onSelect={() => {
+                          setSelectedRegie(r.REG_CODE);
+                          setRegieOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={`${selectedRegie === r.REG_CODE ? "opacity-100" : "opacity-0"} mr-2`}
+                        />
+                        {r.REG_SIGLE}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        )}
+      </div>     
+
+      {/* CARDS STATISTIQUES */}
+      <div className="grid gap-2 
+                grid-cols-1 
+                sm:grid-cols-2 
+                md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]">
+
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <Card
+              key={stat.title}
+              className="hover:shadow-sm transition-shadow rounded-xl"
+            >
+              <CardHeader className="p-2 pb-0">
+                <div className="flex flex-row items-start justify-between">
+                  
+                  {/* Icône + taux */}
+                  <div className="flex items-center gap-2">
+                    <div className={`${stat.bgColor} p-1.5 rounded-md`}>
+                      <Icon className={`h-4 w-4 ${stat.color}`} />
+                    </div>
+
+                    {stat.taux && (
+                      <span className="text-[14px] font-semibold text-gray-600">
+                        {stat.taux}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Titre */}
+                  <CardTitle className="text-xs font-semibold text-right">
+                    {stat.title}
+                  </CardTitle>
+                </div>
+              </CardHeader>
+
+              <CardContent className="px-2 pb-2"> 
+                <div className="text-lg font-bold text-right leading-tight">                  
+                    {stat.value} 
+                </div> 
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Module en développement</CardTitle>
-          <CardDescription>
-            Cette page sera bientôt disponible
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            Le module est en cours de développement.
-          </p>
-        </CardContent>
-      </Card>
+
+      {/* GRAPHIQUE */}
+      <div className="grid gap-2 
+                grid-cols-1 
+                sm:grid-cols-2 
+                md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]">
+        <Card className="h-[300px] sm:h-[400px] lg:h-[500px] mt-4">
+          <CardHeader>
+            <CardTitle>Statistiques financières</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[calc(100%-60px)] w-full flex items-center justify-center">
+            {chartData.datasets.length > 0 && (
+              <Pie
+                data={chartData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: "right",
+                      labels: {
+                        generateLabels: (chart) => {
+                          const dataset = chart.data.datasets[0];
+                          const data = dataset.data as number[]; // TypeScript
+                          const total = data.reduce((sum, v) => sum + (v || 0), 0);
+
+                          return chart.data.labels?.map((label, i) => {
+                            const value = data[i] || 0;
+                            return {
+                              text: `${label}`,
+                              fillStyle: Array.isArray(dataset.backgroundColor)
+                                ? dataset.backgroundColor[i]
+                                : (dataset.backgroundColor as string),
+                              strokeStyle: Array.isArray(dataset.borderColor)
+                                ? dataset.borderColor[i]
+                                : (dataset.borderColor as string),
+                              lineWidth: 1,
+                              hidden: false,
+                              index: i,
+                            };
+                          }) || [];
+                        },
+                      },
+                    },
+                    title: {
+                      display: true,
+                      text: "Répartition financière",
+                    },
+                  },
+                }}
+              />
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
-
-
-
-  // return (
-  //   <div className="space-y-6">
-  //     {/* En-tête */}
-  //     <div>
-  //       <h1 className="text-3xl font-bold text-foreground">Tableau de bord</h1>
-  //       <p className="text-muted-foreground mt-1">
-  //         Vue d'ensemble du système de gestion des quotes-parts
-  //       </p>
-  //     </div>
-
-  //     {/* Statistiques */}
-  //     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-  //       {stats.map((stat) => {
-  //         const Icon = stat.icon;
-  //         return (
-  //           <Card key={stat.title} className="hover:shadow-md transition-shadow">
-  //             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-  //               <CardTitle className="text-sm font-medium">
-  //                 {stat.title}
-  //               </CardTitle>
-  //               <div className={`${stat.bgColor} p-2 rounded-lg`}>
-  //                 <Icon className={`h-4 w-4 ${stat.color}`} />
-  //               </div>
-  //             </CardHeader>
-  //             <CardContent>
-  //               <div className="text-2xl font-bold">{stat.value}</div>
-  //               <p className="text-xs text-muted-foreground mt-1">
-  //                 {stat.description}
-  //               </p>
-  //             </CardContent>
-  //           </Card>
-  //         );
-  //       })}
-  //     </div>
-
-  //     {/* Paiements récents */}
-  //     <div className="grid gap-4 md:grid-cols-2">
-  //       <Card className="md:col-span-2">
-  //         <CardHeader>
-  //           <CardTitle>Paiements récents</CardTitle>
-  //           <CardDescription>
-  //             Les 5 derniers paiements effectués
-  //           </CardDescription>
-  //         </CardHeader>
-  //         <CardContent>
-  //           <div className="space-y-4">
-  //             {recentPayments.map((payment) => (
-  //               <div
-  //                 key={payment.id}
-  //                 className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-  //               >
-  //                 <div className="flex-1">
-  //                   <p className="font-medium text-foreground">{payment.beneficiary}</p>
-  //                   <p className="text-sm text-muted-foreground">{payment.date}</p>
-  //                 </div>
-  //                 <div className="text-right">
-  //                   <p className="font-semibold text-foreground">{payment.amount}</p>
-  //                   <span
-  //                     className={`text-xs px-2 py-1 rounded-full ${
-  //                       payment.status === "Validé"
-  //                         ? "bg-green-100 text-green-700"
-  //                         : payment.status === "En attente"
-  //                         ? "bg-orange-100 text-orange-700"
-  //                         : "bg-red-100 text-red-700"
-  //                     }`}
-  //                   >
-  //                     {payment.status}
-  //                   </span>
-  //                 </div>
-  //               </div>
-  //             ))}
-  //           </div>
-  //         </CardContent>
-  //       </Card>
-  //     </div>
-  //   </div>
-  // );
 }

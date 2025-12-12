@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Virement extends Model
 {
-    protected $table = 'T_VIREMENTS';
+    protected $table = 't_virements';
     protected $primaryKey = 'VIR_CODE';
     protected $incrementing = false;
     protected $keyType = 'integer';

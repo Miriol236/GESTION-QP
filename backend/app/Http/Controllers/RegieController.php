@@ -22,8 +22,13 @@ class RegieController extends Controller
      *     security={{"sanctum": {}}},
      *     @OA\Response(
      *         response=200,
-     *         description="Liste des régies récupérée avec succès"
-     *     )
+     *         description="Liste des régies récupérée avec succès",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Regie")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Non authentifié")
      * )
      */
     public function index()
@@ -51,9 +56,10 @@ class RegieController extends Controller
      *         name="code",
      *         in="path",
      *         required=true,
+     *         description="Code de la régie",
      *         @OA\Schema(type="string")
      *     ),
-     *     @OA\Response(response=200, description="Régie trouvée"),
+     *     @OA\Response(response=200, description="Régie trouvée", @OA\JsonContent(ref="#/components/schemas/Regie")),
      *     @OA\Response(response=404, description="Régie non trouvée")
      * )
      */
@@ -78,16 +84,14 @@ class RegieController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"REG_LIBELLE"},
-     *             required={"REG_SIGLE"},
-     *             required={"REG_SIGLE_CODE"},
+     *             required={"REG_LIBELLE","REG_SIGLE","REG_SIGLE_CODE"},
      *             @OA\Property(property="REG_LIBELLE", type="string"),
      *             @OA\Property(property="REG_SIGLE", type="string"),
-     *             @OA\Property(property="REG_SIGLE_CODE", type"string")
+     *             @OA\Property(property="REG_SIGLE_CODE", type="string")
      *         )
      *     ),
      *     @OA\Response(response=201, description="Régie créée avec succès"),
-     *     @OA\Response(response=409, description="Une régie avec ce nom existe déjà"),
+     *     @OA\Response(response=409, description="Une régie avec ce nom ou sigle existe déjà"),
      *     @OA\Response(response=401, description="Non authentifié")
      * )
      */
@@ -135,6 +139,7 @@ class RegieController extends Controller
      *         name="code",
      *         in="path",
      *         required=true,
+     *         description="Code de la régie à modifier",
      *         @OA\Schema(type="string")
      *     ),
      *     @OA\RequestBody(
@@ -142,12 +147,12 @@ class RegieController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="REG_LIBELLE", type="string"),
      *             @OA\Property(property="REG_SIGLE", type="string"),
-     *             @OA\Property(property="REG_SIGLE_CODE", type"string")
+     *             @OA\Property(property="REG_SIGLE_CODE", type="string")
      *         )
      *     ),
      *     @OA\Response(response=200, description="Régie mise à jour avec succès"),
      *     @OA\Response(response=404, description="Régie non trouvée"),
-     *     @OA\Response(response=409, description="Une régie avec ce nom existe déjà"),
+     *     @OA\Response(response=409, description="Une régie avec ce nom ou sigle existe déjà"),
      *     @OA\Response(response=401, description="Non authentifié")
      * )
      */
@@ -196,6 +201,7 @@ class RegieController extends Controller
      *         name="code",
      *         in="path",
      *         required=true,
+     *         description="Code de la régie à supprimer",
      *         @OA\Schema(type="string")
      *     ),
      *     @OA\Response(response=200, description="Régie supprimée avec succès"),

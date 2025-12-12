@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('T_UTILISATEURS', function (Blueprint $table) {
+        Schema::table('t_utilisateurs', function (Blueprint $table) {
             $table->string('REG_CODE', 10)->nullable()->after('GRP_CODE');
         });
     }
@@ -21,7 +21,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('T_UTILISATEURS', function (Blueprint $table) {
+        Schema::table('t_utilisateurs', function (Blueprint $table) {
             $table->dropColumn('REG_CODE');
         });
     }

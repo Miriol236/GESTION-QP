@@ -10,7 +10,7 @@ class Utilisateur extends Authenticatable
 {
     use HasApiTokens, Notifiable;
 
-    protected $table = 'T_UTILISATEURS';
+    protected $table = 't_utilisateurs';
     protected $primaryKey = 'UTI_CODE';
     public $incrementing = false;
     protected $keyType = 'string';

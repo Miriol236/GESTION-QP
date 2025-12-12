@@ -10,6 +10,7 @@ import {
 } from "lucide-react"; // Import mis à jour
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+
 // Définition du type de direction de tri
 type SortDirection = "asc" | "desc";
 
@@ -232,6 +233,9 @@ export function DataTable({
     return data.filter((r) => setIds.has(String(r?.[stableRowKey] ?? JSON.stringify(r))));
   }, [selectedIds, data, stableRowKey]);
 
+  const [filterOpen, setFilterOpen] = React.useState(false);
+  const [filterOpen2, setFilterOpen2] = React.useState(false);
+  const [filterOpen3, setFilterOpen3] = React.useState(false);
 
   return (
     <Card className="shadow-card hover-lift">
@@ -244,18 +248,16 @@ export function DataTable({
                 {title}
               </CardTitle>
 
-              {/* Pour Echéances */}
+              {/* Pour Échéances */}
               {filterItems && filterItems.length > 0 && (
-                <Popover>
+                <Popover open={filterOpen} onOpenChange={setFilterOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       size="sm"
                       className="px-2 py-1 w-full sm:w-auto flex justify-between"
                     >
-                      {/* Icône de filtre */}
                       <Filter className="h-4 w-4 text-gray-500" />
-                      
                       {selectedFilter
                         ? filterDisplay
                           ? filterDisplay(selectedFilter)
@@ -273,39 +275,31 @@ export function DataTable({
                           <CommandItem
                             onSelect={() => {
                               setSelectedFilter(null);
-                              onFilterSelect && onFilterSelect(null);
+                              onFilterSelect?.(null);
+                              setFilterOpen(false);
                             }}
                             className="whitespace-nowrap"
                           >
                             <Check
-                              className={`mr-2 h-4 w-4 ${
-                                selectedFilter === null
-                                  ? "opacity-100 text-blue-600"
-                                  : "opacity-0"
-                              }`}
+                              className={`mr-2 h-4 w-4 ${selectedFilter === null ? "opacity-100 text-blue-600" : "opacity-0"}`}
                             />
                             Afficher tout
                           </CommandItem>
 
                           {filterItems.map((it: any, idx: number) => {
-                            const isSelected =
-                              JSON.stringify(selectedFilter) === JSON.stringify(it);
-
+                            const isSelected = JSON.stringify(selectedFilter) === JSON.stringify(it);
                             return (
                               <CommandItem
                                 key={idx}
                                 onSelect={() => {
                                   setSelectedFilter(it);
-                                  onFilterSelect && onFilterSelect(it);
+                                  onFilterSelect?.(it);
+                                  setFilterOpen(false);
                                 }}
                                 className="whitespace-nowrap"
                               >
                                 <Check
-                                  className={`mr-2 h-4 w-4 ${
-                                    isSelected
-                                      ? "opacity-100 text-blue-600"
-                                      : "opacity-0"
-                                  }`}
+                                  className={`mr-2 h-4 w-4 ${isSelected ? "opacity-100 text-blue-600" : "opacity-0"}`}
                                 />
                                 {filterDisplay ? filterDisplay(it) : String(it)}
                               </CommandItem>
@@ -320,16 +314,14 @@ export function DataTable({
 
               {/* Pour régies */}
               {filterItems2 && filterItems2.length > 0 && (
-                <Popover>
+                <Popover open={filterOpen2} onOpenChange={setFilterOpen2}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       size="sm"
                       className="px-2 py-1 w-full sm:w-auto flex justify-between"
                     >
-                      {/* Icône de filtre */}
                       <Filter className="h-4 w-4 text-gray-500" />
-
                       {selectedFilter2
                         ? filterDisplay2
                           ? filterDisplay2(selectedFilter2)
@@ -347,39 +339,31 @@ export function DataTable({
                           <CommandItem
                             onSelect={() => {
                               setSelectedFilter2(null);
-                              onFilterSelect2 && onFilterSelect2(null);
+                              onFilterSelect2?.(null);
+                              setFilterOpen2(false);
                             }}
                             className="whitespace-nowrap"
                           >
                             <Check
-                              className={`mr-2 h-4 w-4 ${
-                                selectedFilter2 === null
-                                  ? "opacity-100 text-blue-600"
-                                  : "opacity-0"
-                              }`}
+                              className={`mr-2 h-4 w-4 ${selectedFilter2 === null ? "opacity-100 text-blue-600" : "opacity-0"}`}
                             />
                             Afficher tout
                           </CommandItem>
 
                           {filterItems2.map((it: any, idx: number) => {
-                            const isSelected =
-                              JSON.stringify(selectedFilter2) === JSON.stringify(it);
-
+                            const isSelected = JSON.stringify(selectedFilter2) === JSON.stringify(it);
                             return (
                               <CommandItem
                                 key={idx}
                                 onSelect={() => {
                                   setSelectedFilter2(it);
-                                  onFilterSelect2 && onFilterSelect2(it);
+                                  onFilterSelect2?.(it);
+                                  setFilterOpen2(false);
                                 }}
                                 className="whitespace-nowrap"
                               >
                                 <Check
-                                  className={`mr-2 h-4 w-4 ${
-                                    isSelected
-                                      ? "opacity-100 text-blue-600"
-                                      : "opacity-0"
-                                  }`}
+                                  className={`mr-2 h-4 w-4 ${isSelected ? "opacity-100 text-blue-600" : "opacity-0"}`}
                                 />
                                 {filterDisplay2 ? filterDisplay2(it) : String(it)}
                               </CommandItem>
@@ -394,16 +378,14 @@ export function DataTable({
 
               {/* Pour statut */}
               {filterItems3 && filterItems3.length > 0 && (
-                <Popover>
+                <Popover open={filterOpen3} onOpenChange={setFilterOpen3}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       size="sm"
                       className="px-2 py-1 w-full sm:w-auto flex justify-between"
                     >
-                      {/* Icône de filtre */}
                       <Filter className="h-4 w-4 text-gray-500" />
-
                       {selectedFilter3
                         ? filterDisplay3
                           ? filterDisplay3(selectedFilter3)
@@ -418,25 +400,30 @@ export function DataTable({
                       <CommandInput placeholder="Rechercher..." />
                       <CommandList>
                         <CommandGroup>
-                          {filterItems3.map((it: any, idx: number) => {
-                            const isSelected =
-                              JSON.stringify(selectedFilter3) === JSON.stringify(it);
+                          <CommandItem
+                            onSelect={() => {
+                              setSelectedFilter3(null);
+                              onFilterSelect3?.(null);
+                              setFilterOpen3(false);
+                            }}
+                            className="whitespace-nowrap"
+                          >
+                          </CommandItem>
 
+                          {filterItems3.map((it: any, idx: number) => {
+                            const isSelected = JSON.stringify(selectedFilter3) === JSON.stringify(it);
                             return (
                               <CommandItem
                                 key={idx}
                                 onSelect={() => {
                                   setSelectedFilter3(it);
-                                  onFilterSelect3 && onFilterSelect3(it);
+                                  onFilterSelect3?.(it);
+                                  setFilterOpen3(false);
                                 }}
                                 className="whitespace-nowrap"
                               >
                                 <Check
-                                  className={`mr-2 h-4 w-4 ${
-                                    isSelected
-                                      ? "opacity-100 text-blue-600"
-                                      : "opacity-0"
-                                  }`}
+                                  className={`mr-2 h-4 w-4 ${isSelected ? "opacity-100 text-blue-600" : "opacity-0"}`}
                                 />
                                 {filterDisplay3 ? filterDisplay3(it) : String(it)}
                               </CommandItem>
@@ -448,10 +435,7 @@ export function DataTable({
                   </PopoverContent>
                 </Popover>
               )}
-            </div>
-          )}
-          <div className="flex items-center gap-4">
-            {searchable && (
+              {searchable && (
               <div className="relative w-full sm:w-auto">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -466,6 +450,9 @@ export function DataTable({
                 />
               </div>
             )}
+            </div>
+          )}
+          <div className="flex items-center gap-4">         
 
             {/*  Bouton "Supprimer la sélection" */}
             {onDeleteAll && selectedRows.length >= 2 && (

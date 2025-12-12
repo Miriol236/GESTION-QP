@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('T_ECHEANCES', function (Blueprint $table) {
+        Schema::create('t_echeances', function (Blueprint $table) {
             $table->string('ECH_CODE', 10)->primary();
             $table->string('ECH_LIBELLE');
             $table->date('ECH_DATE_CREER')->nullable();
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('T_ECHEANCES');
+        Schema::dropIfExists('t_echeances');
     }
 };

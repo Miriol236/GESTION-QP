@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('T_BANQUES', function (Blueprint $table) {
+        Schema::create('t_banques', function (Blueprint $table) {
             $table->string('BNQ_CODE', 10)->primary();
             $table->string('BNQ_LIBELLE');
             $table->date('BNQ_DATE_CREER');
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('T_BANQUES');
+        Schema::dropIfExists('t_banques');
     }
 };

@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('T_DETAILS_PAIEMENT', function (Blueprint $table) {
+        Schema::create('t_details_paiement', function (Blueprint $table) {
             $table->string('DET_CODE', 12)->primary();
             $table->string('PAI_MONTANT')->nullable();
             $table->string('ELT_CODE', 10)->nullable();
             $table->string('PAI_CODE', 10)->nullable();
-            $table->foreign('ELT_CODE')->references('ELT_CODE')->on('T_ELEMENTS');
-            $table->foreign('PAI_CODE')->references('PAI_CODE')->on('T_PAIEMENTS');
+            $table->foreign('ELT_CODE')->references('ELT_CODE')->on('t_elements');
+            $table->foreign('PAI_CODE')->references('PAI_CODE')->on('t_paiements');
         });
     }
 
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('T_DETAILS_PAIEMENT');
+        Schema::dropIfExists('t_details_paiement');
     }
 };

@@ -61,7 +61,7 @@ export default function Header({ className = "" }: { className?: string }) {
                 : ""}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Système de Gestion des Quotes-Parts
+              Plateforme digitalisée des Quotes-Parts
               {activeEcheance && (
                 <span className="ml-2 text-green-600 font-medium">
                   — Échéance en cours : {activeEcheance.ECH_LIBELLE}

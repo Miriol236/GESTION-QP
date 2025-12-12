@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Regie extends Model
 {
-    protected $table = 'T_REGIES';
+    protected $table = 't_regies';
     protected $primaryKey = 'REG_CODE'; // clé primaire personnalisée
     public $incrementing = false; // pas d'auto-incrément
     protected $keyType = 'string';

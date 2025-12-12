@@ -11,7 +11,6 @@ use App\Models\TypeBeneficiaire;
  *     description="Gestion des types bénéficiaires (CRUD)"
  * )
  */
-
 class TypeBeneficiaireController extends Controller
 {
     /**
@@ -23,8 +22,10 @@ class TypeBeneficiaireController extends Controller
      *     security={{"sanctum": {}}},
      *     @OA\Response(
      *         response=200,
-     *         description="Liste des types bénéficiaires récupérée avec succès"
-     *     )
+     *         description="Liste des types bénéficiaires récupérée avec succès",
+     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/TypeBeneficiaire"))
+     *     ),
+     *     @OA\Response(response=401, description="Non authentifié")
      * )
      */
     public function index()
@@ -53,10 +54,11 @@ class TypeBeneficiaireController extends Controller
      *         name="code",
      *         in="path",
      *         required=true,
+     *         description="Code du type bénéficiaire",
      *         @OA\Schema(type="string")
      *     ),
-     *     @OA\Response(response=200, description="Type bénéficiaire trouvé"),
-     *     @OA\Response(response=404, description="Type bénéficiaires non trouvé")
+     *     @OA\Response(response=200, description="Type bénéficiaire trouvé", @OA\JsonContent(ref="#/components/schemas/TypeBeneficiaire")),
+     *     @OA\Response(response=404, description="Type bénéficiaire non trouvé")
      * )
      */
     public function show($code)
@@ -74,8 +76,8 @@ class TypeBeneficiaireController extends Controller
      * @OA\Post(
      *     path="/api/typeBeneficiaires",
      *     tags={"TypeBeneficiaires"},
-     *     summary="Créer un nouveau type bénéficiaires",
-     *     description="Ajoute un nouveau type bénéficiaires.",
+     *     summary="Créer un nouveau type bénéficiaire",
+     *     description="Ajoute un nouveau type bénéficiaire.",
      *     security={{"sanctum": {}}},
      *     @OA\RequestBody(
      *         required=true,
@@ -84,8 +86,8 @@ class TypeBeneficiaireController extends Controller
      *             @OA\Property(property="TYP_LIBELLE", type="string")
      *         )
      *     ),
-     *     @OA\Response(response=201, description="Type bénéficiaires créé avec succès"),
-     *     @OA\Response(response=409, description="Un type bénéficiaires avec ce nom existe déjà"),
+     *     @OA\Response(response=201, description="Type bénéficiaire créé avec succès"),
+     *     @OA\Response(response=409, description="Un type bénéficiaire avec ce nom existe déjà"),
      *     @OA\Response(response=401, description="Non authentifié")
      * )
      */
@@ -114,13 +116,14 @@ class TypeBeneficiaireController extends Controller
      * @OA\Put(
      *     path="/api/typeBeneficiaires/{code}",
      *     tags={"TypeBeneficiaires"},
-     *     summary="Mettre à jour un type bénéficiaires",
-     *     description="Modifie les informations d’un type bénéficiaires existant.",
+     *     summary="Mettre à jour un type bénéficiaire",
+     *     description="Modifie les informations d’un type bénéficiaire existant.",
      *     security={{"sanctum": {}}},
      *     @OA\Parameter(
      *         name="code",
      *         in="path",
      *         required=true,
+     *         description="Code du type bénéficiaire à modifier",
      *         @OA\Schema(type="string")
      *     ),
      *     @OA\RequestBody(
@@ -129,9 +132,9 @@ class TypeBeneficiaireController extends Controller
      *             @OA\Property(property="TYP_LIBELLE", type="string")
      *         )
      *     ),
-     *     @OA\Response(response=200, description="Type bénéficiaires mis à jour avec succès"),
+     *     @OA\Response(response=200, description="Type bénéficiaire mis à jour avec succès"),
      *     @OA\Response(response=404, description="Type bénéficiaire non trouvé"),
-     *     @OA\Response(response=409, description="Un type bénéficiaires avec ce nom existe déjà"),
+     *     @OA\Response(response=409, description="Un type bénéficiaire avec ce nom existe déjà"),
      *     @OA\Response(response=401, description="Non authentifié")
      * )
      */
@@ -167,17 +170,18 @@ class TypeBeneficiaireController extends Controller
      * @OA\Delete(
      *     path="/api/typeBeneficiaires/{code}",
      *     tags={"TypeBeneficiaires"},
-     *     summary="Supprimer un type bénéficiaires",
-     *     description="Supprime un type bénéficiaires existant par son code.",
+     *     summary="Supprimer un type bénéficiaire",
+     *     description="Supprime un type bénéficiaire existant par son code.",
      *     security={{"sanctum": {}}},
      *     @OA\Parameter(
      *         name="code",
      *         in="path",
      *         required=true,
+     *         description="Code du type bénéficiaire à supprimer",
      *         @OA\Schema(type="string")
      *     ),
-     *     @OA\Response(response=200, description="Type bénéficiaires supprimé avec succès"),
-     *     @OA\Response(response=404, description="Type bénéficiaires non trouvé"),
+     *     @OA\Response(response=200, description="Type bénéficiaire supprimé avec succès"),
+     *     @OA\Response(response=404, description="Type bénéficiaire non trouvé"),
      *     @OA\Response(response=401, description="Non authentifié")
      * )
      */

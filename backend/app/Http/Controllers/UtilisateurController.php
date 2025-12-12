@@ -21,7 +21,12 @@ class UtilisateurController extends Controller
      *     summary="Lister tous les utilisateurs",
      *     description="Retourne la liste complète des utilisateurs enregistrés.",
      *     security={{"sanctum": {}}},
-     *     @OA\Response(response=200, description="Liste des utilisateurs récupérée avec succès")
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste des utilisateurs récupérée avec succès",
+     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/Utilisateur"))
+     *     ),
+     *     @OA\Response(response=401, description="Non authentifié")
      * )
      */
     public function index()
@@ -41,9 +46,10 @@ class UtilisateurController extends Controller
      *         name="id",
      *         in="path",
      *         required=true,
-     *         @OA\Schema(type="string")
+     *         @OA\Schema(type="string"),
+     *         description="Identifiant unique de l'utilisateur"
      *     ),
-     *     @OA\Response(response=200, description="Utilisateur trouvé"),
+     *     @OA\Response(response=200, description="Utilisateur trouvé", @OA\JsonContent(ref="#/components/schemas/Utilisateur")),
      *     @OA\Response(response=404, description="Utilisateur non trouvé")
      * )
      */
@@ -58,7 +64,7 @@ class UtilisateurController extends Controller
         return response()->json($utilisateur);
     }
 
-    /**
+     /**
      * @OA\Post(
      *     path="/api/utilisateurs",
      *     tags={"Utilisateurs"},
@@ -76,7 +82,7 @@ class UtilisateurController extends Controller
      *             @OA\Property(property="UTI_SEXE", type="string", nullable=true),
      *             @OA\Property(property="UTI_AVATAR", type="string", nullable=true),
      *             @OA\Property(property="GRP_CODE", type="string"),
-     *             @OA\Property(property="REG_CODE", type="string")
+     *             @OA\Property(property="REG_CODE", type="string", nullable=true)
      *         )
      *     ),
      *     @OA\Response(response=201, description="Utilisateur créé avec succès"),
@@ -89,7 +95,7 @@ class UtilisateurController extends Controller
         $request->validate([
             'UTI_NOM' => 'required|string|max:100',
             'UTI_PRENOM' => 'required|string|max:100',
-            'UTI_USERNAME' => 'required|string|unique:T_UTILISATEURS,UTI_USERNAME',
+            'UTI_USERNAME' => 'required|string|unique:t_utilisateurs,UTI_USERNAME',
             'UTI_PASSWORD' => 'required|string|min:6',
             'UTI_SEXE' => 'nullable|string|max:1',
             'GRP_CODE' => 'required|string',
@@ -144,7 +150,11 @@ class UtilisateurController extends Controller
      *             @OA\Property(property="UTI_NOM", type="string"),
      *             @OA\Property(property="UTI_PRENOM", type="string"),
      *             @OA\Property(property="UTI_SEXE", type="string"),
-     *             @OA\Property(property="UTI_AVATAR", type="string")
+     *             @OA\Property(property="UTI_AVATAR", type="string"),
+     *             @OA\Property(property="UTI_USERNAME", type="string"),
+     *             @OA\Property(property="UTI_PASSWORD", type="string", nullable=true),
+     *             @OA\Property(property="GRP_CODE", type="string"),
+     *             @OA\Property(property="REG_CODE", type="string")
      *         )
      *     ),
      *     @OA\Response(response=200, description="Utilisateur mis à jour avec succès"),
@@ -208,6 +218,7 @@ class UtilisateurController extends Controller
      *     ),
      *     @OA\Response(response=200, description="Utilisateur supprimé avec succès"),
      *     @OA\Response(response=404, description="Utilisateur non trouvé"),
+     *     @OA\Response(response=403, description="Impossible de supprimer un administrateur"),
      *     @OA\Response(response=401, description="Non authentifié")
      * )
      */
@@ -241,7 +252,8 @@ class UtilisateurController extends Controller
      *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Response(response=200, description="Statut changé avec succès"),
-     *     @OA\Response(response=404, description="Utilisateur non trouvé")
+     *     @OA\Response(response=404, description="Utilisateur non trouvé"),
+     *     @OA\Response(response=403, description="Impossible de désactiver un administrateur")
      * )
      */
     public function toggleStatus($id)

@@ -12,9 +12,9 @@ class DomicilierController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'BEN_CODE' => 'required|string|exists:T_BENEFICIAIRES,BEN_CODE',
-            'BNQ_CODE' => 'required|string|exists:T_BANQUES,BNQ_CODE',
-            'GUI_ID' => 'required|string|exists:T_GUICHETS,GUI_ID',
+            'BEN_CODE' => 'required|string|exists:t_beneficiaires,BEN_CODE',
+            'BNQ_CODE' => 'required|string|exists:t_banques,BNQ_CODE',
+            'GUI_ID' => 'required|string|exists:t_guichets,GUI_ID',
             'DOM_NUMCPT' => 'nullable|string|max:30',
             'DOM_STATUT' => 'nullable|boolean'
         ]);
@@ -35,8 +35,8 @@ class DomicilierController extends Controller
         }
 
         // Récupération des infos banque + guichet
-        $banque = DB::table('T_BANQUES')->where('BNQ_CODE', $request->BNQ_CODE)->first();
-        $guichet = DB::table('T_GUICHETS')->where('GUI_ID', $request->GUI_ID)->first();
+        $banque = DB::table('t_banques')->where('BNQ_CODE', $request->BNQ_CODE)->first();
+        $guichet = DB::table('t_guichets')->where('GUI_ID', $request->GUI_ID)->first();
 
         if (!$banque || !$guichet) {
             return response()->json(['message' => 'Banque ou guichet introuvable.'], 404);
@@ -116,16 +116,16 @@ class DomicilierController extends Controller
     public function showByBeneficiaire($BEN_CODE)
     {
         $data = Domicilier::where('BEN_CODE', $BEN_CODE)
-            ->join('T_BANQUES', 'T_BANQUES.BNQ_CODE', '=', 'T_DOMICILIERS.BNQ_CODE')
-            ->join('T_GUICHETS', 'T_GUICHETS.GUI_ID', '=', 'T_DOMICILIERS.GUI_ID')
+            ->join('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
+            ->join('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
             ->select(
-                'T_DOMICILIERS.*',
-                'T_BANQUES.BNQ_CODE',
-                'T_BANQUES.BNQ_LIBELLE',
-                'T_GUICHETS.GUI_CODE',
-                'T_GUICHETS.GUI_NOM'
+                't_domiciliers.*',
+                't_banques.BNQ_CODE',
+                't_banques.BNQ_LIBELLE',
+                't_guichets.GUI_CODE',
+                't_guichets.GUI_NOM'
             )
-            ->orderByDesc('T_DOMICILIERS.DOM_STATUT')
+            ->orderByDesc('t_domiciliers.DOM_STATUT')
             ->get();
 
         return response()->json($data);
@@ -139,8 +139,8 @@ class DomicilierController extends Controller
         $domiciliation = Domicilier::find($DOM_CODE);
 
         $request->validate([
-            'BNQ_CODE' => 'required|string|exists:T_BANQUES,BNQ_CODE',
-            'GUI_ID'   => 'required|string|exists:T_GUICHETS,GUI_ID',
+            'BNQ_CODE' => 'required|string|exists:t_banques,BNQ_CODE',
+            'GUI_ID'   => 'required|string|exists:t_guichets,GUI_ID',
             'DOM_NUMCPT' => 'nullable|string|max:30',
         ]);
 
@@ -166,8 +166,8 @@ class DomicilierController extends Controller
         }
 
         //  Récupération de la banque et du guichet
-        $banque = DB::table('T_BANQUES')->where('BNQ_CODE', $request->BNQ_CODE)->first();
-        $guichet = DB::table('T_GUICHETS')->where('GUI_ID', $request->GUI_ID)->first();
+        $banque = DB::table('t_banques')->where('BNQ_CODE', $request->BNQ_CODE)->first();
+        $guichet = DB::table('t_guichets')->where('GUI_ID', $request->GUI_ID)->first();
 
         if (!$banque || !$guichet) {
             return response()->json(['message' => 'Banque ou guichet introuvable.'], 404);

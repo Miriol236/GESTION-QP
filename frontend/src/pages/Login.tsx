@@ -49,9 +49,7 @@ export default function Login() {
     } catch (error: any) {
       toast({
         title: "Erreur de connexion",
-        description:
-          error.response?.data?.message ||
-          "Identifiants incorrects. Veuillez réessayer.",
+        description: error?.response?.data?.message || "Erreur de serveur. Veuillez réessayer.",
         variant: "destructive",
       });
     } finally {
@@ -65,7 +63,7 @@ export default function Login() {
       {/*  Texte défilant en haut ----> animate-marquee */}
       <div className="absolute top-16 w-full overflow-hidden">
         <div className="text-2xl font-bold text-center text-primary">
-          BIENVENUE SUR LA PLATEFORME DE GESTION DES QUÔTES-PARTS
+          BIENVENUE SUR LA PLATEFORME DIGITALISEE DES QUOTES-PARTS
         </div>
       </div>
 

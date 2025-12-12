@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Element extends Model
 {
-    protected $table = 'T_ELEMENTS';
+    protected $table = 't_elements';
     protected $primaryKey = 'ELT_CODE';
     public $incrementing = false;
     protected $keyType = 'string';

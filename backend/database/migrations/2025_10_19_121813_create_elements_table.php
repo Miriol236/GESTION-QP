@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('T_ELEMENTS', function (Blueprint $table) {
+        Schema::create('t_elements', function (Blueprint $table) {
             $table->string('ELT_CODE', 10)->primary();
             $table->string('ELT_LIBELLE');
             $table->integer('ELT_SENS', 1);
@@ -28,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('T_ELEMENTS');
+        Schema::dropIfExists('t_elements');
     }
 };

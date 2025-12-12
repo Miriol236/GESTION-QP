@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('T_REGIES', function (Blueprint $table) {
+        Schema::create('t_regies', function (Blueprint $table) {
             $table->string('REG_CODE', 10)->primary();
             $table->string('REG_LIBELLE');
             $table->string('REG_SIGLE', 10);
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('T_REGIES');
+        Schema::dropIfExists('t_regies');
     }
 };

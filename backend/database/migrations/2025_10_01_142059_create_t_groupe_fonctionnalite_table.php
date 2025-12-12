@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('T_GROUPE_FONCTIONNALITE', function (Blueprint $table) {
+        Schema::create('t_groupe_fonctionnalite', function (Blueprint $table) {
             $table->string('GRP_CODE');
             $table->string('FON_CODE');
 
@@ -25,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('T_GROUPE_FONCTIONNALITE');
+        Schema::dropIfExists('t_groupe_fonctionnalite');
     }
 };

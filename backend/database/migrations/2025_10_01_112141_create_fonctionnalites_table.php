@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('T_FONCTIONNALITES', function (Blueprint $table) {
+        Schema::create('t_fonctionnalites', function (Blueprint $table) {
             $table->string('FON_CODE', 10)->primary();
             $table->string('FON_NOM');
             $table->date('FON_DATE_CREER');
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('T_FONCTIONNALITES');
+        Schema::dropIfExists('t_fonctionnalites');
     }
 };

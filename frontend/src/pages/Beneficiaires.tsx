@@ -28,20 +28,17 @@ export default function Beneficiaires() {
   const [selectedBeneficiaire, setSelectedBeneficiaire] = useState<any>(null);
   const { toast } = useToast();
 
-  // Récupérer l'utilisateur courant pour déterminer les permissions
-    const { user } = useAuth();
-    const grpCode = user?.GRP_CODE || null;
-  
-    // Permissions par groupe (si besoin on peut externaliser)
-    const can = {
-      onAdd: grpCode === "0003",
-      onEdit: grpCode === "0003",
-      onDelete: grpCode === "0003",
-      // onDeleteAll: grpCode === "0003",
-      onView: grpCode === "0003" || grpCode === "0002" || grpCode === "0001",
-      // onValidateVirement: grpCode === "0001",
-      // onStatusUpdate: grpCode === "0001",
-    };
+  const { user } = useAuth();
+  const regCodeUser = user?.REG_CODE || null; // null si l'utilisateur n'est pas rattaché à une régie
+
+  // Permissions par groupe (si besoin on peut externaliser)
+  const can = {
+    onAdd: regCodeUser != null,       // seuls les admins (sans régie) peuvent ajouter
+    onEdit: regCodeUser != null,      // idem pour éditer
+    onDelete: regCodeUser != null,    // idem pour supprimer
+    // onDeleteAll: regCodeUser != null, // idem pour suppression multiple
+    onViews: true,                     // tous peuvent voir leurs paiements
+  };
 
     // Handlers réutilisables (passés au DataTable seulement si permitted)
   const handleAdd = () => {
@@ -243,7 +240,7 @@ export default function Beneficiaires() {
   }
 
   return (
-    <div className="space-y-6 overflow-hidden h-full">
+    <div className="space-y-6 animate-fade-in">
       {/* En-tête */}
       <div className="flex justify-between items-start">
         <div>

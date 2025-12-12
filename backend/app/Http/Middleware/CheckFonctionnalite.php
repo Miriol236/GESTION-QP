@@ -17,7 +17,7 @@ class CheckFonctionnalite
         }
 
         //  Récupérer la fonctionnalité
-        $fonctionnalite = DB::table('T_FONCTIONNALITES')
+        $fonctionnalite = DB::table('t_fonctionnalites')
             ->where('FON_CODE', '=', $fonctionnaliteCode)
             ->first();
 
@@ -28,7 +28,7 @@ class CheckFonctionnalite
         }
 
         //  Récupérer les infos du groupe de l'utilisateur
-        $groupe = DB::table('T_GROUPES')
+        $groupe = DB::table('t_groupes')
             ->where('GRP_CODE', '=', $user->GRP_CODE)
             ->first();
 
@@ -39,7 +39,7 @@ class CheckFonctionnalite
         }
 
         //  Vérifier le droit d'accès dans la table pivot
-        $hasAccess = DB::table('T_GROUPE_FONCTIONNALITE')
+        $hasAccess = DB::table('t_groupe_fonctionnalite')
             ->where('GRP_CODE', '=', $user->GRP_CODE)
             ->where('FON_CODE', '=', $fonctionnaliteCode)
             ->exists();

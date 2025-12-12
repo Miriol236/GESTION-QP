@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Echeance extends Model
 {
-    protected $table = 'T_ECHEANCES';
+    protected $table = 't_echeances';
     protected $primaryKey = 'ECH_CODE'; // clé primaire personnalisée
     public $incrementing = false; // pas d'auto-incrément
     protected $keyType = 'string';

@@ -30,13 +30,19 @@ import {
   Banknote,
   Pencil,
   ChevronDown, 
-  ChevronRight
+  ChevronRight,
+  Gauge
 } from "lucide-react";
 import { API_URL } from "@/config/api";
 import { toast } from "sonner";
 
 // Structure du menu avec foncCode
 const menuItems = [
+  {
+    title: "Dashboard",
+    icon: Gauge,
+    url: "/dashboard",
+  },
   {
     title: "Traitements",
     icon: Pencil,
@@ -71,7 +77,7 @@ const menuItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
   const location = useLocation();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
@@ -109,19 +115,22 @@ export function AppSidebar() {
   const filterMenuItems = (items: any[]): any[] => {
     return items
       .map((item) => {
-        // Filtrer les enfants autorisés
-        const allowedChildren = item.children
-          ? item.children.filter((child: any) =>
-              allowedFonctionnalites.includes(String(child.foncCode))
-            )
-          : [];
+        // --- Dashboard : visible pour tous ---
+        if (!item.children) {
+          return item;
+        }
 
-        // Si le menu principal n’a aucun enfant autorisé, on le supprime
+        // Filtrer les enfants autorisés
+        const allowedChildren = item.children.filter((child: any) =>
+          allowedFonctionnalites.includes(String(child.foncCode))
+        );
+
+        // Si aucun enfant autorisé → retirer le menu
         if (allowedChildren.length === 0) return null;
 
         return { ...item, children: allowedChildren };
       })
-      .filter(Boolean) as any[]; // Supprime les null
+      .filter(Boolean);
   };
 
   const filteredMenu = filterMenuItems(menuItems);
@@ -139,7 +148,7 @@ export function AppSidebar() {
           {!isCollapsed ? (
             <div className="flex items-center gap-2">
               <span className="font-bold text-sidebar-foreground">
-                Gestion des Quotes-Parts
+                Quotes-Parts
               </span>
             </div>
           ) : (
@@ -207,6 +216,12 @@ export function AppSidebar() {
                                         : "hover:bg-sidebar-accent/40"
                                     }`
                                   }
+                                  onClick={() => {
+                                    // Fermeture sur mobile seulement
+                                    if (isMobile) {
+                                      setOpenMobile(false);
+                                    }
+                                  }}
                                 >
                                   <subItem.icon className="inline-block h-3 w-3 mr-2" />
                                   {subItem.title}

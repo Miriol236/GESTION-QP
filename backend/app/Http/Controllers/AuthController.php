@@ -169,10 +169,10 @@ class AuthController extends Controller
         }
 
         // Récupère les FON_CODE liés à son groupe
-        $fonctionnalites = DB::table('T_GROUPE_FONCTIONNALITE')
-            ->join('T_FONCTIONNALITES', 'T_FONCTIONNALITES.FON_CODE', '=', 'T_GROUPE_FONCTIONNALITE.FON_CODE')
-            ->where('T_GROUPE_FONCTIONNALITE.GRP_CODE', $user->GRP_CODE)
-            ->pluck('T_FONCTIONNALITES.FON_CODE');
+        $fonctionnalites = DB::table('t_groupe_fonctionnalite')
+            ->join('t_fonctionnalites', 't_fonctionnalites.FON_CODE', '=', 't_groupe_fonctionnalite.FON_CODE')
+            ->where('t_groupe_fonctionnalite.GRP_CODE', $user->GRP_CODE)
+            ->pluck('t_fonctionnalites.FON_CODE');
 
         return response()->json($fonctionnalites);
     }

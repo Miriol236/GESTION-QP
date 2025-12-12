@@ -17,11 +17,19 @@ class BeneficiaireController extends Controller
     /**
      * @OA\Get(
      *     path="/api/beneficiaires",
-     *     tags={"Beneficiaires"},
-     *     summary="Lister tous les beneficiaires",
+     *     tags={"Beneficiaire"},
+     *     summary="Lister tous les bénéficiaires",
      *     description="Retourne la liste complète des bénéficiaires enregistrés.",
      *     security={{"sanctum": {}}},
-     *     @OA\Response(response=200, description="Liste des bénéficiaires récupérée avec succès")
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste des bénéficiaires récupérée avec succès",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Beneficiaire")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Utilisateur non authentifié")
      * )
      */
     public function index()
@@ -39,6 +47,21 @@ class BeneficiaireController extends Controller
         return response()->json($beneficiaires);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/beneficiaires/all",
+     *     tags={"Beneficiaire"},
+     *     summary="Lister tous les bénéficiaires avec détails",
+     *     description="Retourne la liste complète avec banques, guichets, types, fonctions et grades.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste détaillée récupérée avec succès",
+     *         @OA\JsonContent(type="array", @OA\Items(type="object"))
+     *     ),
+     *     @OA\Response(response=401, description="Utilisateur non authentifié")
+     * )
+     */
     public function getAll()
     {
         $user = auth()->user();
@@ -48,32 +71,32 @@ class BeneficiaireController extends Controller
         }
 
         $query = Beneficiaire::query()
-            ->join('T_DOMICILIERS', function ($join) {
-                $join->on('T_DOMICILIERS.BEN_CODE', '=', 'T_BENEFICIAIRES.BEN_CODE')
-                    ->where('T_DOMICILIERS.DOM_STATUT', true); // RIB actif uniquement
+            ->join('t_domiciliers', function ($join) {
+                $join->on('t_domiciliers.BEN_CODE', '=', 't_beneficiaires.BEN_CODE')
+                    ->where('t_domiciliers.DOM_STATUT', true); // RIB actif uniquement
             })
-            ->leftJoin('T_BANQUES', 'T_BANQUES.BNQ_CODE', '=', 'T_DOMICILIERS.BNQ_CODE')
-            ->leftJoin('T_GUICHETS', 'T_GUICHETS.GUI_ID', '=', 'T_DOMICILIERS.GUI_ID')
-            ->leftJoin('T_TYPE_BENEFICIAIRES', 'T_TYPE_BENEFICIAIRES.TYP_CODE', '=', 'T_BENEFICIAIRES.TYP_CODE') // Type
-            ->leftJoin('T_FONCTIONS', 'T_FONCTIONS.FON_CODE', '=', 'T_BENEFICIAIRES.FON_CODE') // Fonction
-            ->leftJoin('T_GRADES', 'T_GRADES.GRD_CODE', '=', 'T_BENEFICIAIRES.GRD_CODE') // Grade
+            ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
+            ->leftJoin('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
+            ->leftJoin('t_type_beneficiaires', 't_type_beneficiaires.TYP_CODE', '=', 't_beneficiaires.TYP_CODE') // Type
+            ->leftJoin('t_fonctions', 't_fonctions.FON_CODE', '=', 't_beneficiaires.FON_CODE') // Fonction
+            ->leftJoin('t_grades', 't_grades.GRD_CODE', '=', 't_beneficiaires.GRD_CODE') // Grade
             ->select([
-                'T_BENEFICIAIRES.BEN_CODE as CODE',
-                'T_BENEFICIAIRES.BEN_MATRICULE as MATRICULE',
-                DB::raw("CONCAT(T_BENEFICIAIRES.BEN_NOM, ' ', T_BENEFICIAIRES.BEN_PRENOM) as BENEFICIAIRE"),
-                'T_BENEFICIAIRES.BEN_SEXE as SEXE',
-                'T_BANQUES.BNQ_CODE',
-                'T_BANQUES.BNQ_LIBELLE',
-                'T_GUICHETS.GUI_CODE as GUICHET',
-                'T_DOMICILIERS.DOM_NUMCPT as NUMERO_DE_COMPTE',
-                'T_DOMICILIERS.DOM_RIB as CLE_RIB',
-                'T_TYPE_BENEFICIAIRES.TYP_LIBELLE as TYPE_BENEFICIAIRE', // Type
-                'T_FONCTIONS.FON_LIBELLE as FONCTION', // Fonction
-                'T_GRADES.GRD_LIBELLE as GRADE', // Grade
+                't_beneficiaires.BEN_CODE as CODE',
+                't_beneficiaires.BEN_MATRICULE as MATRICULE',
+                DB::raw("CONCAT(t_beneficiaires.BEN_NOM, ' ', t_beneficiaires.BEN_PRENOM) as BENEFICIAIRE"),
+                't_beneficiaires.BEN_SEXE as SEXE',
+                't_banques.BNQ_CODE',
+                't_banques.BNQ_LIBELLE',
+                't_guichets.GUI_CODE as GUICHET',
+                't_domiciliers.DOM_NUMCPT as NUMERO_DE_COMPTE',
+                't_domiciliers.DOM_RIB as CLE_RIB',
+                't_type_beneficiaires.TYP_LIBELLE as TYPE_BENEFICIAIRE', // Type
+                't_fonctions.FON_LIBELLE as FONCTION', // Fonction
+                't_grades.GRD_LIBELLE as GRADE', // Grade
             ]);
 
         // Plus de filtrage par régie : tout le monde peut consulter
-        $beneficiaires = $query->orderBy('T_BENEFICIAIRES.BEN_CODE', 'asc')->get();
+        $beneficiaires = $query->orderBy('t_beneficiaires.BEN_CODE', 'asc')->get();
 
         // Formater le nom de la banque
         $beneficiaires->transform(function ($b) {
@@ -88,7 +111,7 @@ class BeneficiaireController extends Controller
     /**
      * @OA\Get(
      *     path="/api/beneficiaires/{id}",
-     *     tags={"Beneficiaires"},
+     *     tags={"Beneficiaire"},
      *     summary="Afficher les détails d’un bénéficiaire",
      *     description="Retourne les informations détaillées d’un bénéficiaire spécifique.",
      *     security={{"sanctum": {}}},
@@ -96,9 +119,10 @@ class BeneficiaireController extends Controller
      *         name="id",
      *         in="path",
      *         required=true,
+     *         description="Code du bénéficiaire",
      *         @OA\Schema(type="string")
      *     ),
-     *     @OA\Response(response=200, description="Bénéficiaire trouvé"),
+     *     @OA\Response(response=200, description="Bénéficiaire trouvé", @OA\JsonContent(ref="#/components/schemas/Beneficiaire")),
      *     @OA\Response(response=404, description="Bénéficiaire non trouvé")
      * )
      */
@@ -115,8 +139,8 @@ class BeneficiaireController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/beneficaire",
-     *     tags={"Beneficaire"},
+     *     path="/api/beneficiaires",
+     *     tags={"Beneficiaire"},
      *     summary="Créer un nouveau bénéficiaire",
      *     description="Ajoute un nouveau bénéficiaire dans le système.",
      *     security={{"sanctum": {}}},
@@ -199,6 +223,7 @@ class BeneficiaireController extends Controller
      *         name="id",
      *         in="path",
      *         required=true,
+     *         description="Code du bénéficiaire à modifier",
      *         @OA\Schema(type="string")
      *     ),
      *     @OA\RequestBody(
@@ -250,7 +275,7 @@ class BeneficiaireController extends Controller
     /**
      * @OA\Delete(
      *     path="/api/beneficiaires/{code}",
-     *     tags={"Beneficiaires"},
+     *     tags={"Beneficiaire"},
      *     summary="Supprimer un bénéficiaire",
      *     description="Supprime un bénéficiaire par son code.",
      *     security={{"sanctum": {}}},
@@ -258,6 +283,7 @@ class BeneficiaireController extends Controller
      *         name="code",
      *         in="path",
      *         required=true,
+     *         description="Code du bénéficiaire à supprimer",
      *         @OA\Schema(type="string")
      *     ),
      *     @OA\Response(response=200, description="Bénéficiaire supprimé avec succès"),

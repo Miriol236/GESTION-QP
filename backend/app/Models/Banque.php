@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Banque extends Model
 {
-    protected $table = 'T_BANQUES';
+    protected $table = 't_banques';
     protected $primaryKey = 'BNQ_CODE';
     public $incremening = false;
     protected $keyType = 'string';

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class TypeBeneficiaire extends Model
 {
-    protected $table = "T_TYPE_BENEFICIAIRES";
+    protected $table = "t_type_beneficiaires";
     protected $primaryKey = 'TYP_CODE'; // Clé primaire
     public $incrementing = false; // Pas d'auto-incrément
     protected $keyType = 'string';

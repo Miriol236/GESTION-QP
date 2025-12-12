@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Groupe extends Model
 {
-    protected $table = 'T_GROUPES';
+    protected $table = 't_groupes';
     protected $primaryKey = 'GRP_CODE'; // clé primaire personnalisée
     public $incrementing = false;     // pas d’auto-incrément
     protected $keyType = 'string';
@@ -46,7 +46,7 @@ class Groupe extends Model
     {
         return $this->belongsToMany(
             Fonctionnalite::class,
-            'T_GROUPE_FONCTIONNALITE',
+            't_groupe_fonctionnalite',
             'GRP_CODE',
             'FON_CODE'
         );

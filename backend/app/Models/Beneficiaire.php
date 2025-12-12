@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 
 class Beneficiaire extends Model
 {
-    protected $table = 'T_BENEFICIAIRES';
+    protected $table = 't_beneficiaires';
     protected $primaryKey = 'BEN_CODE';
     public $incrementing = false;
     protected $keyType = 'string';

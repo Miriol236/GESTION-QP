@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('T_VIREMENTS', function (Blueprint $table) {
+        Schema::create('t_virements', function (Blueprint $table) {
             $table->integer('VIR_CODE')->primary();
             $table->string('VIR_LIBELLE');
             $table->date('VIR_DATE_CREER');
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('T_VIREMENTS');
+        Schema::dropIfExists('t_virements');
     }
 };

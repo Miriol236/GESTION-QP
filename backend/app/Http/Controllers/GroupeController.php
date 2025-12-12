@@ -244,7 +244,7 @@ class GroupeController extends Controller
     {
         $request->validate([
             'fonctionnalites' => 'array',
-            'fonctionnalites.*' => 'string|exists:T_FONCTIONNALITES,FON_CODE',
+            'fonctionnalites.*' => 'string|exists:t_fonctionnalites,FON_CODE',
         ]);
 
         $groupe = Groupe::find($grpCode);

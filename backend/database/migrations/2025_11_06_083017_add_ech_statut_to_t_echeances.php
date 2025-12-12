@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('T_ECHEANCES', function (Blueprint $table) {
+        Schema::table('t_echeances', function (Blueprint $table) {
             $table->boolean('ECH_STATUT')->after('ECH_LIBELLE');
         });
     }
@@ -21,7 +21,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('T_ECHEANCES', function (Blueprint $table) {
+        Schema::table('t_echeances', function (Blueprint $table) {
             $table->dropColumn('ECH_STATUT');
         });
     }

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Guichet extends Model
 {
-    protected $table = 'T_GUICHETS';
+    protected $table = 't_guichets';
     protected $primaryKey = 'GUI_ID';
     public $incrementing = false;
     protected $keyType = 'string';

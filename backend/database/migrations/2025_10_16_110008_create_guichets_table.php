@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('T_GUICHETS', function (Blueprint $table) {
+        Schema::create('t_guichets', function (Blueprint $table) {
             $table->string('GUI_ID', 10)->primary();
             $table->string('GUI_NOM')->nullable();
             $table->string('GUI_CODE', 10);
@@ -30,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('T_GUICHETS');
+        Schema::dropIfExists('t_guichets');
     }
 };

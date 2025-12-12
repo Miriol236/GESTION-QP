@@ -1,37 +1,20 @@
 <IfModule mod_rewrite.c>
-    <IfModule mod_negotiation.c>
-        Options -MultiViews -Indexes
-    </IfModule>
-
+    Options -MultiViews -Indexes
     RewriteEngine On
+    RewriteBase /backend/
 
-    # Handle Authorization Header
-    RewriteCond %{HTTP:Authorization} .
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    # Transmettre le header Authorization à PHP
+    RewriteCond %{HTTP:Authorization} ^(.*)
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
 
-    # Handle X-XSRF-Token Header
-    RewriteCond %{HTTP:x-xsrf-token} .
-    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+    # 1 Servir fichiers statiques (CSS, JS, images)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
 
-    # Redirect Trailing Slashes If Not A Folder...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^ %1 [L,R=301]
+    # 2 Toutes les routes API Laravel → index.php
+    RewriteRule ^api/(.*)$ index.php [L,QSA]
 
-    # Send Requests To Front Controller...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.php [L]
-</IfModule>
-<IfModule mod_mime.c>
-   AddType font/ttf .ttf
-   AddType font/otf .otf
-   AddType application/font-woff .woff
-   AddType application/font-woff2 .woff2
-   AddType application/vnd.ms-fontobject .eot
-</IfModule>
-<IfModule mod_headers.c>
-   <FilesMatch "\.(ttf|ttc|otf|eot|woff|woff2)$">
-      Header set Access-Control-Allow-Origin "https://quotes-parts.oni-car.com"
-   </FilesMatch>
+    # 3 Tout le reste → React build
+    RewriteRule ^ front/index.html [L]
 </IfModule>

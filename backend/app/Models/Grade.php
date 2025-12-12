@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Grade extends Model
 {
-    protected $table = 'T_GRADES';
+    protected $table = 't_grades';
     protected $primaryKey = 'GRD_CODE'; // clé primaire personnalisée
     public $incrementing = false; // pas d'auto-incrément
     protected $keyType = 'string';

@@ -18,6 +18,7 @@ use App\Http\Controllers\DomicilierController;
 use App\Http\Controllers\ElementController;
 use App\Http\Controllers\PaiementController;
 use App\Http\Controllers\DetailsPaiementController;
+use App\Http\Controllers\DashbordController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->get('/user-fonctionnalites', [AuthController::class, 'getUserFonctionnalites']);
@@ -161,5 +162,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/grades-public', [GradeController::class, 'indexPublic']);
     Route::get('banques-public', [BanqueController::class, 'indexPublic']);
     Route::get('guichets-public', [GuichetController::class, 'indexPublic']);
+
+    Route::get('/totals-by-user', [DashbordController::class, 'getTotalsByUser']);
 
 });

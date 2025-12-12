@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Domicilier extends Model
 {
-    protected $table = 'T_DOMICILIERS';
+    protected $table = 't_domiciliers';
     protected $primaryKey = 'DOM_CODE';
     public $incrementing = false;
     protected $keyType = 'string';

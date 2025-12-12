@@ -93,7 +93,7 @@ class BanqueController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'BNQ_CODE' => 'required|string|max:10|unique:T_BANQUES,BNQ_CODE',
+            'BNQ_CODE' => 'required|string|max:10|unique:t_banques,BNQ_CODE',
             'BNQ_LIBELLE' => 'required|string|max:100',
         ],[
             'BNQ_CODE.unique' => 'Une banque avec ce code existe déjà.'

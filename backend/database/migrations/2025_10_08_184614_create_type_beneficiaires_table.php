@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('T_TYPE_BENEFICIAIRES', function (Blueprint $table) {
+        Schema::create('t_type_beneficiaires', function (Blueprint $table) {
             $table->string('TYP_CODE', 10)->primary();
             $table->string('TYP_LIBELLE');
             $table->date('TYP_DATE_CREER');
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('T_TYPE_BENEFICIAIRES');
+        Schema::dropIfExists('t_type_beneficiaires');
     }
 };
