@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Beneficiaire;
+use App\Models\Mouvement;
+use App\Models\HistoriquesValidation;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -181,6 +183,7 @@ class BeneficiaireController extends Controller
             'BEN_PRENOM' => 'required|string|max:100',
             'BEN_SEXE' => 'nullable|string|max:1',
             'TYP_CODE' => 'required|string',
+            'POS_CODE' => 'required|string',
         ]);
 
         $exists = Beneficiaire::where('BEN_NOM', $request->BEN_NOM)
@@ -203,6 +206,7 @@ class BeneficiaireController extends Controller
         $beneficiaire->TYP_CODE = $request->TYP_CODE;
         $beneficiaire->FON_CODE = $request->FON_CODE;
         $beneficiaire->GRD_CODE = $request->GRD_CODE;
+        $beneficiaire->POS_CODE = $request->POS_CODE;
         $beneficiaire->save();
 
         return response()->json([
@@ -266,7 +270,7 @@ class BeneficiaireController extends Controller
             'TYP_CODE' => $request->TYP_CODE ?? $beneficiaire->TYP_CODE,
             'FON_CODE' => $request->FON_CODE ?? $beneficiaire->FON_CODE,
             'GRD_CODE' => $request->GRD_CODE ?? $beneficiaire->GRD_CODE,
-            'REG_CODE' => auth()->check() ? auth()->user()->REG_CODE : 'SYSTEM',
+            'POS_CODE' => $request->POS_CODE ?? $beneficiaire->POS_CODE, 
         ]);
 
         return response()->json(['message' => 'Bénéficiaire mis à jour avec succès']);
@@ -301,5 +305,187 @@ class BeneficiaireController extends Controller
 
         $beneficiaire->delete();
         return response()->json(['message' => 'Bénéficiaire supprimé avec succès']);
+    }
+
+    // public function validerBeneficiaire(Request $request, $id = null)
+    // {
+    //     $STATUT_EN_ATTENTE = 0;
+    //     $STATUT_EN_APPROBATION = 1;
+    //     $STATUT_APPROUVE = 2;
+
+    //     $traiterBeneficiaire = function ($beneficiaire) use ($STATUT_EN_APPROBATION, $STATUT_APPROUVE) {
+    //         if ($beneficiaire->BEN_STATUT == $STATUT_EN_APPROBATION) {
+    //             return 'Déjà en cours d\'approbation.';
+    //         }
+
+    //         if ($beneficiaire->BEN_STATUT == $STATUT_APPROUVE) {
+    //             return 'Déjà approuvé.';
+    //         }
+
+    //         $beneficiaire->BEN_STATUT = $STATUT_EN_APPROBATION;
+    //         $beneficiaire->BEN_DATE_SOUMISSION = now();
+    //         $beneficiaire->BEN_SOUMIS_PAR = auth()->user()->UTI_NOM ?? 'SYSTEM';
+    //         $beneficiaire->save();
+
+    //         return true;
+    //     };
+
+    //     // 🔹 Validation unique
+    //     if ($id) {
+    //         $beneficiaire = Beneficiaire::where('BEN_CODE', $id)->first();
+
+    //         if (!$beneficiaire) {
+    //             return response()->json(['message' => 'Bénéficiaire introuvable.'], 404);
+    //         }
+
+    //         $result = $traiterBeneficiaire($beneficiaire);
+
+    //         if ($result !== true) {
+    //             return response()->json(['message' => $result], 400);
+    //         }
+
+    //         return response()->json(['message' => 'Soumission à l\'approbation effectuée avec succès.']);
+    //     }
+
+    //     // 🔹 Validation multiple
+    //     $ids = $request->input('ids', []);
+    //     if (!is_array($ids) || empty($ids)) {
+    //         return response()->json(['message' => 'Aucun bénéficiaire sélectionné.'], 400);
+    //     }
+
+    //     $results = ['success' => [], 'failed' => []];
+
+    //     DB::transaction(function () use ($ids, &$results, $traiterBeneficiaire) {
+    //         $beneficiaires = Beneficiaire::whereIn('BEN_CODE', $ids)->get()->keyBy('BEN_CODE');
+
+    //         foreach ($ids as $code) {
+    //             $beneficiaire = $beneficiaires->get($code);
+
+    //             if (!$beneficiaire) {
+    //                 $results['failed'][] = ['BEN_CODE' => $code, 'reason' => 'Introuvable'];
+    //                 continue;
+    //             }
+
+    //             $result = $traiterBeneficiaire($beneficiaire);
+
+    //             if ($result === true) {
+    //                 $results['success'][] = ['BEN_CODE' => $code];
+    //             } else {
+    //                 $results['failed'][] = ['BEN_CODE' => $code, 'reason' => $result];
+    //             }
+    //         }
+    //     });
+
+    //     return response()->json([
+    //         'message' => count($results['success']) > 0
+    //             ? 'Soumission à l\'approbation partiellement ou totalement réussie.'
+    //             : 'Aucun bénéficiaire n\'a été soumis.',
+    //         'updated' => count($results['success']),
+    //         'success' => $results['success'],
+    //         'failed' => $results['failed'],
+    //     ]);
+    // }
+
+    private function genererMvtCode(string $echCode, string $regCode): string
+    {
+        $prefix = $echCode . $regCode; // ex: 20250301
+
+        $lastCode = DB::table('t_mouvements')
+            ->where('MVT_CODE', 'like', $prefix . '%')
+            ->orderByDesc('MVT_CODE')
+            ->value('MVT_CODE');
+
+        $ordre = 1;
+
+        if ($lastCode) {
+            $ordre = intval(substr($lastCode, -5)) + 1;
+        }
+
+        return $prefix . str_pad($ordre, 5, '0', STR_PAD_LEFT);
+    }
+
+    public function validerBeneficiaire(Request $request, $id)
+    {
+        $user = auth()->user();
+
+        DB::transaction(function () use ($id, $user) {
+
+            /* ============================
+            * 1. Bénéficiaire
+            * ============================ */
+            $beneficiaire = Beneficiaire::where('BEN_CODE', $id)->firstOrFail();
+
+            if (in_array($beneficiaire->BEN_STATUT, [1, 2])) {
+                abort(400, 'Bénéficiaire déjà soumis ou approuvé.');
+            }
+
+            /* ============================
+            * 2. Échéance active
+            * ============================ */
+            $echCode = DB::table('t_echeances')
+                ->where('ECH_STATUT', 1)
+                ->value('ECH_CODE');
+
+            if (!$echCode) {
+                abort(400, 'Aucune échéance active.');
+            }
+
+            /* ============================
+            * 3. REG_CODE utilisateur
+            * ============================ */
+            $regCode = $user->REG_CODE;
+
+            if (!$regCode) {
+                abort(400, 'REG_CODE utilisateur introuvable.');
+            }
+
+            /* ============================
+            * 4. Niveau validation
+            * ============================ */
+            $nivCode = DB::table('t_groupes')
+                ->where('GRP_CODE', $user->GRP_CODE)
+                ->value('NIV_CODE');
+
+            $nivValeur = DB::table('t_niveau_validations')
+                ->where('NIV_CODE', $nivCode)
+                ->value('NIV_VALEUR');
+
+            /* ============================
+            * 5. Mise à jour bénéficiaire
+            * ============================ */
+            $beneficiaire->update([
+                'BEN_STATUT' => 1,
+            ]);
+
+            /* ============================
+            * 6. Mouvement
+            * ============================ */
+            $mvtCode = $this->genererMvtCode($echCode, $regCode);
+
+            Mouvement::create([
+                'MVT_CODE' => $mvtCode,
+                'BEN_CODE' => $beneficiaire->BEN_CODE,
+                'MVT_DATE' => now()->toDateString(),
+                'MVT_HEURE'=> now()->toTimeString(),
+                'MVT_NIV'  => $nivValeur,
+                'TYP_CODE' => '20250001',
+            ]);
+
+            /* ============================
+            * 7. Historique validation
+            * ============================ */
+            HistoriquesValidation::create([
+                'VAL_CODE'      => $mvtCode,
+                'VAL_UTI_CODE'  => $user->UTI_CODE,
+                'VAL_DATE'      => now()->toDateString(),
+                'VAL_HEURE'     => now()->toTimeString(),
+                'VAL_CREER_PAR' => $user->UTI_NOM . ' ' . $user->UTI_PRENOM,
+                'MVT_CODE'      => $mvtCode,
+            ]);
+        });
+
+        return response()->json([
+            'message' => "Soumission à l'approbation effectuée avec succès."
+        ]);
     }
 }

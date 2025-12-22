@@ -63,7 +63,7 @@ export default function Login() {
       {/*  Texte défilant en haut ----> animate-marquee */}
       <div className="absolute top-16 w-full overflow-hidden">
         <div className="text-2xl font-bold text-center text-primary">
-          BIENVENUE SUR LA PLATEFORME DIGITALISEE DES QUOTES-PARTS
+          BIENVENUE SUR LA PLATEFORME DIGITALISEE DE GESTION DES QUOTES-PARTS
         </div>
       </div>
 

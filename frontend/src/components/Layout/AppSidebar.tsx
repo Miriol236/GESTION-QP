@@ -31,7 +31,10 @@ import {
   Pencil,
   ChevronDown, 
   ChevronRight,
-  Gauge
+  Gauge,
+  Cog,
+  ArrowUp,
+  UserRound
 } from "lucide-react";
 import { API_URL } from "@/config/api";
 import { toast } from "sonner";
@@ -63,6 +66,10 @@ const menuItems = [
       { title: "Banques", url: "/banques", icon: Building2, foncCode: "0009" },
       { title: "Guichets", url: "/guichets", icon: Banknote, foncCode: "0010" },
       { title: "Eléments", url: "/elements", icon: List, foncCode: "0013" },
+      { title: "Types de mouvements", url: "/typeMouvements", icon: Cog, foncCode: "0015" },
+      { title: "Niveaux de validation", url: "/niveau-validations", icon: ArrowUp, foncCode: "0016" },
+      { title: "Positions", url: "/positions", icon: UserRound, foncCode: "0017" },
+      { title: "Virements", url: "/virements", icon: CreditCard, foncCode: "0018" },
     ],
   },
   {

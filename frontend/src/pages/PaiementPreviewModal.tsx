@@ -200,20 +200,21 @@ useEffect(() => {
               </div>
             )}
           </div>
+          {detailsPaiement.map((d: any, i: number) => (
           <div>
             <div className="text-sm font-medium text-right"> 
-              <span className="font-semibold text-gray-600">Tatal gain :</span> {getBeneficiairesInfo(paiement.BEN_CODE)?.total_gain != null
-                ? Number(getBeneficiairesInfo(paiement.BEN_CODE)?.total_gain).toLocaleString("fr-FR")
+              <span className="font-semibold text-gray-600">Tatal gain :</span> {d.TOTAL_GAIN != null
+                ? Number(d.TOTAL_GAIN).toLocaleString("fr-FR")
                 : "—"}
             </div>
             <div className="text-sm font-medium text-right"> 
-              <span className="font-semibold text-gray-600">Total retenu :</span> {getBeneficiairesInfo(paiement.BEN_CODE)?.total_retenu != null
-                ? Number(getBeneficiairesInfo(paiement.BEN_CODE)?.total_retenu).toLocaleString("fr-FR")
+              <span className="font-semibold text-gray-600">Total retenu :</span> {d.TOTAL_RETENU != null
+                ? Number(d.TOTAL_RETENU).toLocaleString("fr-FR")
                 : "—"}
             </div>
             <div className="text-sm font-medium text-right"> 
-              <span className="font-semibold text-gray-600">Total Net à payer :</span> {getBeneficiairesInfo(paiement.BEN_CODE)?.montant_net != null
-                ? Number(getBeneficiairesInfo(paiement.BEN_CODE)?.montant_net).toLocaleString("fr-FR")
+              <span className="font-semibold text-gray-600">Total Net à payer :</span> {d.MONTANT_NET != null
+                ? Number(d.MONTANT_NET).toLocaleString("fr-FR")
                 : "—"}
             </div>
             <div className="text-sm font-medium text-right"> 
@@ -228,19 +229,29 @@ useEffect(() => {
                 </span>
               )}
             </div>
-          </div>
+          </div>            
+          ))}
           <div>
             <h3 className="text-blue-600 font-semibold mb-3 border-b pb-1"> </h3>
             <div className="grid grid-cols-4 gap-4 text-sm">
               <Info label="Date de saisie :" value={paiement.PAI_DATE_CREER ? new Date(paiement.PAI_DATE_CREER).toLocaleDateString("fr-FR", {
-                year: "numeric",
-                month: "numeric",
-                day: "numeric",
-              })
-              : "_"
-            }
+                    year: "numeric",
+                    month: "numeric",
+                    day: "numeric",
+                  })
+                  : "_"
+                }
               />
-            <Info label="Saisir par :" value={paiement.PAI_CREER_PAR} />
+              <Info label="Saisir par :" value={paiement.PAI_CREER_PAR} />
+              <Info label="Date de modification :" value={paiement.PAI_DATE_MODIFIER ? new Date(paiement.PAI_DATE_MODIFIER).toLocaleDateString("fr-FR", {
+                    year: "numeric",
+                    month: "numeric",
+                    day: "numeric",
+                  })
+                  : "_"
+                }
+              />
+              <Info label="Modifier par :" value={paiement.PAI_MODIFIER_PAR} />
             </div>
           </div>
         </div>

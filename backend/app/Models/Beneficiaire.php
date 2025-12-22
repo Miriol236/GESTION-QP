@@ -28,6 +28,7 @@ class Beneficiaire extends Model
         'TYP_CODE',
         'FON_CODE',
         'GRD_CODE',
+        'POS_CODE',
     ];
 
     /**

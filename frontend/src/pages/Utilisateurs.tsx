@@ -19,7 +19,7 @@ export default function Utilisateurs() {
   const [groupes, setGroupes] = useState<any[]>([]);
   const [selectedGroupe, setSelectedGroupe] = useState("");
   const [regies, setRegies] = useState<any[]>([]);
-  const [selectedRegie, setSelectedRegie] = useState("");
+  const [selectedRegie, setSelectedRegie] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUtilisateur, setEditingUtilisateur] = useState<any>(null);
   const [utilisateurToDelete, setUtilisateurToDelete] = useState<any>(null);
@@ -34,6 +34,16 @@ export default function Utilisateurs() {
     fetchGroupes();
     fetchRegie();
   }, []);
+
+  useEffect(() => {
+    if (editingUtilisateur) {
+      setSelectedRegie(
+        editingUtilisateur.REG_CODE ?? null
+      );
+    } else {
+      setSelectedRegie(null);
+    }
+  }, [editingUtilisateur, isDialogOpen]);
 
   // Quand on ouvre le modal pour modifier, on remplit les valeurs
   useEffect(() => {
@@ -178,7 +188,7 @@ export default function Utilisateurs() {
         const reg = regies.find(r => r.REG_CODE === value);
         return (
           <Badge  className="bg-primary/10 font-semibold text-primary">
-            {reg ? reg.REG_SIGLE : "—"}
+            {reg ? reg.REG_SIGLE : "Non définie"}
           </Badge>
         );
       },
@@ -207,7 +217,7 @@ export default function Utilisateurs() {
       UTI_USERNAME: formData.get("UTI_USERNAME"),
       UTI_PASSWORD: formData.get("UTI_PASSWORD"),
       GRP_CODE: selectedGroupe,
-      REG_CODE: selectedRegie,
+      REG_CODE: selectedRegie === null ? null : selectedRegie,
     };
 
     try {
@@ -351,13 +361,18 @@ export default function Utilisateurs() {
             <div>
               <Label>Régie</Label>
               <Select
-                value={selectedRegie || undefined}
-                onValueChange={setSelectedRegie}
+                value={selectedRegie ?? undefined}
+                onValueChange={(value) =>
+                  setSelectedRegie(value === "null" ? null : value)
+                }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="-- Sélectionner une régie --" />
+                  <SelectValue placeholder="-- Sélectionner une régie (optionnel) --" />
                 </SelectTrigger>
                 <SelectContent>
+                  {/* Option par défaut pour enregistrer null */}
+                  <SelectItem value="null">Aucun</SelectItem>
+
                   {regies.map((reg) => (
                     <SelectItem key={reg.REG_CODE} value={reg.REG_CODE}>
                       {reg.REG_LIBELLE}

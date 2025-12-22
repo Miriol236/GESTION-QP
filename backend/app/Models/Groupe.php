@@ -20,6 +20,7 @@ class Groupe extends Model
         'GRP_DATE_MODIFIER',
         'GRP_MODIFIER_PAR',
         'GRP_VERSION',
+        'NIV_CODE',
     ]; 
 
     // Générer le code automatique

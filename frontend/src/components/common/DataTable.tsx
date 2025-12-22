@@ -6,7 +6,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { 
   Search, Plus, Power, Edit, Trash2, Eye, Tags, Check,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  ChevronUp, ChevronDown, ArrowUpDown, Printer, Filter // Ajouté ArrowUpDown pour l'icône de tri
+  ChevronUp, ChevronDown, ArrowUpDown, Printer, Filter, PowerOff // Ajouté ArrowUpDown pour l'icône de tri
 } from "lucide-react"; // Import mis à jour
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -258,6 +258,9 @@ export function DataTable({
                       className="px-2 py-1 w-full sm:w-auto flex justify-between"
                     >
                       <Filter className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600 text-xs font-medium">
+                        Filtre :
+                      </span>
                       {selectedFilter
                         ? filterDisplay
                           ? filterDisplay(selectedFilter)
@@ -283,7 +286,7 @@ export function DataTable({
                             <Check
                               className={`mr-2 h-4 w-4 ${selectedFilter === null ? "opacity-100 text-blue-600" : "opacity-0"}`}
                             />
-                            Afficher tout
+                            Par défaut
                           </CommandItem>
 
                           {filterItems.map((it: any, idx: number) => {
@@ -322,6 +325,9 @@ export function DataTable({
                       className="px-2 py-1 w-full sm:w-auto flex justify-between"
                     >
                       <Filter className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600 text-xs font-medium">
+                        Filtre :
+                      </span>
                       {selectedFilter2
                         ? filterDisplay2
                           ? filterDisplay2(selectedFilter2)
@@ -347,7 +353,7 @@ export function DataTable({
                             <Check
                               className={`mr-2 h-4 w-4 ${selectedFilter2 === null ? "opacity-100 text-blue-600" : "opacity-0"}`}
                             />
-                            Afficher tout
+                            Par défaut
                           </CommandItem>
 
                           {filterItems2.map((it: any, idx: number) => {
@@ -386,6 +392,9 @@ export function DataTable({
                       className="px-2 py-1 w-full sm:w-auto flex justify-between"
                     >
                       <Filter className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600 text-xs font-medium">
+                        Filtre :
+                      </span>
                       {selectedFilter3
                         ? filterDisplay3
                           ? filterDisplay3(selectedFilter3)
@@ -436,20 +445,20 @@ export function DataTable({
                 </Popover>
               )}
               {searchable && (
-              <div className="relative w-full sm:w-auto">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder={searchPlaceholder}
-                  value={searchTerm}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setSearchTerm(value);              // garde ton état local
-                    onSearchChange?.(value);           // appelle le callback si défini
-                  }}
-                  className="pl-10 w-full sm:w-64"
-                />
-              </div>
-            )}
+                <div className="relative ml-auto w-full sm:w-[25rem]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={searchPlaceholder}
+                    value={searchTerm}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setSearchTerm(value);
+                      onSearchChange?.(value);
+                    }}
+                    className="pl-10 w-full"
+                  />
+                </div>
+              )}
             </div>
           )}
           <div className="flex items-center gap-4">         
@@ -702,11 +711,11 @@ export function DataTable({
                                 className="h-8 w-8 p-0"
                                 title={row.UTI_STATUT ? "Désactiver" : "Activer"}
                               >
-                                <Power
-                                  className={`h-4 w-4 ${
-                                    row.UTI_STATUT ? "text-red-500" : "text-green-600"
-                                  }`}
-                                />
+                                {row.UTI_STATUT ? (
+                                  <PowerOff className="h-4 w-4 text-red-500" />  // icône pour désactiver
+                                ) : (
+                                  <Power className="h-4 w-4 text-green-600" /> // icône pour activer
+                                )}
                               </Button>
                             )}
                             {onManageRoles && (
@@ -717,7 +726,8 @@ export function DataTable({
                                 className="h-8 px-2 text-blue-600 hover:text-blue-800 flex items-center gap-1"
                               >
                                 <Tags className="h-4 w-4" />
-                                <span className="text-sm hidden lg:inline">Gérer les droits</span>
+                                {/* Le texte est caché sur mobile, visible à partir de lg */}
+                                <span className="text-sm hidden sm:inline lg:inline">Gérer les droits</span>
                               </Button>
                             )}
                             {/* Activer/Désactiver */}
@@ -729,11 +739,11 @@ export function DataTable({
                                 className="h-8 w-8 p-0"
                                 title={row.ECH_STATUT ? "Désactiver" : "Activer"}
                               >
-                                <Power
-                                  className={`h-4 w-4 ${
-                                    row.ECH_STATUT ? "text-red-500" : "text-green-600"
-                                  }`}
-                                />
+                                {row.ECH_STATUT ? (
+                                  <PowerOff className="h-4 w-4 text-red-500" />  // icône pour désactiver
+                                ) : (
+                                  <Power className="h-4 w-4 text-green-600" />  // icône pour activer
+                                )}
                               </Button>
                             )}
                           </div>

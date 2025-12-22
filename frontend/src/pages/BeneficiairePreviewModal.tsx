@@ -12,6 +12,7 @@ export default function BeneficiairePreviewModal({ open, onClose, beneficiaire }
   const [types, setTypes] = useState<any[]>([]);
   const [fonctions, setFonctions] = useState<any[]>([]);
   const [grades, setGrades] = useState<any[]>([]);
+  const [positions, setPositions] = useState<any[]>([]);
 
   const getTypesInfo = (code: string) => {
     const t = types.find((typ) => String(typ.TYP_CODE).trim() === String(code).trim());
@@ -28,6 +29,11 @@ export default function BeneficiairePreviewModal({ open, onClose, beneficiaire }
     return g ? `${g.GRD_LIBELLE || "—"}` : code;
   };
 
+  const getPositionsInfo = (code: string) => {
+    const g = positions.find((pst) => String(pst.POS_CODE).trim() === String(code).trim());
+    return g ? `${g.POS_LIBELLE || "—"}` : code;
+  };
+
 useEffect(() => {
     const token = localStorage.getItem("token");
     const headers = { Authorization: `Bearer ${token}` };
@@ -35,11 +41,13 @@ useEffect(() => {
       axios.get(`${API_URL}/typeBeneficiaires-public`, { headers }),
       axios.get(`${API_URL}/fonctions-public`, { headers }),
       axios.get(`${API_URL}/grades-public`, { headers }),
+      axios.get(`${API_URL}/positions-publiques`, { headers }),
     ])
-      .then(([t, f, g,]) => {
+      .then(([t, f, g, p,]) => {
         setTypes(t.data);
         setFonctions(f.data);
         setGrades(g.data);
+        setPositions(p.data);
       })
       .catch(() => toast.error("Erreur lors du chargement des listes."));
   }, []);
@@ -115,6 +123,7 @@ useEffect(() => {
               <Info label="Type :" value={getTypesInfo(beneficiaire.TYP_CODE || "—")} />
               <Info label="Fonction :" value={getFonctionsInfo(beneficiaire.FON_CODE || "—")} />
               <Info label="Grade :" value={getGradesInfo(beneficiaire.GRD_CODE || "—")} />
+              <Info label="Position :" value={getPositionsInfo(beneficiaire.POS_CODE || "—")} />
             </div>
           </div>
 
@@ -165,14 +174,23 @@ useEffect(() => {
             <h3 className="text-blue-600 font-semibold mb-3 border-b pb-1"></h3>
             <div className="grid grid-cols-4 gap-4 text-sm">
               <Info label="Date de saisie :" value={beneficiaire.BEN_DATE_CREER ? new Date(beneficiaire.BEN_DATE_CREER).toLocaleDateString("fr-FR", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })
-              : "_"
-            }
+                  year: "numeric",
+                  month: "numeric",
+                  day: "numeric",
+                })
+                : "_"
+              }
               />
-            <Info label="Saisir par :" value={beneficiaire.BEN_CREER_PAR} />
+              <Info label="Saisir par :" value={beneficiaire.BEN_CREER_PAR} />
+              <Info label="Date de modification :" value={beneficiaire.BEN_DATE_MODIFIER ? new Date(beneficiaire.BEN_DATE_MODIFIER).toLocaleDateString("fr-FR", {
+                  year: "numeric",
+                  month: "numeric",
+                  day: "numeric",
+                })
+                : "_"
+              }
+              />
+              <Info label="Modifier par :" value={beneficiaire.BEN_MODIFIER_PAR} />
             </div>
           </div>
         </div>

@@ -22,6 +22,7 @@ import { motion } from "framer-motion";
 import { API_URL } from "@/config/api";
 import { TableSkeletonWizard } from "@/components/loaders/TableSkeletonWizard";
 import { useToast } from "@/hooks/use-toast";
+import { Item } from "@radix-ui/react-dropdown-menu";
 
 export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFinish }: { onSuccess?: () => void; beneficiaireData?: any; onFinish?: () => void; }) {
   const [step, setStep] = useState(1);
@@ -30,6 +31,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
   const [types, setTypes] = useState<any[]>([]);
   const [fonctions, setFonctions] = useState<any[]>([]);
   const [grades, setGrades] = useState<any[]>([]);
+  const [positions, setPositions] = useState<any[]>([]);
   const [banques, setBanques] = useState<any[]>([]);
   const [guichets, setGuichets] = useState<any[]>([]);
   const [editId, setEditId] = useState<number | null>(null);
@@ -48,6 +50,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
     TYP_CODE: "",
     FON_CODE: "",
     GRD_CODE: "",
+    POS_CODE: "",
   });
 
   const [domiciliations, setDomiciliations] = useState<any[]>([]);
@@ -77,6 +80,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
           TYP_CODE: beneficiaireData.TYP_CODE || "",
           FON_CODE: beneficiaireData.FON_CODE || "",
           GRD_CODE: beneficiaireData.GRD_CODE || "",
+          POS_CODE: beneficiaireData.POS_CODE || "",
         });
 
         setBenefCode(beneficiaireData.BEN_CODE);
@@ -111,16 +115,18 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
 
       try {
         // Charger les listes
-        const [t, f, g, b, q] = await Promise.all([
+        const [t, f, g, p, b, q] = await Promise.all([
           axios.get(`${API_URL}/typeBeneficiaires-public`, { headers }),
           axios.get(`${API_URL}/fonctions-public`, { headers }),
           axios.get(`${API_URL}/grades-public`, { headers }),
+          axios.get(`${API_URL}/positions-publiques`, { headers }),
           axios.get(`${API_URL}/banques-public`, { headers }),
           axios.get(`${API_URL}/guichets-public`, { headers }),
         ]);
         setTypes(t.data);
         setFonctions(f.data);
         setGrades(g.data);
+        setPositions(p.data);
         setBanques(b.data);
         setGuichets(q.data);
         // Indiquer que les listes sont chargées pour permettre le remplissage en mode édition
@@ -136,6 +142,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
             TYP_CODE: beneficiaireData.TYP_CODE || "",
             FON_CODE: beneficiaireData.FON_CODE || "",
             GRD_CODE: beneficiaireData.GRD_CODE || "",
+            POS_CODE: beneficiaireData.POS_CODE || "",
           });
           setBenefCode(beneficiaireData.BEN_CODE);
 
@@ -218,7 +225,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
 
   // Enregistrement bénéficiaire (étape 1)
   const handleNext = async () => {
-    if (!beneficiaire.BEN_NOM || !beneficiaire.BEN_PRENOM || !beneficiaire.TYP_CODE) {
+    if (!beneficiaire.BEN_NOM || !beneficiaire.BEN_PRENOM || !beneficiaire.TYP_CODE || !beneficiaire.POS_CODE) {
       toast({
           title: "Avertissement",
           description: "Veuillez remplir tous les champs obligatoires.",
@@ -274,7 +281,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
           description: "Aucun bénéficiaire sélectionné.",
           variant: "destructive",
         });
-    if (!beneficiaire.BEN_NOM || !beneficiaire.BEN_PRENOM || !beneficiaire.TYP_CODE) {
+    if (!beneficiaire.BEN_NOM || !beneficiaire.BEN_PRENOM || !beneficiaire.TYP_CODE || !beneficiaire.POS_CODE) {
       toast({
           title: "Avertissement",
           description: "Veuillez remplir tous les champs obligatoires.",
@@ -552,6 +559,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
         i.TYP_CODE === value ||
         i.FON_CODE === value ||
         i.GRD_CODE === value ||
+        i.POS_CODE === value ||
         i.BNQ_CODE === value ||
         i.GUI_ID === value
     );
@@ -584,6 +592,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                           item.TYP_CODE ||
                           item.FON_CODE ||
                           item.GRD_CODE ||
+                          item.POS_CODE ||
                           item.BNQ_CODE ||
                           item.GUI_ID
                         }
@@ -593,7 +602,8 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                             item.BNQ_CODE ??
                             item.TYP_CODE ??
                             item.FON_CODE ??
-                            item.GRD_CODE
+                            item.GRD_CODE ??
+                            item.POS_CODE
                           );
                           setTimeout(() => setOpen(false), 100);
                         }}
@@ -603,6 +613,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                             (item.TYP_CODE ||
                               item.FON_CODE ||
                               item.GRD_CODE ||
+                              item.POS_CODE ||
                               item.BNQ_CODE ||
                               item.GUI_ID)
                             ? "opacity-100 text-blue-600"
@@ -636,6 +647,20 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
       {/* Wrapper full-height on mobile so header/footer can be sticky */}
       <div className="flex flex-col h-screen md:h-auto">
         <div className="p-1 sm:p-1">
+          {/* Titre principal */}
+          <div className="text-center mb-3">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide">
+              {beneficiaireData
+                ? "MODIFICATION D'UN BÉNÉFICIAIRE"
+                : "ENRÔLEMENT D'UN BÉNÉFICIAIRE"}
+            </h1>
+
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+              {beneficiaireData
+                ? "Mise à jour des informations du bénéficiaire"
+                : "Saisie et enregistrement d’un nouveau bénéficiaire"}
+            </p>
+          </div>
 
           {/* Entête dynamique */}
           <div className="relative mb-1 md:mb-2 sticky top-0 bg-white z-30 py-1">
@@ -807,6 +832,16 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                       setBeneficiaire({ ...beneficiaire, GRD_CODE: v })
                     }
                     display={(g: any) => g.GRD_LIBELLE}
+                  />
+
+                  <ComboBox
+                    label="Position*"
+                    items={positions}
+                    value={beneficiaire.POS_CODE}
+                    onSelect={(v: any) =>
+                      setBeneficiaire({ ...beneficiaire, POS_CODE: v })
+                    }
+                    display={(p: any) => p.POS_LIBELLE}
                   />
                 </div>
 

@@ -52,16 +52,16 @@ export default function Header({ className = "" }: { className?: string }) {
     >
       <div className="flex items-center justify-between w-full">
         {/* --- Logo & Titre --- */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-center gap-4">
           <SidebarTrigger />
-          <div>
+          <div className="text-center">
             <h1 className="text-xl font-bold text-primary">
               {user?.regie
                 ? `${user.regie.REG_LIBELLE} (${user.regie.REG_SIGLE})`
                 : ""}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Plateforme digitalisée des Quotes-Parts
+              Plateforme digitalisée de gestion des Quotes-Parts
               {activeEcheance && (
                 <span className="ml-2 text-green-600 font-medium">
                   — Échéance en cours : {activeEcheance.ECH_LIBELLE}

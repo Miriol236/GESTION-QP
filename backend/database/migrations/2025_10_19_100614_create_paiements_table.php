@@ -21,9 +21,9 @@ return new class extends Migration
             $table->string('PAI_NUMCPT')->nullable();
             $table->string('PAI_RIB', 2)->nullable();
             $table->string('PAI_REG_LIB')->nullable();
-            $table->boolean('PAI_STATUT');
+            $table->integer('PAI_STATUT');
             $table->integer('PAI_VIREMENT')->nullable();
-            $table->foreign('PAI_VIREMENT')->references('VIR_CODE')->on('T_VIREMENTS');
+            $table->foreign('PAI_VIREMENT')->references('VIR_CODE')->on('t_virements');
             $table->date('PAI_DATE_VIREMENT')->nullable();
             $table->date('PAI_DATE_CREER')->nullable();
             $table->string('PAI_CREER_PAR')->nullable();
@@ -33,9 +33,9 @@ return new class extends Migration
             $table->string('BEN_CODE', 12);
             $table->string('REG_CODE', 10);
             $table->string('ECH_CODE', 10);
-            $table->foreign('BEN_CODE')->references('BEN_CODE')->on('T_BENEFICIAIRES');
-            $table->foreign('REG_CODE')->references('REG_CODE')->on('T_REGIES');
-            $table->foreign('ECH_CODE')->references('ECH_CODE')->on('T_ECHEANCES');
+            $table->foreign('BEN_CODE')->references('BEN_CODE')->on('t_beneficiaires');
+            $table->foreign('REG_CODE')->references('REG_CODE')->on('t_regies');
+            $table->foreign('ECH_CODE')->references('ECH_CODE')->on('t_echeances');
         });
     }
 

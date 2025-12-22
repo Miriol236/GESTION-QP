@@ -45,6 +45,7 @@ class Domicilier extends Model
         'DOM_CODE',
         'DOM_NUMCPT',
         'DOM_RIB',
+        'DOM_FICHIER',
         'DOM_STATUT',
         'DOM_DATE_CREER',
         'DOM_CREER_PAR',

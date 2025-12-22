@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ConfirmDeleteDialog from "@/components/common/ConfirmDeleteDialog";
+import EditDomiciliationModal from "@/pages/EditDomiciliationModal";
 import {
   Popover,
   PopoverContent,
@@ -39,6 +40,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   const [dataReady, setDataReady] = useState(true); // true par défaut
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedDetailsPaiement, setSelectedDetailsPaiement] = useState<any>(null);
+  const [selectedRib, setSelectedRib] = useState<any | null>(null);
   const { toast } = useToast();
 
   const [paiement, setPaiement] = useState({
@@ -56,6 +58,9 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   const [selectedBenef, setSelectedBenef] = useState<any | null>(null);
   const [rowsPerPage, setRowsPerPage] = useState<number>(2);
   const [page, setPage] = useState<number>(1);
+  const [ribList, setRibList] = useState<any[]>([]);
+  const [editableRib, setEditableRib] = useState<any | null>(null);
+  const [ribModalOpen, setRibModalOpen] = useState(false);
 
   useEffect(() => {
     const loadPaiementData = async () => {
@@ -113,6 +118,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         setTypes(t.data);
         setFonctions(f.data);
         setGrades(g.data);
+        setRibList(b.data); 
         // Indiquer que les listes sont chargées pour permettre le remplissage en mode édition
         setListsLoaded(true);
 
@@ -158,17 +164,22 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
   // Remplir les infos du bénéficiaire sélectionné (sexe / type / fonction / grade)
   useEffect(() => {
-    if (!paiement.BEN_CODE) {
-      setSelectedBenef(null);
-      return;
-    }
+      if (!paiement.BEN_CODE) {
+        setSelectedBenef(null);
+        setSelectedRib(null);
+        return;
+      }
 
-    const found = beneficiaires.find((b) => String(b.BEN_CODE) === String(paiement.BEN_CODE));
-    if (found) {
-      setSelectedBenef(found);
-    } else {
-      setSelectedBenef(null);
-    }
+      // Trouver le bénéficiaire sélectionné
+      const foundBenef = beneficiaires.find(
+          (b) => String(b.BEN_CODE) === String(paiement.BEN_CODE)
+      );
+
+      // Prendre le premier RIB actif (DOM_STATUT = 1)
+      const rib = foundBenef?.domiciliations?.find(d => d.DOM_STATUT === 1) || null;
+
+      setSelectedBenef(foundBenef || null);
+      setSelectedRib(rib);
   }, [paiement.BEN_CODE, beneficiaires]);
 
   // Utilitaires d'affichage
@@ -519,6 +530,20 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
       {/* Wrapper full-height on mobile so header/footer can be sticky */}
       <div className="flex flex-col h-screen md:h-auto">
         <div className="p-1 sm:p-1">
+          {/* Titre principal */}
+          <div className="text-center mb-3">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide">
+              {paiementData
+                ? "MODIFICATION D'UN PAIEMENT D’UN BÉNÉFICIAIRE"
+                : "MISE EN PAIEMENT D’UN BÉNÉFICIAIRE"}
+            </h1>
+
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+              {paiementData
+                ? "Mise à jour des informations du paiement d'un bénéficiaire"
+                : "Saisie et enregistrement d’un nouveau paiement d'un bénéficiaire"}
+            </p>
+          </div>
 
           {/* Entête dynamique */}
           <div className="relative mb-1 md:mb-2 sticky top-0 bg-white z-30 py-1">
@@ -631,6 +656,47 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                       />
                     </div>
                   </div>
+                    {selectedBenef && selectedRib && (
+                      <div className="mt-4 rounded-lg border bg-gray-50 p-4">
+                        <div className="flex flex-wrap items-start justify-start gap-10 text-sm">
+                          {/* Banque */}
+                          <div className="flex flex-col items-start min-w-[100px]">
+                            <span className="font-semibold text-gray-500">Banque</span>
+                            <span className="mt-2 font-medium">{`${selectedRib.BNQ_LIBELLE}`}</span>
+                          </div>
+
+                          {/* Guichet */}
+                          <div className="flex flex-col items-start min-w-[100px]">
+                            <span className="font-semibold text-gray-500">Guichet</span>
+                            <span className="mt-2 font-medium">{`${selectedRib.GUI_CODE}`}</span>
+                          </div>
+
+                          {/* N° Compte */}
+                          <div className="flex flex-col items-start min-w-[120px]">
+                            <span className="font-semibold text-gray-500">N° Compte</span>
+                            <span className="mt-2 font-medium">{selectedRib.DOM_NUMCPT}</span>
+                          </div>
+
+                          {/* Clé RIB */}
+                          <div className="flex flex-col items-start min-w-[80px]">
+                            <span className="font-semibold text-gray-500">Clé RIB</span>
+                            <span className="mt-2 font-medium">{selectedRib.DOM_RIB}</span>
+                          </div>
+
+                          {/* Bouton d'édition */}
+                          <div className="ml-auto mt-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-blue-600 hover:text-blue-700"
+                              onClick={() => { setEditableRib({ ...selectedRib }); setRibModalOpen(true); }}
+                            >
+                              <Edit className="w-5 h-5" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                 </div>
 
                 {/* Buttons placed at the bottom of the block */}
@@ -919,6 +985,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
               : ""
           }
         />
+
       </div>
     </div>
   );

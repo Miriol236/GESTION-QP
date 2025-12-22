@@ -19,6 +19,10 @@ use App\Http\Controllers\ElementController;
 use App\Http\Controllers\PaiementController;
 use App\Http\Controllers\DetailsPaiementController;
 use App\Http\Controllers\DashbordController;
+use App\Http\Controllers\TypeMouvementController;
+use App\Http\Controllers\NiveauValidationController;
+use App\Http\Controllers\PositionController;
+use App\Http\Controllers\VirementController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->get('/user-fonctionnalites', [AuthController::class, 'getUserFonctionnalites']);
@@ -122,6 +126,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/beneficiaires/{id}', [BeneficiaireController::class, 'show'])->middleware('fonctionnalite:0011');
     Route::post('/beneficiaires', [BeneficiaireController::class, 'store'])->middleware('fonctionnalite:0011');
     Route::post('/domiciliations', [DomicilierController::class, 'store']);
+    Route::post('/beneficiaires/{id}/valider', [BeneficiaireController::class, 'validerBeneficiaire']);
+    Route::post('/beneficiaires/valider', [BeneficiaireController::class, 'validerBeneficiaires']);
     Route::put('/beneficiaires/{id}', [BeneficiaireController::class, 'update'])->middleware('fonctionnalite:0011');
     Route::delete('/beneficiaires/{id}', [BeneficiaireController::class, 'destroy'])->middleware('fonctionnalite:0011');
     Route::get('/domiciliations/{BEN_CODE}', [DomicilierController::class, 'showByBeneficiaire']);
@@ -162,7 +168,37 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/grades-public', [GradeController::class, 'indexPublic']);
     Route::get('banques-public', [BanqueController::class, 'indexPublic']);
     Route::get('guichets-public', [GuichetController::class, 'indexPublic']);
+    Route::get('positions-publiques', [PositionController::class, 'indexPublic']);
 
     Route::get('/totals-by-user', [DashbordController::class, 'getTotalsByUser']);
+    Route::get('/totals-by-regie', [DashbordController::class, 'getTotalsByRegie']);
+
+    // Routes types mouvements
+    Route::get('/typeMouvements', [TypeMouvementController::class, 'index'])->middleware('fonctionnalite:0015');
+    Route::get('/typeMouvements/{id}', [TypeMouvementController::class, 'show'])->middleware('fonctionnalite:0015');
+    Route::post('/typeMouvements', [TypeMouvementController::class, 'store'])->middleware('fonctionnalite:0015');
+    Route::put('/typeMouvements/{id}', [TypeMouvementController::class, 'update'])->middleware('fonctionnalite:0015');
+    Route::delete('/typeMouvements/{id}', [TypeMouvementController::class, 'destroy'])->middleware('fonctionnalite:0015');
+
+    // Routes niveaux de validation
+    Route::get('/niveau-validations', [NiveauValidationController::class, 'index'])->middleware('fonctionnalite:0016');
+    Route::get('/niveau-validations/{id}', [NiveauValidationController::class, 'show'])->middleware('fonctionnalite:0016');
+    Route::post('/niveau-validations', [NiveauValidationController::class, 'store'])->middleware('fonctionnalite:0016');
+    Route::put('/niveau-validations/{id}', [NiveauValidationController::class, 'update'])->middleware('fonctionnalite:0016');
+    Route::delete('/niveau-validations/{id}', [NiveauValidationController::class, 'destroy'])->middleware('fonctionnalite:0016');
+
+    // Routes positions
+    Route::get('/positions', [PositionController::class, 'index'])->middleware('fonctionnalite:0017');
+    Route::get('/positions/{id}', [PositionController::class, 'show'])->middleware('fonctionnalite:0017');
+    Route::post('/positions', [PositionController::class, 'store'])->middleware('fonctionnalite:0017');
+    Route::put('/positions/{id}', [PositionController::class, 'update'])->middleware('fonctionnalite:0017');
+    Route::delete('/positions/{id}', [PositionController::class, 'destroy'])->middleware('fonctionnalite:0017');
+
+    // Routes virements
+    Route::get('/virements', [VirementController::class, 'index'])->middleware('fonctionnalite:0018');
+    Route::get('/virements/{id}', [VirementController::class, 'show'])->middleware('fonctionnalite:0018');
+    Route::post('/virements', [VirementController::class, 'store'])->middleware('fonctionnalite:0018');
+    Route::put('/virements/{id}', [VirementController::class, 'update'])->middleware('fonctionnalite:0018');
+    Route::delete('/virements/{id}', [VirementController::class, 'destroy'])->middleware('fonctionnalite:0018');
 
 });

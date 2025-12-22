@@ -10,15 +10,39 @@ class DetailsPaiementController extends Controller
 {
     public function showByPaiement($PAI_CODE)
     {
-        $data = DetailsPaiement::where('PAI_CODE', $PAI_CODE)
+        //  Calcul des totaux (même logique que getAll)
+        $totaux = DetailsPaiement::where('t_details_paiement.PAI_CODE', $PAI_CODE)
+            ->join('t_elements', 't_elements.ELT_CODE', '=', 't_details_paiement.ELT_CODE')
+            ->selectRaw('
+                SUM(CASE WHEN t_elements.ELT_SENS = 1 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) AS TOTAL_GAIN,
+                SUM(CASE WHEN t_elements.ELT_SENS = 2 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) AS TOTAL_RETENU,
+                (
+                    SUM(CASE WHEN t_elements.ELT_SENS = 1 THEN t_details_paiement.PAI_MONTANT ELSE 0 END)
+                    -
+                    SUM(CASE WHEN t_elements.ELT_SENS = 2 THEN t_details_paiement.PAI_MONTANT ELSE 0 END)
+                ) AS MONTANT_NET
+            ')
+            ->first();
+
+        //  Détails + ajout des totaux
+        $data = DetailsPaiement::where('t_details_paiement.PAI_CODE', $PAI_CODE)
             ->join('t_elements', 't_elements.ELT_CODE', '=', 't_details_paiement.ELT_CODE')
             ->select(
-                't_details_paiement.*',
+                't_details_paiement.DET_CODE',
+                't_details_paiement.PAI_MONTANT',
+                't_details_paiement.ELT_CODE',
+                't_details_paiement.PAI_CODE',
                 't_elements.ELT_LIBELLE',
-                't_elements.ELT_SENS',
+                't_elements.ELT_SENS'
             )
             ->orderBy('t_details_paiement.DET_CODE')
-            ->get();
+            ->get()
+            ->map(function ($item) use ($totaux) {
+                $item->TOTAL_GAIN   = $totaux->TOTAL_GAIN;
+                $item->TOTAL_RETENU = $totaux->TOTAL_RETENU;
+                $item->MONTANT_NET  = $totaux->MONTANT_NET;
+                return $item;
+            });
 
         return response()->json($data);
     }

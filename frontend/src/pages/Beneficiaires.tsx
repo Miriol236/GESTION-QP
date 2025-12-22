@@ -19,6 +19,7 @@ export default function Beneficiaires() {
   const [types, setTypes] = useState<any[]>([]);
   const [fonctions, setFonctions] = useState<any[]>([]);
   const [grades, setGrades] = useState<any[]>([]);
+  const [positions, setPositions] = useState<any[]>([]);
   const [beneficiaireToDelete, setBeneficiaireToDelete] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -105,11 +106,13 @@ export default function Beneficiaires() {
       axios.get(`${API_URL}/typeBeneficiaires-public`, { headers }),
       axios.get(`${API_URL}/fonctions-public`, { headers }),
       axios.get(`${API_URL}/grades-public`, { headers }),
+      axios.get(`${API_URL}/positions-publiques`, { headers }),
     ])
-      .then(([t, f, g]) => {
+      .then(([t, f, g, p]) => {
         setTypes(t.data);
         setFonctions(f.data);
         setGrades(g.data);
+        setPositions(p.data);
       })
       .catch(() => toast({
         title: "Erreur",
@@ -188,8 +191,8 @@ export default function Beneficiaires() {
             variant={isMale ? "default" : "secondary"}
             className={
               isMale
-                ? "bg-green-500/20 text-green-700"
-                : "bg-red-500/20 text-red-700"
+                ? "bg-blue-500/20 text-blue-700"
+                : "bg-pink-500/20 text-pink-700"
             }
           >
             {isMale ? "Masculin" : "Féminin"}
@@ -209,30 +212,47 @@ export default function Beneficiaires() {
         );
       },
     },
-    // {
-    //   key: "FON_CODE",
-    //   title: "FONCTION",
-    //   render: (value: string) => {
-    //     const fon = fonctions.find(f => f.FON_CODE === value);
-    //     return (
-    //       <div>
-    //         {fon ? fon.FON_LIBELLE : "—"}
-    //       </div>
-    //     );
-    //   },
-    // },
-    // {
-    //   key: "GRD_CODE",
-    //   title: "GRADE",
-    //   render: (value: string) => {
-    //     const grd = grades.find(g => g.GRD_CODE === value);
-    //     return (
-    //       <div>
-    //         {grd ? grd.GRD_LIBELLE : "—"}
-    //       </div>
-    //     );
-    //   },
-    // },
+    {
+      key: "POS_CODE",
+      title: "POSITION",
+      render: (value: string) => {
+        const pst = positions.find(p => p.POS_CODE === value);
+
+        // Cas où POS_CODE n'est pas défini ou inconnu
+        if (!pst) {
+          return (
+            <Badge className="bg-gray-500/20 text-gray-700">
+              Non défini
+            </Badge>
+          );
+        }
+
+        // Définir les couleurs selon POS_CODE
+        let bgClass = "bg-gray-500/20";
+        let textClass = "text-gray-700";
+
+        switch (value) {
+          case "01": // En activité
+            bgClass = "bg-green-500/20";
+            textClass = "text-green-700";
+            break;
+          case "02": // En retraite
+            bgClass = "bg-gray-500/20";
+            textClass = "text-gray-700";
+            break;
+          case "03": // Décédé
+            bgClass = "bg-red-500/20";
+            textClass = "text-red-700";
+            break;
+        }
+
+        return (
+          <Badge className={`${bgClass} ${textClass}`}>
+            {pst.POS_LIBELLE}
+          </Badge>
+        );
+      },
+    }
   ];
 
   if (isLoading) {
@@ -277,33 +297,24 @@ export default function Beneficiaires() {
         </Dialog>
       </div>
 
-      {/* Liste des bénéficiaires */}
-      <Card>
-        {/* <CardHeader>
-          <CardTitle>Liste des bénéficiaires</CardTitle>
-        </CardHeader> */}
-        <CardContent>
-
-          {/* Table */}
-          <DataTable
-            title={`Effectif (${displayed.length})`}
-            columns={columns}
-            data={displayed}
-            onAdd={can.onAdd ? handleAdd : undefined}
-            onView={(b) => {
-              setSelectedBeneficiaire(b);
-              setOpenPreview(true);
-            }}
-            onEdit={can.onEdit ? handleEdit : undefined}
-            onDelete={can.onDelete ? handleDelete : undefined}
-            addButtonText="Nouveau"
-            // onDeleteAll={(rows) => (rows)}
-            searchPlaceholder="Rechercher un bénéficiaire..."
-            onSearchChange={(value: string) => setSearchTerm(value)}
-            // onPrint={handlePrint}
-          />
-        </CardContent>
-      </Card>
+      {/* Table */}
+      <DataTable
+        title={`Effectif (${displayed.length})`}
+        columns={columns}
+        data={displayed}
+        onAdd={can.onAdd ? handleAdd : undefined}
+        onView={(b) => {
+          setSelectedBeneficiaire(b);
+          setOpenPreview(true);
+        }}
+        onEdit={can.onEdit ? handleEdit : undefined}
+        onDelete={can.onDelete ? handleDelete : undefined}
+        addButtonText="Nouveau"
+        // onDeleteAll={(rows) => (rows)}
+        searchPlaceholder="Rechercher un bénéficiaire (Code, Mat, Nom et Prénom)."
+        onSearchChange={(value: string) => setSearchTerm(value)}
+        // onPrint={handlePrint}
+      />
 
       {/* Confirmation suppression */}
         <ConfirmDeleteDialog

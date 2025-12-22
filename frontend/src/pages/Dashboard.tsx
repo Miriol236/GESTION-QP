@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Filter, Check, ChevronDown, DollarSign, CheckCheck } from "lucide-react";
+import { Filter, Check, ChevronDown, DollarSign, CheckCheck, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { API_URL } from "@/config/api";
 import axios from "axios";
@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Bar, Pie } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend } from "chart.js";
 import { useAuth } from "@/contexts/AuthContext";
+import DashboardSkeleton from "@/components/loaders/DashboardSkeleton";
 
 // Ajouter ArcElement pour Pie chart
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
@@ -37,6 +38,8 @@ export default function Dashboard() {
 
   const [echeanceOpen, setEcheanceOpen] = useState(false);
   const [regieOpen, setRegieOpen] = useState(false);
+  const [pieRegieData, setPieRegieData] = useState<any>(null);
+  const [isLoadings, setIsLoading] = useState(true);
 
   const [chartData, setChartData] = useState({
     labels: [],
@@ -73,6 +76,7 @@ export default function Dashboard() {
   // Fetch statistiques
   const fetchTotals = async (ech_code: string | null = null, reg_code: string | null = null) => {
     try {
+      // setIsLoading(true);
       const token = localStorage.getItem("token");
       const params: any = {};
       if (ech_code) params.ech_code = ech_code;
@@ -87,50 +91,61 @@ export default function Dashboard() {
       const formatPercent = (p?: number) => (p != null ? p.toFixed(2) + " %" : "0.00 %");
 
       const newStats: Stat[] = [
-        {
-          title: "Montant Total Net à Payer",
-          value: formatAmount(data.total_net),
-          icon: DollarSign,
-          color: "text-blue-600",
-          bgColor: "bg-blue-50",
-        },
-        {
-          title: "Montant déjà Viré",
-          value: formatAmount(data.total_paye),
-          icon: CheckCheck,
-          color: "text-green-600",
-          bgColor: "bg-green-50",
-          taux: formatPercent(data.taux_paiement),
-        },
-        {
-          title: "Reste à virer",
-          value: formatAmount(data.reste_a_payer),
-          icon: CheckCheck,
-          color: "text-red-600",
-          bgColor: "bg-red-50",
-          taux: formatPercent(data.taux_reste_a_payer),
-        },
-      ];
+      {
+        title: "Effectif Bénéficiaires",
+        value: data.total_beneficiaires.toString(),
+        icon: Users, // importe l'icône Users de lucide-react ou une autre de ton choix
+        color: "text-purple-600",
+        bgColor: "bg-purple-50",
+      },
+      {
+        title: "Montant Total Brut",
+        value: formatAmount(data.total_gain),
+        icon: DollarSign,
+        color: "text-green-600",
+        bgColor: "bg-green-50",
+      },
+      {
+        title: "Montant Total Net",
+        value: formatAmount(data.total_net),
+        icon: DollarSign,
+        color: "text-blue-600",
+        bgColor: "bg-blue-50",
+      },
+      {
+        title: "Montant déjà Viré",
+        value: formatAmount(data.total_paye),
+        icon: CheckCheck,
+        color: "text-green-600",
+        bgColor: "bg-green-50",
+        taux: formatPercent(data.taux_paiement),
+      },
+      {
+        title: "Montant reste à virer",
+        value: formatAmount(data.reste_a_payer),
+        icon: CheckCheck,
+        color: "text-red-600",
+        bgColor: "bg-red-50",
+        taux: formatPercent(data.taux_reste_a_payer),
+      }
+    ];
 
       setStats(newStats);
 
       // Pie Chart uniquement avec Net à Payer, Déjà Viré et Reste à Virer
       setChartData({
         labels: [
-          `Net à Payer (${formatAmount(data.total_net)})`,
-          `Déjà Viré (${formatPercent(data.taux_paiement)})`,
-          `Reste à Virer (${formatPercent(data.taux_reste_a_payer)})`,
+          `Déjà Viré : ${formatAmount(data.total_paye)} (${formatPercent(data.taux_paiement)})`,
+          `Reste à Virer : ${formatAmount(data.reste_a_payer)} (${formatPercent(data.taux_reste_a_payer)})`,
         ],
         datasets: [
           {
-            data: [data.total_net, data.total_paye, data.reste_a_payer],
+            data: [data.total_paye, data.reste_a_payer],
             backgroundColor: [
-              "rgba(59,130,246,0.6)",  // bleu pour Net à payer
               "rgba(34,197,94,0.6)",   // vert pour déjà vire
               "rgba(239,68,68,0.6)",   // rouge pour reste à virer
             ],
             borderColor: [
-              "rgba(59,130,246,1)",
               "rgba(34,197,94,1)",
               "rgba(239,68,68,1)",
             ],
@@ -145,13 +160,90 @@ export default function Dashboard() {
         description: "Impossible de récupérer les totaux.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const BASE_COLORS = [
+    { brut: "#046422ff", net: "#3db462ff" }, // vert
+    { brut: "#2b1993ff", net: "#5199f2ff" }, // bleu
+    { brut: "#c03e06ff", net: "#e58359ff" }, // orange
+    { brut: "#6328edff", net: "#8659efff" }, // violet
+    { brut: "#3b3b3cff", net: "#7b7b7eff" }, // gris
+    { brut: "#3b240eff", net: "#785636ff" }, // teal
+  ];
+
+  // Création d’un mapping dynamique basé sur l’ordre d’apparition de la régie
+  let regieColorMap: Record<string, { brut: string; net: string }> = {};
+
+  const assignColors = (regies: string[]) => {
+    regies.forEach((regie, i) => {
+      if (!regieColorMap[regie]) {
+        regieColorMap[regie] = BASE_COLORS[i % BASE_COLORS.length];
+      }
+    });
+    return regieColorMap;
+  };
+
+  // Dans fetchTotalsByRegie
+  const fetchTotalsByRegie = async (ech_code: string | null = null, reg_code: string | null = null) => {
+    try {
+      // setIsLoading(true);
+      const token = localStorage.getItem("token");
+
+      const params: any = {};
+      if (ech_code) params.ech_code = ech_code;
+      if (reg_code) params.reg_code = reg_code;
+
+      const { data } = await axios.get(`${API_URL}/totals-by-regie`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params,
+      });
+
+      // On assigne dynamiquement les couleurs selon l’ordre d’apparition
+      assignColors(data.map((r: any) => r.regie));
+
+      setPieRegieData({
+        labels: data.map((r: any) => r.regie),
+        datasets: [
+          {
+            label: "Montant brut",
+            data: data.map((r: any) => r.total_gain),
+            backgroundColor: data.map((r: any) => regieColorMap[r.regie].brut),
+            borderColor: "#ffffff",
+            borderWidth: 2,
+          },
+          {
+            label: "Montant net",
+            data: data.map((r: any) => r.total_net),
+            backgroundColor: data.map((r: any) => regieColorMap[r.regie].net),
+            borderColor: "#ffffff",
+            borderWidth: 2,
+          },
+        ],
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les statistiques par régie.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Re-fetch stats à chaque filtre
   useEffect(() => {
     fetchTotals(selectedEcheance, selectedRegie);
+    fetchTotalsByRegie(selectedEcheance, selectedRegie);
   }, [selectedEcheance, selectedRegie]);
+
+  if (isLoadings) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -164,13 +256,21 @@ export default function Dashboard() {
               <Button
                 variant="outline"
                 size="sm"
-                className="px-2 py-1 flex justify-between w-full sm:w-auto"
+                className="px-2 py-1 flex items-center gap-2 justify-between w-full sm:w-auto"
               >
                 <Filter className="h-4 w-4 text-gray-500" />
-                {selectedEcheance
-                  ? echeances.find((e) => e.ECH_CODE === selectedEcheance)?.ECH_LIBELLE
-                  : "Filtrer par Échéance"}
-                <ChevronDown className="ml-2 h-4 w-4" />
+
+                <span className="text-gray-600 text-xs font-medium">
+                  Filtre :
+                </span>
+
+                <span className="font-semibold truncate">
+                  {selectedEcheance
+                    ? echeances.find((e) => e.ECH_CODE === selectedEcheance)?.ECH_LIBELLE
+                    : "Échéance en cours..."}
+                </span>
+
+                <ChevronDown className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
 
@@ -186,7 +286,7 @@ export default function Dashboard() {
                       }}
                     >
                       <Check className={`${!selectedEcheance ? "opacity-100" : "opacity-0"} mr-2`} />
-                      Afficher tout
+                      Par défaut
                     </CommandItem>
                     {echeances.map((e, idx) => (
                       <CommandItem
@@ -220,9 +320,14 @@ export default function Dashboard() {
                 className="px-2 py-1 flex justify-between w-full sm:w-auto"
               >
                 <Filter className="h-4 w-4 text-gray-500" />
+
+                <span className="text-gray-600 text-xs font-medium">
+                  Filtre :
+                </span>
+
                 {selectedRegie
                   ? regies.find((r) => r.REG_CODE === selectedRegie)?.REG_SIGLE
-                  : "Filtrer par Régie"}
+                  : "Toutes les Régies"}
                 <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
             </PopoverTrigger>
@@ -239,7 +344,7 @@ export default function Dashboard() {
                       }}
                     >
                       <Check className={`${!selectedRegie ? "opacity-100" : "opacity-0"} mr-2`} />
-                      Afficher tout
+                      Par défaut
                     </CommandItem>
                     {regies.map((r, idx) => (
                       <CommandItem
@@ -314,11 +419,93 @@ export default function Dashboard() {
                 grid-cols-1 
                 sm:grid-cols-2 
                 md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]">
-        <Card className="h-[300px] sm:h-[400px] lg:h-[500px] mt-4">
+        {/* PIE – Total gain par régie */}
+        <Card className="h-[400px]">
           <CardHeader>
-            <CardTitle>Statistiques financières</CardTitle>
+            <CardTitle className="text-center w-full">Répartition Montants bruts et nets par Régie</CardTitle>
           </CardHeader>
-          <CardContent className="h-[calc(100%-60px)] w-full flex items-center justify-center">
+
+          <CardContent className="h-[calc(100%-60px)] flex items-center justify-center">
+            {pieRegieData && (
+              <Pie
+                data={pieRegieData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: "right",
+                      labels: {
+                        boxWidth: 14,
+                        padding: 14,
+
+                        generateLabels: (chart) => {
+                          const { data } = chart;
+                          if (!data.labels || data.datasets.length < 2) return [];
+
+                          const labels: any[] = [];
+
+                          data.labels.forEach((regie: any, i: number) => {
+                            data.datasets.forEach((dataset: any) => {
+                              const value = Number(dataset.data[i] || 0);
+                              const formatted =
+                                value.toLocaleString("fr-FR") + " F CFA";
+
+                              labels.push({
+                                text: `${regie} – ${dataset.label} : ${formatted}`,
+                                fillStyle: dataset.backgroundColor[i],
+                                strokeStyle: "#fff",
+                                lineWidth: 2,
+                                hidden: false,
+                              });
+                            });
+                          });
+
+                          return labels;
+                        },
+                      },
+                      title: {
+                        display: true,
+                        text: "Légendes",
+                        color: "#374151",
+                        font: {
+                          size: 14,
+                          weight: "bold",
+                        },
+                      },
+                    },
+
+                    tooltip: {
+                      callbacks: {
+                        label: (ctx) => {
+                          const value = Number(ctx.raw).toLocaleString("fr-FR");
+
+                          const total = ctx.dataset.data.reduce(
+                            (acc: number, v: number) => acc + v,
+                            0
+                          );
+
+                          const percent = total
+                            ? ((Number(ctx.raw) / total) * 100).toFixed(2)
+                            : "0.00";
+
+                          return `${ctx.dataset.label} – ${ctx.label} : ${value} F CFA (${percent} %)`;
+                        },
+                      },
+                    },
+                  },
+                }}
+              />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* PIE */}
+        <Card className="h-[400px]">
+          <CardHeader>
+            <CardTitle className="text-center w-full">Répartition Montant viré et reste à virer</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[calc(100%-60px)]">
             {chartData.datasets.length > 0 && (
               <Pie
                 data={chartData}
@@ -328,40 +515,29 @@ export default function Dashboard() {
                   plugins: {
                     legend: {
                       position: "right",
-                      labels: {
-                        generateLabels: (chart) => {
-                          const dataset = chart.data.datasets[0];
-                          const data = dataset.data as number[]; // TypeScript
-                          const total = data.reduce((sum, v) => sum + (v || 0), 0);
-
-                          return chart.data.labels?.map((label, i) => {
-                            const value = data[i] || 0;
-                            return {
-                              text: `${label}`,
-                              fillStyle: Array.isArray(dataset.backgroundColor)
-                                ? dataset.backgroundColor[i]
-                                : (dataset.backgroundColor as string),
-                              strokeStyle: Array.isArray(dataset.borderColor)
-                                ? dataset.borderColor[i]
-                                : (dataset.borderColor as string),
-                              lineWidth: 1,
-                              hidden: false,
-                              index: i,
-                            };
-                          }) || [];
+                      title: {
+                        display: true,
+                        text: "Légendes",
+                        color: "#374151", // gris foncé (Tailwind gray-700)
+                        font: {
+                          size: 14,
+                          weight: "bold",
+                        },
+                        padding: {
+                          bottom: 10,
                         },
                       },
-                    },
-                    title: {
-                      display: true,
-                      text: "Répartition financière",
+                      labels: {
+                        boxWidth: 14,
+                        padding: 12,
+                      },
                     },
                   },
                 }}
               />
             )}
           </CardContent>
-        </Card>
+        </Card>        
       </div>
     </div>
   );

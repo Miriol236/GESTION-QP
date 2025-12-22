@@ -197,7 +197,9 @@ class UtilisateurController extends Controller
             'UTI_DATE_MODIFIER' => now(),
             'UTI_VERSION' => $nouvelleVersion,
             'GRP_CODE' => $request->GRP_CODE ?? $utilisateur->GRP_CODE,
-            'REG_CODE' => $request->REG_CODE ?? $utilisateur->REG_CODE,
+            'REG_CODE' => $request->has('REG_CODE')
+                ? $request->REG_CODE
+                : $utilisateur->REG_CODE,
         ]);
 
         return response()->json(['message' => 'Utilisateur mis à jour avec succès']);

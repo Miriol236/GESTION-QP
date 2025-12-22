@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Users } from "lucide-react";
 import ConfirmDeleteDialog from "@/components/common/ConfirmDeleteDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import axios from "axios";
 import { API_URL } from "@/config/api";
@@ -20,6 +21,8 @@ export default function Groupe() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingFonctionnalites, setIsLoadingFonctionnalites] = useState(false);
+  const [niveauValidations, setNiveauValidations] = useState<any[]>([]);
+  const [selectedNiveauValidation, setSelectedNiveauValidation] = useState<string | null>(null);
 
 
   // Gestion des droits
@@ -32,8 +35,19 @@ export default function Groupe() {
 
   useEffect(() => {
     fetchGroupes();
+    fetchNiveauValidations();
     fetchFonctionnalites();
   }, []);
+
+  useEffect(() => {
+    if (editingGroupe) {
+      setSelectedNiveauValidation(
+        editingGroupe.NIV_CODE ?? null
+      );
+    } else {
+      setSelectedNiveauValidation(null);
+    }
+  }, [editingGroupe, isDialogOpen]);
 
   // === Récupération des groupes ===
   const fetchGroupes = async () => {
@@ -48,6 +62,18 @@ export default function Groupe() {
       console.error("Erreur lors du chargement des groupes :", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchNiveauValidations = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_URL}/niveau-validations`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNiveauValidations(res.data);
+    } catch (error) {
+      console.error("Erreur lors du chargement des niveaux de validation :", error);
     }
   };
 
@@ -88,6 +114,18 @@ export default function Groupe() {
         </div>
       ),
     },
+    {
+      key: "NIV_CODE",
+      title: "NIVEAU DE VALIDATION",
+      render: (value: string) => {
+        const niv = niveauValidations.find(n => n.NIV_CODE === value);
+        return (
+          <div  className="bg-primary/10 font-semibold text-primary">
+            {niv ? niv.NIV_LIBELLE : "Non défini"}
+          </div>
+        );
+      },
+    },
   ];
 
   // === Ajouter ou modifier un groupe ===
@@ -98,6 +136,7 @@ export default function Groupe() {
 
     const payload = {
       GRP_NOM: formData.get("GRP_NOM"),
+      NIV_CODE: selectedNiveauValidation === null ? null : selectedNiveauValidation,
     };
 
     try {
@@ -263,6 +302,29 @@ export default function Groupe() {
             <div>
               <Label>Nom du groupe <span className="text-red-500">*</span></Label>
               <Input name="GRP_NOM" defaultValue={editingGroupe?.GRP_NOM || ""} required />
+            </div>
+            <div>
+              <Label>Niveau de validation</Label>
+              <Select
+                value={selectedNiveauValidation ?? undefined}
+                onValueChange={(value) =>
+                  setSelectedNiveauValidation(value === "null" ? null : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="-- Sélectionner un niveau de validation --" />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* Option par défaut pour enregistrer null */}
+                  <SelectItem value="null">Aucun</SelectItem>
+
+                  {niveauValidations.map((niv) => (
+                    <SelectItem key={niv.NIV_CODE} value={niv.NIV_CODE}>
+                      {niv.NIV_LIBELLE}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <DialogFooter>

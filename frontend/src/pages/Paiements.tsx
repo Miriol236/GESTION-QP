@@ -55,9 +55,9 @@ export default function Paiements() {
   const showRegieFilter = regCodeUser === null;
 
   const statutOptions = [
-    { label: "Statut : Tous", value: null },
-    { label: "Statut : Payé", value: true },
-    { label: "Statut : Non payé", value: false },
+    { label: "Tous les statuts", value: null },
+    { label: "Payé", value: true },
+    { label: "Non payé", value: false },
   ];
 
   // Handlers réutilisables (passés au DataTable seulement si permitted)
@@ -716,57 +716,48 @@ export default function Paiements() {
       </div>
 
       {/* Liste des paiements */}
-      <Card>
-        {/* <CardHeader>
-          <CardTitle>Liste des paiements</CardTitle>
-        </CardHeader> */}
-        <CardContent>
-
-          {/* Table */}
-          <DataTable
-            title={`Effectif (${displayedPaiements.length})`}
-            columns={columns}
-            data={displayedPaiements}
-            onAdd={can.onAdd ? handleAdd : undefined}
-            onView={(b) => {
-              setSelectedPaiement(b);
-              setOpenPreview(true);
-            }}
-            // onValidateVirement={can.onValidateVirement ? handleValidateVirement : undefined}
-            // onStatusUpdate={can.onStatusUpdate ? handleStatusUpdate : undefined}
-            rowKey="PAI_CODE"
-            filterItems={echeances.map((e) => ({
-              ...e,
-              label: `Échéance : ${e.ECH_LIBELLE}`
-            }))}
-            rowKey2="PAI_CODE"
-              filterItems2={showRegieFilter ? regies.map((e) => ({
-              ...e,
-              label: `Régie : ${e.REG_SIGLE}`
-            })) : undefined}
-            rowKey3="PAI_CODE"
-            filterItems3={statutOptions}
-            filterDisplay={(it: any) => it.label || it.ECH_LIBELLE}
-            filterDisplay2={showRegieFilter ? ((it) => it.label || it.REG_SIGLE) : undefined}
-            filterDisplay3={(it: any) => it.label || it.PAI_STATUT}
-            onFilterSelect={(it) => setSelectedEcheance(it)}
-            onFilterSelect2={showRegieFilter ? (it) => setSelectedRegie(it) : undefined}
-            onFilterSelect3={(it) => setSelectedStatut(it.value)}
-            onEdit={can.onEdit ? handleEdit : undefined}
-            onDelete={can.onDelete ? handleDelete : undefined}
-            addButtonText="Nouveau"
-            // onDeleteAll={can.onDeleteAll ? handleDeleteVirement : undefined}
-            searchPlaceholder="Rechercher un bénéficiaire..."
-            onSearchChange={(value: string) => setSearchTerm(value)}
-            filterPlaceholder="Filtrer par échéance..."
-            onSearchChange2={(value: string) => setSearchTerm(value)}            
-            filterPlaceholder2={showRegieFilter ? "Filtrer par régie..." : undefined}
-            onSearchChange3={(value: string) => setSearchTerm(value)}
-            filterPlaceholder3="Filtrer par statut..."
-          />
-        </CardContent>
-      </Card>
-
+      {/* Table */}
+      <DataTable
+        title={`Effectif (${displayedPaiements.length})`}
+        columns={columns}
+        data={displayedPaiements}
+        onAdd={can.onAdd ? handleAdd : undefined}
+        onView={(b) => {
+          setSelectedPaiement(b);
+          setOpenPreview(true);
+        }}
+        // onValidateVirement={can.onValidateVirement ? handleValidateVirement : undefined}
+        // onStatusUpdate={can.onStatusUpdate ? handleStatusUpdate : undefined}
+        rowKey="PAI_CODE"
+        filterItems={echeances.map((e) => ({
+          ...e,
+          label: `${e.ECH_LIBELLE}`
+        }))}
+        rowKey2="PAI_CODE"
+          filterItems2={showRegieFilter ? regies.map((e) => ({
+          ...e,
+          label: `${e.REG_SIGLE}`
+        })) : undefined}
+        rowKey3="PAI_CODE"
+        filterItems3={statutOptions}
+        filterDisplay={(it: any) => it.label || it.ECH_LIBELLE}
+        filterDisplay2={showRegieFilter ? ((it) => it.label || it.REG_SIGLE) : undefined}
+        filterDisplay3={(it: any) => it.label || it.PAI_STATUT}
+        onFilterSelect={(it) => setSelectedEcheance(it)}
+        onFilterSelect2={showRegieFilter ? (it) => setSelectedRegie(it) : undefined}
+        onFilterSelect3={(it) => setSelectedStatut(it.value)}
+        onEdit={can.onEdit ? handleEdit : undefined}
+        onDelete={can.onDelete ? handleDelete : undefined}
+        addButtonText="Nouveau"
+        // onDeleteAll={can.onDeleteAll ? handleDeleteVirement : undefined}
+        searchPlaceholder="Rechercher un bénéficiaire (Nom et prénom)."
+        onSearchChange={(value: string) => setSearchTerm(value)}
+        filterPlaceholder="Échéance en cours..."
+        onSearchChange2={(value: string) => setSearchTerm(value)}            
+        filterPlaceholder2={showRegieFilter ? "Toutes les régies" : undefined}
+        onSearchChange3={(value: string) => setSearchTerm(value)}
+        filterPlaceholder3="Tous les statuts"
+      />
       {/* Confirmation suppression */}
         <ConfirmDeleteDialog
           open={isDeleteDialogOpen}

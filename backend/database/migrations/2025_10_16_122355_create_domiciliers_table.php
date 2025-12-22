@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('DOM_CODE', 10)->primary();
             $table->string('DOM_NUMCPT')->nullable();
             $table->string('DOM_RIB', 2)->nullable();
-            $table->boolean('DOM_STATUT');
+            $table->integer('DOM_STATUT');
             $table->date('DOM_DATE_CREER');
             $table->string('DOM_CREER_PAR');
             $table->date('DOM_DATE_MODIFIER')->nullable();

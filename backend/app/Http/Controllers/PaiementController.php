@@ -117,9 +117,21 @@ class PaiementController extends Controller
         }
 
         // Récupérer les bénéficiaires avec au moins un RIB actif
-        $beneficiaires = Beneficiaire::whereHas('domiciliations', function($query) {
+        $beneficiaires = Beneficiaire::with(['domiciliations' => function ($query) {
+            $query->where('DOM_STATUT', 1)
+                ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
+                ->leftJoin('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
+                ->select(
+                    't_domiciliers.*',
+                    't_banques.BNQ_LIBELLE',
+                    't_guichets.GUI_NOM',
+                    't_guichets.GUI_CODE'
+                );
+        }])
+        ->whereHas('domiciliations', function ($query) {
             $query->where('DOM_STATUT', 1);
-        })->get();
+        })
+        ->get();
 
         return response()->json($beneficiaires);
     }
@@ -171,27 +183,12 @@ class PaiementController extends Controller
             return response()->json(['message' => 'Utilisateur non authentifié.'], 401);
         }
 
-        // Sous-requête pour calculer total gain et total retenu par paiement
-        $totauxSub = DB::table('t_details_paiement')
-            ->join('t_elements', 't_elements.ELT_CODE', '=', 't_details_paiement.ELT_CODE')
-            ->select(
-                't_details_paiement.PAI_CODE',
-                DB::raw('SUM(CASE WHEN t_elements.ELT_SENS = 1 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) AS TOTAL_GAIN'),
-                DB::raw('SUM(CASE WHEN t_elements.ELT_SENS = 2 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) AS TOTAL_RETENU'),
-                DB::raw('(SUM(CASE WHEN t_elements.ELT_SENS = 1 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) -
-                        SUM(CASE WHEN t_elements.ELT_SENS = 2 THEN t_details_paiement.PAI_MONTANT ELSE 0 END)) AS MONTANT_NET')
-            )
-            ->groupBy('t_details_paiement.PAI_CODE');
-
         $query = Beneficiaire::query()
             ->join('t_domiciliers', function ($join) {
                 $join->on('t_domiciliers.BEN_CODE', '=', 't_beneficiaires.BEN_CODE')
                     ->where('t_domiciliers.DOM_STATUT', true); // RIB actif uniquement
             })
             ->leftJoin('t_paiements', 't_paiements.BEN_CODE', '=', 't_beneficiaires.BEN_CODE')
-            ->leftJoinSub($totauxSub, 'totaux', function($join){
-                $join->on('totaux.PAI_CODE', '=', 't_paiements.PAI_CODE');
-            })
             ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
             ->leftJoin('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
             ->leftJoin('t_type_beneficiaires', 't_type_beneficiaires.TYP_CODE', '=', 't_beneficiaires.TYP_CODE')
@@ -213,9 +210,6 @@ class PaiementController extends Controller
                 't_fonctions.FON_LIBELLE as FONCTION',
                 't_grades.GRD_LIBELLE as GRADE',
                 't_regies.REG_LIBELLE',
-                'totaux.TOTAL_GAIN',
-                'totaux.TOTAL_RETENU',
-                'totaux.MONTANT_NET',
                 't_paiements.PAI_STATUT as STATUT'
             ]);
 

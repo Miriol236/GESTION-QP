@@ -96,6 +96,7 @@ class GroupeController extends Controller
         $groupe->GRP_NOM = $request->GRP_NOM;
         $groupe->GRP_DATE_CREER = now();
         $groupe->GRP_CREER_PAR = auth()->check() ? auth()->user()->UTI_NOM." ".auth()->user()->UTI_PRENOM : 'SYSTEM';
+        $groupe->NIV_CODE = $request->NIV_CODE;
         $groupe->save();
 
         return response()->json(['message' => 'Groupe créé avec succès !'], 201);
@@ -149,6 +150,9 @@ class GroupeController extends Controller
             'GRP_DATE_MODIFIER' => now(),
             'GRP_MODIFIER_PAR' => auth()->check() ? auth()->user()->UTI_NOM." ".auth()->user()->UTI_PRENOM : 'SYSTEM',
             'GRP_VERSION' => $derniereVersion,
+            'NIV_CODE' => $request->has('NIV_CODE')
+                ? $request->NIV_CODE
+                : $groupe->NIV_CODE,
         ]);
 
         return response()->json(['message' => 'Groupe mis à jour avec succès !']);
