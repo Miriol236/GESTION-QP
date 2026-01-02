@@ -221,7 +221,7 @@ class DetailsPaiementController extends Controller
             $totalRetenu += $retenu;
             $totalNet += $net;
 
-            if ($p->PAI_STATUT == 1) {
+            if ($p->PAI_STATUT == 2) {
                 $totalPaye += $net;
             }
         }

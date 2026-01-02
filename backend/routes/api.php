@@ -126,14 +126,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/beneficiaires/{id}', [BeneficiaireController::class, 'show'])->middleware('fonctionnalite:0011');
     Route::post('/beneficiaires', [BeneficiaireController::class, 'store'])->middleware('fonctionnalite:0011');
     Route::post('/domiciliations', [DomicilierController::class, 'store']);
-    Route::post('/beneficiaires/{id}/valider', [BeneficiaireController::class, 'validerBeneficiaire']);
-    Route::post('/beneficiaires/valider', [BeneficiaireController::class, 'validerBeneficiaires']);
+    Route::put('/beneficiaires/valider/{id?}', [BeneficiaireController::class, 'validerBeneficiaire']);
     Route::put('/beneficiaires/{id}', [BeneficiaireController::class, 'update'])->middleware('fonctionnalite:0011');
     Route::delete('/beneficiaires/{id}', [BeneficiaireController::class, 'destroy'])->middleware('fonctionnalite:0011');
     Route::get('/domiciliations/{BEN_CODE}', [DomicilierController::class, 'showByBeneficiaire']);
     Route::put('/domiciliations/{DOM_CODE}', [DomicilierController::class, 'update']);
     Route::delete('/domiciliations/{DOM_CODE}', [DomicilierController::class, 'destroy']);
-    Route::put('/domiciliations/{id}/toggle', [DomicilierController::class, 'toggleStatus']);
+    Route::put('/domiciliations/valider/{id?}', [DomicilierController::class, 'validerDomicilier']);
+    Route::get('/domiciliations/{DOM_CODE}/telecharger-rib', [DomicilierController::class, 'telechargerRib']);
     
     // Routes éléments
     Route::get('/elements', [ElementController::class, 'index'])->middleware('fonctionnalite:0013');
@@ -150,7 +150,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/paiements/{id}', [PaiementController::class, 'show'])->middleware('fonctionnalite:0014');
     Route::post('/paiements', [PaiementController::class, 'store'])->middleware('fonctionnalite:0014');
     Route::put('/paiements/valider-virement/{id?}', [PaiementController::class, 'validerVirement']);
-    Route::put('/paiements/valider-statut/{id?}', [PaiementController::class, 'validerStatut']);
+    Route::put('/paiements/valider/{id?}', [PaiementController::class, 'validerPaiement']);
     Route::put('/paiements/{id}', [PaiementController::class, 'update'])->middleware('fonctionnalite:0014');
     Route::delete('/paiements/supprimer-virements', [PaiementController::class, 'deletePaiement']);
     Route::delete('/paiements/{id}', [PaiementController::class, 'destroy'])->middleware('fonctionnalite:0014');

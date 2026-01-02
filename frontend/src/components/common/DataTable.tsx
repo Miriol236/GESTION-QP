@@ -6,7 +6,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { 
   Search, Plus, Power, Edit, Trash2, Eye, Tags, Check,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  ChevronUp, ChevronDown, ArrowUpDown, Printer, Filter, PowerOff // Ajouté ArrowUpDown pour l'icône de tri
+  ChevronUp, ChevronDown, ArrowUpDown, Printer, Filter, PowerOff, Send // Ajouté ArrowUpDown pour l'icône de tri
 } from "lucide-react"; // Import mis à jour
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -42,6 +42,7 @@ export interface DataTableProps {
   onSearchChange3?: (value: string) => void;
   // Callback when the user validates virement for selected rows (receives selected rows)
   onValidateVirement?: (rows: any[]) => void;
+  onValidate?: (rows: any[]) => void;
   // Callback when the user requests a status update for selected rows (receives selected rows)
   onStatusUpdate?: (rows: any[]) => void;
   // Callback to view selected rows in bulk
@@ -89,6 +90,7 @@ export function DataTable({
   onSearchChange2,
   onSearchChange3,
   onValidateVirement,
+  onValidate,
   onStatusUpdate,
   onViews,
   loading = false,
@@ -486,6 +488,17 @@ export function DataTable({
               </Button>
             )}
 
+            {/*  Bouton "Valider statut" (vert) — visible si au moins une ligne sélectionnée */}
+            {onValidate && selectedRows.length >= 1 && (
+              <Button
+                onClick={() => onValidate(selectedRows)}
+                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <Send className="h-4 w-4" />
+                <span className="hidden sm:inline">Soumettre ({selectedRows.length})</span>
+              </Button>
+            )}
+
             {/*  Bouton "Mettre à jour statut" (jaune) — visible si au moins une ligne sélectionnée */}
             {onStatusUpdate && selectedRows.length >= 1 && (
               <Button
@@ -677,7 +690,7 @@ export function DataTable({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => onView(row)}
+                                onClick={(e) => { e.stopPropagation(); onView(row) }}
                                 className="h-8 w-8 p-0"
                               >
                                 <Eye className="h-4 w-4" />
@@ -687,7 +700,7 @@ export function DataTable({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => onEdit(row)}
+                                onClick={(e) => { e.stopPropagation(); onEdit(row) }}
                                 className="h-8 w-8 p-0"
                               >
                                 <Edit className="h-4 w-4" />
@@ -697,7 +710,7 @@ export function DataTable({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => onDelete(row)}
+                                onClick={(e) => { e.stopPropagation(); onDelete(row) }}
                                 className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                               >
                                 <Trash2 className="h-4 w-4" />

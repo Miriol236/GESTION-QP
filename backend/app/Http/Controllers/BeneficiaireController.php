@@ -6,7 +6,10 @@ use Illuminate\Http\Request;
 use App\Models\Beneficiaire;
 use App\Models\Mouvement;
 use App\Models\HistoriquesValidation;
+use App\Models\Echeance;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 /**
  * @OA\Tag(
@@ -201,6 +204,7 @@ class BeneficiaireController extends Controller
         $beneficiaire->BEN_NOM = $request->BEN_NOM;
         $beneficiaire->BEN_PRENOM = $request->BEN_PRENOM;
         $beneficiaire->BEN_SEXE = $request->BEN_SEXE;
+        $beneficiaire->BEN_STATUT = 0;
         $beneficiaire->BEN_DATE_CREER = now();
         $beneficiaire->BEN_CREER_PAR = auth()->check() ? auth()->user()->UTI_NOM." ".auth()->user()->UTI_PRENOM : 'SYSTEM';
         $beneficiaire->TYP_CODE = $request->TYP_CODE;
@@ -303,189 +307,175 @@ class BeneficiaireController extends Controller
             return response()->json(['message' => 'Bénéficiaire non trouvé'], 404);
         }
 
+        if ($beneficiaire->BEN_STATUT == 2) {
+            return response()->json([
+                'message' => 'Impossible de supprimer : bénéficiaire déjà approuvé.',
+                'BEN_CODE' => $code
+            ], 400);
+        }
+
         $beneficiaire->delete();
         return response()->json(['message' => 'Bénéficiaire supprimé avec succès']);
     }
 
-    // public function validerBeneficiaire(Request $request, $id = null)
-    // {
-    //     $STATUT_EN_ATTENTE = 0;
-    //     $STATUT_EN_APPROBATION = 1;
-    //     $STATUT_APPROUVE = 2;
-
-    //     $traiterBeneficiaire = function ($beneficiaire) use ($STATUT_EN_APPROBATION, $STATUT_APPROUVE) {
-    //         if ($beneficiaire->BEN_STATUT == $STATUT_EN_APPROBATION) {
-    //             return 'Déjà en cours d\'approbation.';
-    //         }
-
-    //         if ($beneficiaire->BEN_STATUT == $STATUT_APPROUVE) {
-    //             return 'Déjà approuvé.';
-    //         }
-
-    //         $beneficiaire->BEN_STATUT = $STATUT_EN_APPROBATION;
-    //         $beneficiaire->BEN_DATE_SOUMISSION = now();
-    //         $beneficiaire->BEN_SOUMIS_PAR = auth()->user()->UTI_NOM ?? 'SYSTEM';
-    //         $beneficiaire->save();
-
-    //         return true;
-    //     };
-
-    //     // 🔹 Validation unique
-    //     if ($id) {
-    //         $beneficiaire = Beneficiaire::where('BEN_CODE', $id)->first();
-
-    //         if (!$beneficiaire) {
-    //             return response()->json(['message' => 'Bénéficiaire introuvable.'], 404);
-    //         }
-
-    //         $result = $traiterBeneficiaire($beneficiaire);
-
-    //         if ($result !== true) {
-    //             return response()->json(['message' => $result], 400);
-    //         }
-
-    //         return response()->json(['message' => 'Soumission à l\'approbation effectuée avec succès.']);
-    //     }
-
-    //     // 🔹 Validation multiple
-    //     $ids = $request->input('ids', []);
-    //     if (!is_array($ids) || empty($ids)) {
-    //         return response()->json(['message' => 'Aucun bénéficiaire sélectionné.'], 400);
-    //     }
-
-    //     $results = ['success' => [], 'failed' => []];
-
-    //     DB::transaction(function () use ($ids, &$results, $traiterBeneficiaire) {
-    //         $beneficiaires = Beneficiaire::whereIn('BEN_CODE', $ids)->get()->keyBy('BEN_CODE');
-
-    //         foreach ($ids as $code) {
-    //             $beneficiaire = $beneficiaires->get($code);
-
-    //             if (!$beneficiaire) {
-    //                 $results['failed'][] = ['BEN_CODE' => $code, 'reason' => 'Introuvable'];
-    //                 continue;
-    //             }
-
-    //             $result = $traiterBeneficiaire($beneficiaire);
-
-    //             if ($result === true) {
-    //                 $results['success'][] = ['BEN_CODE' => $code];
-    //             } else {
-    //                 $results['failed'][] = ['BEN_CODE' => $code, 'reason' => $result];
-    //             }
-    //         }
-    //     });
-
-    //     return response()->json([
-    //         'message' => count($results['success']) > 0
-    //             ? 'Soumission à l\'approbation partiellement ou totalement réussie.'
-    //             : 'Aucun bénéficiaire n\'a été soumis.',
-    //         'updated' => count($results['success']),
-    //         'success' => $results['success'],
-    //         'failed' => $results['failed'],
-    //     ]);
-    // }
-
-    private function genererMvtCode(string $echCode, string $regCode): string
+    private function generateMvtCode($regCode)
     {
-        $prefix = $echCode . $regCode; // ex: 20250301
+        $echeance = DB::table('t_echeances')
+            ->where('ECH_STATUT', 1)
+            ->first();
 
-        $lastCode = DB::table('t_mouvements')
-            ->where('MVT_CODE', 'like', $prefix . '%')
-            ->orderByDesc('MVT_CODE')
-            ->value('MVT_CODE');
-
-        $ordre = 1;
-
-        if ($lastCode) {
-            $ordre = intval(substr($lastCode, -5)) + 1;
+        if (!$echeance) {
+            throw new \Exception('Aucune échéance active.');
         }
 
-        return $prefix . str_pad($ordre, 5, '0', STR_PAD_LEFT);
+        $echCode = $echeance->ECH_CODE;
+
+        $lastNumber = DB::table('t_mouvements')
+            ->where('MVT_CODE', 'like', $echCode . $regCode . '%')
+            ->select(DB::raw("MAX(RIGHT(MVT_CODE,5)) as max_num"))
+            ->value('max_num');
+
+        $nextNumber = str_pad(((int)$lastNumber + 1), 5, '0', STR_PAD_LEFT);
+
+        return $echCode . $regCode . $nextNumber;
     }
 
-    public function validerBeneficiaire(Request $request, $id)
+
+    public function validerBeneficiaire(Request $request, $id = null)
     {
-        $user = auth()->user();
+        $user = Auth::user();
+        $now = Carbon::now();
 
-        DB::transaction(function () use ($id, $user) {
+        // récupération du niveau de validation
+        $nivValeur = DB::table('t_niveau_validations')
+            ->join('t_groupes', 't_groupes.NIV_CODE', '=', 't_niveau_validations.NIV_CODE')
+            ->where('t_groupes.GRP_CODE', $user->GRP_CODE)
+            ->value('NIV_VALEUR');
 
-            /* ============================
-            * 1. Bénéficiaire
-            * ============================ */
-            $beneficiaire = Beneficiaire::where('BEN_CODE', $id)->firstOrFail();
+        if ($id) {
+            // ===== VALIDATION UNIQUE =====
+            $beneficiaire = Beneficiaire::where('BEN_CODE', $id)->first();
 
-            if (in_array($beneficiaire->BEN_STATUT, [1, 2])) {
-                abort(400, 'Bénéficiaire déjà soumis ou approuvé.');
+            if (!$beneficiaire) {
+                return response()->json(['message' => 'Bénéficiaire introuvable.'], 404);
             }
 
-            /* ============================
-            * 2. Échéance active
-            * ============================ */
-            $echCode = DB::table('t_echeances')
-                ->where('ECH_STATUT', 1)
-                ->value('ECH_CODE');
-
-            if (!$echCode) {
-                abort(400, 'Aucune échéance active.');
+            if ($beneficiaire->BEN_STATUT == 1) {
+                return response()->json(['message' => 'Ce bénéficiaire est déjà en cours d\'approbation.'], 400);
             }
 
-            /* ============================
-            * 3. REG_CODE utilisateur
-            * ============================ */
-            $regCode = $user->REG_CODE;
-
-            if (!$regCode) {
-                abort(400, 'REG_CODE utilisateur introuvable.');
+            if ($beneficiaire->BEN_STATUT == 2) {
+                return response()->json(['message' => 'Ce bénéficiaire a déjà été approuvé.'], 400);
             }
 
-            /* ============================
-            * 4. Niveau validation
-            * ============================ */
-            $nivCode = DB::table('t_groupes')
-                ->where('GRP_CODE', $user->GRP_CODE)
-                ->value('NIV_CODE');
+            DB::transaction(function () use ($beneficiaire, $user, $nivValeur, $now) {
 
-            $nivValeur = DB::table('t_niveau_validations')
-                ->where('NIV_CODE', $nivCode)
-                ->value('NIV_VALEUR');
+                $beneficiaire->BEN_STATUT = 1;
+                $beneficiaire->save();
 
-            /* ============================
-            * 5. Mise à jour bénéficiaire
-            * ============================ */
-            $beneficiaire->update([
-                'BEN_STATUT' => 1,
-            ]);
+                $mvtCode = $this->generateMvtCode($user->REG_CODE);
 
-            /* ============================
-            * 6. Mouvement
-            * ============================ */
-            $mvtCode = $this->genererMvtCode($echCode, $regCode);
+                Mouvement::create([
+                    'MVT_CODE'          => $mvtCode,
+                    'MVT_BEN_CODE'      => $beneficiaire->BEN_CODE,
+                    'MVT_BEN_NOM_PRE'   => $beneficiaire->BEN_NOM. " " .$beneficiaire->BEN_PRENOM,
+                    'MVT_DATE'          => $now->toDateString(),
+                    'MVT_HEURE'         => $now->toTimeString(),
+                    'MVT_NIV'           => $nivValeur,
+                    'TYP_CODE'          => '20250001', // en dur
+                ]);
 
-            Mouvement::create([
-                'MVT_CODE' => $mvtCode,
-                'BEN_CODE' => $beneficiaire->BEN_CODE,
-                'MVT_DATE' => now()->toDateString(),
-                'MVT_HEURE'=> now()->toTimeString(),
-                'MVT_NIV'  => $nivValeur,
-                'TYP_CODE' => '20250001',
-            ]);
+                HistoriquesValidation::create([
+                    'VAL_CODE'          => $mvtCode,
+                    'VAL_BEN_CODE'      => $beneficiaire->BEN_CODE,
+                    'VAL_BEN_NOM_PRE'   => $beneficiaire->BEN_NOM. " " .$beneficiaire->BEN_PRENOM,
+                    'VAL_UTI_CODE'      => $user->UTI_CODE,
+                    'VAL_DATE'          => $now->toDateString(),
+                    'VAL_HEURE'         => $now->toTimeString(),
+                    'VAL_NIV'           => $nivValeur,
+                    'VAL_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
+                    'MVT_CODE'          => $mvtCode,
+                ]);
+            });
 
-            /* ============================
-            * 7. Historique validation
-            * ============================ */
-            HistoriquesValidation::create([
-                'VAL_CODE'      => $mvtCode,
-                'VAL_UTI_CODE'  => $user->UTI_CODE,
-                'VAL_DATE'      => now()->toDateString(),
-                'VAL_HEURE'     => now()->toTimeString(),
-                'VAL_CREER_PAR' => $user->UTI_NOM . ' ' . $user->UTI_PRENOM,
-                'MVT_CODE'      => $mvtCode,
-            ]);
-        });
+            return response()->json(['message' => "Soumission à l'approbation réussie."]);
+        }
+
+        // ===== VALIDATION MULTIPLE =====
+        $ids = $request->input('ids', []);
+
+        if (!is_array($ids) || count($ids) === 0) {
+            return response()->json(['message' => 'Aucun ID fourni.'], 400);
+        }
+
+        $results = ['success' => [], 'failed' => []];
+
+        DB::beginTransaction();
+        try {
+            $beneficiaires = Beneficiaire::whereIn('BEN_CODE', $ids)->get()->keyBy('BEN_CODE');
+
+            foreach ($ids as $code) {
+                $beneficiaire = $beneficiaires->get($code);
+
+                if (!$beneficiaire) {
+                    $results['failed'][] = ['BEN_CODE' => $code, 'reason' => 'Bénéficiaire introuvable.'];
+                    continue;
+                }
+
+                if ($beneficiaire->BEN_STATUT == 1) {
+                    $results['failed'][] = ['BEN_CODE' => $code, 'reason' => 'Déjà en cours d\'approbation.'];
+                    continue;
+                }
+
+                if ($beneficiaire->BEN_STATUT == 2) {
+                    $results['failed'][] = ['BEN_CODE' => $code, 'reason' => 'Déjà approuvé.'];
+                    continue;
+                }
+
+                $beneficiaire->BEN_STATUT = 1;
+                $beneficiaire->save();
+
+                $mvtCode = $this->generateMvtCode($user->REG_CODE);
+
+                Mouvement::create([
+                    'MVT_CODE'          => $mvtCode,
+                    'MVT_BEN_CODE'      => $beneficiaire->BEN_CODE,
+                    'MVT_BEN_NOM_PRE'   => $beneficiaire->BEN_NOM. " " .$beneficiaire->BEN_PRENOM,
+                    'MVT_DATE'          => $now->toDateString(),
+                    'MVT_HEURE'         => $now->toTimeString(),
+                    'MVT_NIV'           => $nivValeur,
+                    'TYP_CODE'          => '20250001', // en dur
+                ]);
+
+                HistoriquesValidation::create([
+                    'VAL_CODE'          => $mvtCode,
+                    'VAL_BEN_CODE'      => $beneficiaire->BEN_CODE,
+                    'VAL_BEN_NOM_PRE'   => $beneficiaire->BEN_NOM. " " .$beneficiaire->BEN_PRENOM,
+                    'VAL_UTI_CODE'      => $user->UTI_CODE,
+                    'VAL_DATE'          => $now->toDateString(),
+                    'VAL_HEURE'         => $now->toTimeString(),
+                    'VAL_NIV'           => $nivValeur,
+                    'VAL_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
+                    'MVT_CODE'          => $mvtCode,
+                ]);
+
+                $results['success'][] = ['BEN_CODE' => $code];
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Erreur de base de données : ' . $e->getMessage()
+            ], 500);
+        }
 
         return response()->json([
-            'message' => "Soumission à l'approbation effectuée avec succès."
+            'message' => 'Soumission à l\'approbation réussie.',
+            'updated' => count($results['success']),
+            'failed'  => $results['failed'],
+            'success' => $results['success']
         ]);
     }
+
 }

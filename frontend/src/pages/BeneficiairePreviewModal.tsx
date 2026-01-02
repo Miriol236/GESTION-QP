@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Eye, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { API_URL } from "@/config/api";
 import axios from "axios";
@@ -83,6 +84,21 @@ useEffect(() => {
 
   if (!open) return null;
 
+  const getStatutBadge = (statut: number) => {
+    switch (statut) {
+      case 0:
+        return <Badge className="bg-gray-200 text-gray-700">Non approuvé</Badge>;
+      case 1:
+        return <Badge className="bg-orange-100 text-orange-700">En cours d’approbation</Badge>;
+      case 2:
+        return <Badge className="bg-green-100 text-green-700">Approuvé</Badge>;
+      case 3:
+        return <Badge className="bg-red-100 text-red-700">Rejeté</Badge>;
+      default:
+        return <Badge className="bg-gray-100 text-gray-600">Inconnu</Badge>;
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center"
@@ -124,6 +140,7 @@ useEffect(() => {
               <Info label="Fonction :" value={getFonctionsInfo(beneficiaire.FON_CODE || "—")} />
               <Info label="Grade :" value={getGradesInfo(beneficiaire.GRD_CODE || "—")} />
               <Info label="Position :" value={getPositionsInfo(beneficiaire.POS_CODE || "—")} />
+              <Info label="Statut :" value={getStatutBadge(beneficiaire.BEN_STATUT)} />
             </div>
           </div>
 
@@ -154,15 +171,46 @@ useEffect(() => {
 
                         <td className="font-semibold px-4 py-2">{d.DOM_NUMCPT || "_"}</td>
                         <td className="px-4 py-2 font-semibold text-blue-600">{d.DOM_RIB || "—"}</td>
-                        <td className="px-4 py-2">
-                          <span
-                            className={`px-2 py-1 text-xs rounded-full ${
-                              d.DOM_STATUT ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-600"
-                            }`}
-                          >
-                            {d.DOM_STATUT ? "Actif" : "Inactif"}
-                          </span>
-                        </td>
+                        <td className="px-3 py-2 align-top">
+                            {(() => {
+                              let bgColor = "";
+                              let textColor = "";
+                              let label = "";
+
+                              switch (d.DOM_STATUT) {
+                                case 0:
+                                  bgColor = "bg-gray-100";
+                                  textColor = "text-gray-600";
+                                  label = "Non approuvé";
+                                  break;
+                                case 1:
+                                  bgColor = "bg-orange-100";
+                                  textColor = "text-orange-700";
+                                  label = "En cours d'approbation...";
+                                  break;
+                                case 2:
+                                  bgColor = "bg-green-100";
+                                  textColor = "text-green-700";
+                                  label = "Approuvé";
+                                  break;
+                                case 3:
+                                  bgColor = "bg-red-100";
+                                  textColor = "text-red-700";
+                                  label = "Rejeté";
+                                  break;
+                                default:
+                                  bgColor = "bg-gray-100";
+                                  textColor = "text-gray-600";
+                                  label = "Inconnu";
+                              }
+
+                              return (
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${bgColor} ${textColor}`}>
+                                  {label}
+                                </span>
+                              );
+                            })()}
+                          </td>
                       </tr>
                     ))}
                   </tbody>

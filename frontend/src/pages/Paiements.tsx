@@ -36,16 +36,22 @@ export default function Paiements() {
   const [openPreview, setOpenPreview] = useState(false);
   const [selectedPaiement, setSelectedPaiement] = useState<any>(null);
   const [selectedRegie, setSelectedRegie] = useState<any | null>(null);
-  const [selectedStatut, setSelectedStatut] = useState<boolean | null>(null); 
+  const [selectedStatut, setSelectedStatut] = useState<number | null>(null);
   const { toast } = useToast();
 
   // Récupérer l'utilisateur courant pour déterminer les permissions
   const { user } = useAuth();
   const regCodeUser = user?.REG_CODE || null; // null si l'utilisateur n'est pas rattaché à une régie
 
+  // Récupérer NIV_CODE du groupe
+  const nivCode = user?.groupe?.NIV_CODE || null;
+
+  // Récupérer groupe
+  const grpCodeUser = user?.GRP_CODE || null;
+
   // Permissions par groupe (si besoin on peut externaliser)
   const can = {
-    onAdd: regCodeUser != null,       // seuls les admins (sans régie) peuvent ajouter
+    onAdd: regCodeUser != null,       // seuls les gestionnaires (avec régie) peuvent ajouter
     onEdit: regCodeUser != null,      // idem pour éditer
     onDelete: regCodeUser != null,    // idem pour supprimer
     onDeleteAll: regCodeUser != null, // idem pour suppression multiple
@@ -56,8 +62,10 @@ export default function Paiements() {
 
   const statutOptions = [
     { label: "Tous les statuts", value: null },
-    { label: "Payé", value: true },
-    { label: "Non payé", value: false },
+    { label: "Non approuvé", value: 0 },
+    { label: "En cours d’approbation", value: 1 },
+    { label: "Approuvé", value: 2 },
+    { label: "Rejeté", value: 3 },
   ];
 
   // Handlers réutilisables (passés au DataTable seulement si permitted)
@@ -139,12 +147,6 @@ export default function Paiements() {
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  // const displayedPaiements = paiements.filter((p) =>
-  //   !searchTerm ||
-  //   String(p.PAI_BENEFICIAIRE).toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //   String(p.PAI_CODE).toLowerCase().includes(searchTerm.toLowerCase())
-  // );
-
   const displayedPaiements = paiements.filter((p) => {
     // Recherche
     const matchesSearch =
@@ -160,7 +162,7 @@ export default function Paiements() {
 
     // Filtre statut
     const matchesStatut =
-      selectedStatut === null || (selectedStatut ? p.PAI_STATUT !== 0 : p.PAI_STATUT === 0);
+      selectedStatut === null || p.PAI_STATUT === selectedStatut;
 
     return matchesSearch && matchesEcheance && matchesRegie && matchesStatut;
   });
@@ -281,19 +283,19 @@ export default function Paiements() {
   };
 
   // Mettre à jour le statut pour les lignes sélectionnées (appelée depuis DataTable)
-  // const handleStatusUpdate = (rows: any[]) => {
-  //   if (!rows || rows.length === 0) {
-  //     toast({
-  //       title: "Erreur",
-  //       description: "Aucun paiement sélectionné !",
-  //       variant: "destructive",
-  //     });
-  //     return;
-  //   }
+  const handleStatusUpdate = (rows: any[]) => {
+    if (!rows || rows.length === 0) {
+      toast({
+        title: "Erreur",
+        description: "Aucun paiement sélectionné !",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  //   setSelectedRowsForStatus(rows);
-  //   setIsValidateStatusDialogOpen(true);
-  // };
+    setSelectedRowsForStatus(rows);
+    setIsValidateStatusDialogOpen(true);
+  };
 
   const handleConfirmValidateStatus = async () => {
     if (!selectedRowsForStatus || selectedRowsForStatus.length === 0) return;
@@ -301,7 +303,7 @@ export default function Paiements() {
     try {
       const token = localStorage.getItem("token");
 
-      let url = `${API_URL}/paiements/valider-statut`;
+      let url = `${API_URL}/paiements/valider`;
       let body = {};
 
       if (selectedRowsForStatus.length === 1) {
@@ -321,13 +323,13 @@ export default function Paiements() {
       if (selectedRowsForStatus.length === 1) {
         toast({
           title: "Succès",
-          description: (`Statut du paiement ${selectedRowsForStatus[0].PAI_CODE} mis à jour avec succès.`),
+          description: (`Soumission du paiement à l'approbation effectuée avec succès.`),
           variant: "success",
         });
       } else if (data.updated > 0) {
         toast({
           title: "Succès",
-          description: (`${data.updated} statut(s) mis à jour avec succès.`),
+          description: (`${data.updated} Soumission(s) effectuée(s) avec succès.`),
           variant: "success",
         });
       }
@@ -337,7 +339,7 @@ export default function Paiements() {
         const failedMessages = data.failed.map((f: any) => `${f.PAI_CODE}: ${f.reason}`).join(', ');
         toast({
           title: "Erreur",
-          description: (`Échecs de mise à jour: ${failedMessages}`),
+          description: (`Échecs de soumission: ${failedMessages}`),
           variant: "destructive",
         });
       }
@@ -348,7 +350,7 @@ export default function Paiements() {
       console.error(err);
       toast({
         title: "Erreur",
-        description: err?.response?.data?.message || "Erreur lors de la mise à jour du statut.",
+        description: err?.response?.data?.message || "Erreur lors de la soumission.",
         variant: "destructive",
       });
     } finally {
@@ -591,21 +593,43 @@ export default function Paiements() {
     {
       key: "PAI_STATUT",
       title: "STATUT",
-      render: (value: number) => {
-        const isPaid = value !== 0;
-        return (
-          <Badge
-            variant={isPaid ? "default" : "secondary"}
-            className={
-              isPaid
-                ? "bg-green-500/20 text-green-700 flex items-center gap-1"
-                : "bg-red-500/20 text-red-700"
-            }
-          >
-            {isPaid && <CheckCheck className="w-4 h-4" />}
-            {isPaid ? "Payé" : "Non payé"}
-          </Badge>
-        );
+      render: (value) => {
+        switch (value) {
+          case 0:
+            return (
+              <Badge className="bg-blue-500/20 text-blue-700">
+                Non approuvé
+              </Badge>
+            );
+
+          case 1:
+            return (
+              <Badge className="bg-orange-500/20 text-orange-700">
+                En cours d’approbation…
+              </Badge>
+            );
+
+          case 2:
+            return (
+              <Badge className="bg-green-500/20 text-green-700">
+                Approuvé
+              </Badge>
+            );
+
+          case 3:
+            return (
+              <Badge className="bg-red-500/20 text-red-700">
+                Rejeté
+              </Badge>
+            );
+
+          default:
+            return (
+              <Badge className="bg-gray-500/20 text-gray-700">
+                Statut inconnu
+              </Badge>
+            );
+        }
       },
     },
     {
@@ -726,8 +750,8 @@ export default function Paiements() {
           setSelectedPaiement(b);
           setOpenPreview(true);
         }}
-        // onValidateVirement={can.onValidateVirement ? handleValidateVirement : undefined}
-        // onStatusUpdate={can.onStatusUpdate ? handleStatusUpdate : undefined}
+        onValidate={nivCode === '01' ? handleStatusUpdate : undefined} 
+        
         rowKey="PAI_CODE"
         filterItems={echeances.map((e) => ({
           ...e,

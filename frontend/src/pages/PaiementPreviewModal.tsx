@@ -86,6 +86,41 @@ useEffect(() => {
 
   if (!open || !paiement) return null;
 
+  const getPaiementBadge = (statut: number) => {
+    switch (statut) {
+      case 0:
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">
+            Non approuvé
+          </span>
+        );
+      case 1:
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-orange-100 text-orange-700">
+            En cours d’approbation...
+          </span>
+        );
+      case 2:
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">
+            Approuvé
+          </span>
+        );
+      case 3:
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700">
+            Rejeté
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">
+            Inconnu
+          </span>
+        );
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center"
@@ -200,37 +235,32 @@ useEffect(() => {
               </div>
             )}
           </div>
-          {detailsPaiement.map((d: any, i: number) => (
-          <div>
-            <div className="text-sm font-medium text-right"> 
-              <span className="font-semibold text-gray-600">Tatal gain :</span> {d.TOTAL_GAIN != null
-                ? Number(d.TOTAL_GAIN).toLocaleString("fr-FR")
-                : "—"}
+          {detailsPaiement.length > 0 && (
+            <div>
+              <div className="text-sm font-medium text-right"> 
+                <span className="font-semibold text-gray-600">Total gain :</span>{" "}
+                {detailsPaiement[0].TOTAL_GAIN != null
+                  ? Number(detailsPaiement[0].TOTAL_GAIN).toLocaleString("fr-FR") + " FCFA "
+                  : "—"}
+              </div>
+              <div className="text-sm font-medium text-right"> 
+                <span className="font-semibold text-gray-600">Total retenu :</span>{" "}
+                {detailsPaiement[0].TOTAL_RETENU != null
+                  ? Number(detailsPaiement[0].TOTAL_RETENU).toLocaleString("fr-FR") + " FCFA "
+                  : "—"}
+              </div>
+              <div className="text-sm font-medium text-right"> 
+                <span className="font-semibold text-gray-600">Total Net à payer :</span>{" "}
+                {detailsPaiement[0].MONTANT_NET != null
+                  ? Number(detailsPaiement[0].MONTANT_NET).toLocaleString("fr-FR") + " FCFA "
+                  : "—"}
+              </div>
+              <div className="text-sm font-medium text-right">
+                <span className="font-semibold text-gray-600">Statut :</span>{" "}
+                {getPaiementBadge(paiement.PAI_STATUT)}
+              </div>
             </div>
-            <div className="text-sm font-medium text-right"> 
-              <span className="font-semibold text-gray-600">Total retenu :</span> {d.TOTAL_RETENU != null
-                ? Number(d.TOTAL_RETENU).toLocaleString("fr-FR")
-                : "—"}
-            </div>
-            <div className="text-sm font-medium text-right"> 
-              <span className="font-semibold text-gray-600">Total Net à payer :</span> {d.MONTANT_NET != null
-                ? Number(d.MONTANT_NET).toLocaleString("fr-FR")
-                : "—"}
-            </div>
-            <div className="text-sm font-medium text-right"> 
-              <span className="font-semibold text-gray-600">Statut :</span> 
-              {paiement.PAI_STATUT == 1 ? (
-                <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800">
-                  Payé
-                </span>
-              ) : (
-                <span className="px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-800">
-                  Non Payé
-                </span>
-              )}
-            </div>
-          </div>            
-          ))}
+          )}
           <div>
             <h3 className="text-blue-600 font-semibold mb-3 border-b pb-1"> </h3>
             <div className="grid grid-cols-4 gap-4 text-sm">

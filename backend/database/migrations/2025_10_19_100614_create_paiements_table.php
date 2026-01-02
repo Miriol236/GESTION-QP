@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('PAI_NUMCPT')->nullable();
             $table->string('PAI_RIB', 2)->nullable();
             $table->string('PAI_REG_LIB')->nullable();
-            $table->integer('PAI_STATUT');
+            $table->integer('PAI_STATUT')->nullable();
             $table->integer('PAI_VIREMENT')->nullable();
             $table->foreign('PAI_VIREMENT')->references('VIR_CODE')->on('t_virements');
             $table->date('PAI_DATE_VIREMENT')->nullable();

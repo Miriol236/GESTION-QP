@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import ConfirmDeleteDialog from "@/components/common/ConfirmDeleteDialog";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import BeneficiaireWizard from "./BeneficiaireWizard";
+import ConfirmValidateDialog from "@/components/common/ConfirmValidateDialog";
 import { API_URL } from "@/config/api";
 import { TableSkeleton } from "@/components/loaders/TableSkeleton";
 import BeneficiairePreviewModal from "./BeneficiairePreviewModal";
@@ -27,10 +28,16 @@ export default function Beneficiaires() {
   const [isLoading, setIsLoading] = useState(true);
   const [openPreview, setOpenPreview] = useState(false);
   const [selectedBeneficiaire, setSelectedBeneficiaire] = useState<any>(null);
+  const [selectedRowsForStatus, setSelectedRowsForStatus] = useState<any[]>([]);
+  const [isValidateStatusDialogOpen, setIsValidateStatusDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const { user } = useAuth();
   const regCodeUser = user?.REG_CODE || null; // null si l'utilisateur n'est pas rattaché à une régie
+
+  // Récupérer NIV_CODE du groupe
+  const nivCode = user?.groupe?.NIV_CODE || null;
+
 
   // Permissions par groupe (si besoin on peut externaliser)
   const can = {
@@ -146,6 +153,83 @@ export default function Beneficiaires() {
       }
     };
 
+  // Mettre à jour le statut pour les lignes sélectionnées (appelée depuis DataTable)
+  const handleStatusUpdate = (rows: any[]) => {
+    if (!rows || rows.length === 0) {
+      toast({
+        title: "Erreur",
+        description: "Aucun bénéficiaire sélectionné !",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedRowsForStatus(rows);
+    setIsValidateStatusDialogOpen(true);
+  };
+
+  const handleConfirmValidateStatus = async () => {
+    if (!selectedRowsForStatus || selectedRowsForStatus.length === 0) return;
+
+    try {
+      const token = localStorage.getItem("token");
+
+      let url = `${API_URL}/beneficiaires/valider`;
+      let body = {};
+
+      if (selectedRowsForStatus.length === 1) {
+        url += `/${selectedRowsForStatus[0].BEN_CODE}`; // route single
+      } else {
+        body = { ids: selectedRowsForStatus.map(r => r.BEN_CODE) }; // route multiple
+      }
+
+      const { data } = await axios.put(url, body, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      // Afficher un toast success pour chaque scénario
+      if (selectedRowsForStatus.length === 1) {
+        toast({
+          title: "Succès",
+          description: (`Soumission du bénéficiaire à l'approbation effectuée avec succès.`),
+          variant: "success",
+        });
+      } else if (data.updated > 0) {
+        toast({
+          title: "Succès",
+          description: (`${data.updated} Soumission(s) effectuée(s) avec succès.`),
+          variant: "success",
+        });
+      }
+
+      // Gestion des échecs
+      if (data.failed && data.failed.length > 0) {
+        const failedMessages = data.failed.map((f: any) => `${f.BEN_CODE}: ${f.reason}`).join(', ');
+        toast({
+          title: "Erreur",
+          description: (`Échecs de soumission: ${failedMessages}`),
+          variant: "destructive",
+        });
+      }
+
+      fetchBeneficiaires();
+      window.dispatchEvent(new Event("totalUpdated"));
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Erreur",
+        description: err?.response?.data?.message || "Erreur lors de la soumission.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsValidateStatusDialogOpen(false);
+      setSelectedRowsForStatus([]);
+    }
+  };
+
   //  Colonnes du tableau
   const columns: Column[] = [
     {
@@ -178,17 +262,17 @@ export default function Beneficiaires() {
       render: (value) => {
         if (value !== "M" && value !== "F") {
           return (
-            <Badge className="bg-gray-500/20 text-gray-700">
+            <div className="bg-gray-500/20 text-gray-700">
               Non défini
-            </Badge>
+            </div>
           );
         }
 
         const isMale = value === "M";
 
         return (
-          <Badge
-            variant={isMale ? "default" : "secondary"}
+          <div
+            // variant={isMale ? "default" : "secondary"}
             className={
               isMale
                 ? "bg-blue-500/20 text-blue-700"
@@ -196,7 +280,7 @@ export default function Beneficiaires() {
             }
           >
             {isMale ? "Masculin" : "Féminin"}
-          </Badge>
+          </div>
         );
       },
     },
@@ -216,41 +300,54 @@ export default function Beneficiaires() {
       key: "POS_CODE",
       title: "POSITION",
       render: (value: string) => {
-        const pst = positions.find(p => p.POS_CODE === value);
-
-        // Cas où POS_CODE n'est pas défini ou inconnu
-        if (!pst) {
-          return (
-            <Badge className="bg-gray-500/20 text-gray-700">
-              Non défini
-            </Badge>
-          );
-        }
-
-        // Définir les couleurs selon POS_CODE
-        let bgClass = "bg-gray-500/20";
-        let textClass = "text-gray-700";
-
-        switch (value) {
-          case "01": // En activité
-            bgClass = "bg-green-500/20";
-            textClass = "text-green-700";
-            break;
-          case "02": // En retraite
-            bgClass = "bg-gray-500/20";
-            textClass = "text-gray-700";
-            break;
-          case "03": // Décédé
-            bgClass = "bg-red-500/20";
-            textClass = "text-red-700";
-            break;
-        }
-
+        const pos = positions.find(p => p.POS_CODE === value);
         return (
-          <Badge className={`${bgClass} ${textClass}`}>
-            {pst.POS_LIBELLE}
-          </Badge>
+          <div>
+            {pos ? pos.POS_LIBELLE : "—"}
+          </div>
         );
+      },
+    },
+    {
+      key: "BEN_STATUT",
+      title: "STATUT",
+      render: (value) => {
+        switch (value) {
+          case 0:
+            return (
+              <Badge className="bg-blue-500/20 text-blue-700">
+                Non approuvé
+              </Badge>
+            );
+
+          case 1:
+            return (
+              <Badge className="bg-orange-500/20 text-orange-700">
+                En cours d’approbation…
+              </Badge>
+            );
+
+          case 2:
+            return (
+              <Badge className="bg-green-500/20 text-green-700">
+                Approuvé
+              </Badge>
+            );
+
+          case 3:
+            return (
+              <Badge className="bg-red-500/20 text-red-700">
+                Rejeté
+              </Badge>
+            );
+
+          default:
+            return (
+              <Badge className="bg-gray-500/20 text-gray-700">
+                Statut inconnu
+              </Badge>
+            );
+        }
       },
     }
   ];
@@ -303,6 +400,7 @@ export default function Beneficiaires() {
         columns={columns}
         data={displayed}
         onAdd={can.onAdd ? handleAdd : undefined}
+        onValidate={nivCode === '01' ? handleStatusUpdate : undefined}
         onView={(b) => {
           setSelectedBeneficiaire(b);
           setOpenPreview(true);
@@ -317,12 +415,20 @@ export default function Beneficiaires() {
       />
 
       {/* Confirmation suppression */}
-        <ConfirmDeleteDialog
-          open={isDeleteDialogOpen}
-          onClose={() => setIsDeleteDialogOpen(false)}
-          onConfirm={handleConfirmDelete}
-          itemName={beneficiaireToDelete ? `bénéficiaire ${beneficiaireToDelete.BEN_NOM}  ${beneficiaireToDelete.BEN_PRENOM}` : ""}
-        />
+      <ConfirmDeleteDialog
+        open={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        itemName={beneficiaireToDelete ? `bénéficiaire ${beneficiaireToDelete.BEN_NOM}  ${beneficiaireToDelete.BEN_PRENOM}` : ""}
+      />
+
+      {/* Confirmation validation statut */}
+      <ConfirmValidateDialog
+        open={isValidateStatusDialogOpen}
+        onClose={() => setIsValidateStatusDialogOpen(false)}
+        onConfirm={handleConfirmValidateStatus}
+        itemName={selectedRowsForStatus.length > 0 ? `${selectedRowsForStatus.length} bénéficiaire(s) sélectionné(s)` : ""}
+      />
       
       <BeneficiairePreviewModal
         open={openPreview}

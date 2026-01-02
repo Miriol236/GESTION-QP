@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Children, useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,7 +34,8 @@ import {
   Gauge,
   Cog,
   ArrowUp,
-  UserRound
+  UserRound,
+  CheckCheck
 } from "lucide-react";
 import { API_URL } from "@/config/api";
 import { toast } from "sonner";
@@ -54,6 +55,13 @@ const menuItems = [
       { title: "Paiements QP", url: "/paiements", icon: CreditCard, foncCode: "0014" },
     ],
   },
+  // {
+  //   title: "Mouvements",
+  //   icon: CheckCheck,
+  //   children: [
+
+  //   ],
+  // },
   {
     title: "Paramètres",
     icon: Settings,

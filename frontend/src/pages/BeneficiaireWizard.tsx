@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ConfirmDeleteDialog from "@/components/common/ConfirmDeleteDialog";
+import ConfirmValidateDialog from "@/components/common/ConfirmValidateDialog";
 import {
   Popover,
   PopoverContent,
@@ -17,7 +18,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Check, ChevronDown, Edit, Trash2, ArrowRight, ArrowLeft, Power, Plus, X, Save } from "lucide-react";
+import { Check, ChevronDown, Edit, Trash2, ArrowRight, ArrowLeft, Power, Plus, X, Save, Send, Paperclip, Download } from "lucide-react";
 import { motion } from "framer-motion";
 import { API_URL } from "@/config/api";
 import { TableSkeletonWizard } from "@/components/loaders/TableSkeletonWizard";
@@ -40,6 +41,11 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
   const [dataReady, setDataReady] = useState(true); // true par défaut
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedDomiciliation, setSelectedDomiciliation] = useState<any>(null);
+  const [selectedRows, setSelectedRows] = useState<any[]>([]);
+  const [ribFile, setRibFile] = useState<File | null>(null);
+  const [ribFileError, setRibFileError] = useState(false);
+  const [selectedRowsForStatus, setSelectedRowsForStatus] = useState<any[]>([]);
+  const [isValidateStatusDialogOpen, setIsValidateStatusDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const [beneficiaire, setBeneficiaire] = useState({
@@ -60,9 +66,18 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
     BNQ_CODE: "",
     GUI_ID: "",
     DOM_RIB: "",
+    DOM_FICHIER: null,
   });
 
   const [benefCode, setBenefCode] = useState<string | null>(null);
+
+  const toggleRowSelection = (row: any) => {
+    setSelectedRows((prev) =>
+      prev.some(r => r.DOM_CODE === row.DOM_CODE) ? [] : [row]
+    );
+  };
+
+  const isSelected = (row: any) => selectedRows.some(r => r.DOM_CODE === row.DOM_CODE);
 
   useEffect(() => {
     const loadBeneficiaireData = async () => {
@@ -225,7 +240,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
 
   // Enregistrement bénéficiaire (étape 1)
   const handleNext = async () => {
-    if (!beneficiaire.BEN_NOM || !beneficiaire.BEN_PRENOM || !beneficiaire.TYP_CODE || !beneficiaire.POS_CODE) {
+    if (!beneficiaire.BEN_NOM || !beneficiaire.BEN_PRENOM || !beneficiaire.BEN_SEXE || !beneficiaire.TYP_CODE || !beneficiaire.POS_CODE) {
       toast({
           title: "Avertissement",
           description: "Veuillez remplir tous les champs obligatoires.",
@@ -318,16 +333,17 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
   const handleAddDomiciliation = async () => {
     if (!benefCode) 
       return toast({
-          title: "Erreur",
-          description: "Aucun bénéficiaire lié",
-          variant: "destructive",
-        });
+        title: "Erreur",
+        description: "Aucun bénéficiaire lié",
+        variant: "destructive",
+      });
+
     if (!currentDomiciliation.BNQ_CODE || !currentDomiciliation.GUI_ID) {
       return toast({
-          title: "Avertissement",
-          description: "Veuillez remplir tous les champs obligatoires.",
-          variant: "warning",
-        });
+        title: "Avertissement",
+        description: "Veuillez remplir tous les champs obligatoires.",
+        variant: "warning",
+      });
     }
 
     const ribKey = calculerCleRib(
@@ -338,19 +354,28 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
 
     try {
       const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
-      const { data } = await axios.post(
-        `${API_URL}/domiciliations`,
-        {
-          ...currentDomiciliation,
-          BEN_CODE: benefCode,
-          DOM_RIB: ribKey,
+
+      // Utilisation de FormData pour inclure le fichier
+      const formData = new FormData();
+      Object.entries(currentDomiciliation).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, value);
+        }
+      });
+      formData.append("BEN_CODE", benefCode);
+      formData.append("DOM_RIB", ribKey);
+
+      const { data } = await axios.post(`${API_URL}/domiciliations`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
         },
-        { headers }
-      );
+      });
 
       // Rafraîchir la liste
-      const list = await axios.get(`${API_URL}/domiciliations/${benefCode}`, { headers });
+      const list = await axios.get(`${API_URL}/domiciliations/${benefCode}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setDomiciliations(list.data);
 
       // Réinitialiser le formulaire
@@ -360,48 +385,41 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
         BNQ_CODE: "",
         GUI_ID: "",
         DOM_RIB: "",
+        DOM_FICHIER: null, // penser à réinitialiser le fichier
       });
 
       toast({
-          title: "Succès",
-          description: "Domiciliation ajoutée",
-          variant: "success",
-        });
+        title: "Succès",
+        description: "Domiciliation ajoutée",
+        variant: "success",
+      });
     } catch (err: any) {
-        toast({
-          title: "Erreur",
-          description: err?.response?.data?.message || "Erreur lors de l'ajout.",
-          variant: "destructive",
+      toast({
+        title: "Erreur",
+        description: err?.response?.data?.message || "Erreur lors de l'ajout.",
+        variant: "destructive",
       });
     }
   };
 
   // Modifier une domiciliation
   const handleEdit = (d: any) => {
-    if (!d || !d.DOM_CODE) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de chargé la domiciliation sélectionnée.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setCurrentDomiciliation({
-      DOM_CODE: d.DOM_CODE,
-      BNQ_CODE: d.BNQ_CODE,
-      GUI_ID: d.GUI_ID,
-      DOM_NUMCPT: d.DOM_NUMCPT,
-      DOM_RIB: d.DOM_RIB,
-    });
-
     setIsEditing(true);
     setEditId(d.DOM_CODE);
-    // toast({
-    //   title: "Avertissement",
-    //   description: "Domiciliation chargée pour modification.",
-    //   variant: "warning",
-    // });
+    
+    // Charger toutes les infos dans le formulaire
+    setCurrentDomiciliation({
+      DOM_CODE: d.DOM_CODE,
+      DOM_NUMCPT: d.DOM_NUMCPT,
+      BNQ_CODE: d.BNQ_CODE,
+      GUI_ID: d.GUI_ID,
+      DOM_RIB: d.DOM_RIB,
+      // Charger le fichier si existant
+      DOM_FICHIER: d.DOM_FICHIER || null,
+    });
+
+    // Mettre à jour l’état local pour l’input file
+    setRibFile(d.DOM_FICHIER || null);
   };
 
   // Supprimer une domiciliation
@@ -437,28 +455,42 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
   const handleUpdateDomiciliation = async () => {
     if (!editId) 
       return toast({
-                  title: "Erreur",
-                  description: "Aucune domiciliation sélectionnée.",
-                  variant: "destructive",
-              });
+        title: "Erreur",
+        description: "Aucune domiciliation sélectionnée.",
+        variant: "destructive",
+      });
+
     if (!currentDomiciliation.BNQ_CODE || !currentDomiciliation.GUI_ID) {
       return toast({
-          title: "Avertissement",
-          description: "Veuillez remplir tous les champs obligatoires.",
-          variant: "warning",
+        title: "Avertissement",
+        description: "Veuillez remplir tous les champs obligatoires.",
+        variant: "warning",
       });
     }
 
     try {
       const token = localStorage.getItem("token");
-      const { data } = await axios.put(
+
+      // FormData pour gérer le fichier
+      const formData = new FormData();
+      formData.append("BNQ_CODE", currentDomiciliation.BNQ_CODE);
+      formData.append("GUI_ID", currentDomiciliation.GUI_ID);
+      formData.append("DOM_NUMCPT", currentDomiciliation.DOM_NUMCPT || "");
+      if (currentDomiciliation.DOM_FICHIER instanceof File) {
+        formData.append("DOM_FICHIER", currentDomiciliation.DOM_FICHIER);
+      }
+      // Astuce pour PUT avec FormData
+      formData.append("_method", "PUT");
+
+      const { data } = await axios.post(
         `${API_URL}/domiciliations/${editId}`,
+        formData,
         {
-          BNQ_CODE: currentDomiciliation.BNQ_CODE,
-          GUI_ID: currentDomiciliation.GUI_ID,
-          DOM_NUMCPT: currentDomiciliation.DOM_NUMCPT,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
       toast({
@@ -482,6 +514,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
         BNQ_CODE: "",
         GUI_ID: "",
         DOM_RIB: "",
+        DOM_FICHIER: null,
       });
     } catch (error: any) {
       toast({
@@ -492,50 +525,49 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
     }
   };
 
-  const handleToggleStatus = async (d: any) => {
-    if (!d || !d.DOM_CODE) {
-      return toast({
-                title: "Erreur",
-                description: "Aucune domiciliation sélectionnée.",
-                variant: "destructive",
-              });
-    }
-
-    const token = localStorage.getItem("token");
-    const headers = { Authorization: `Bearer ${token}` };
-
+  const handleDownloadRib = async (domCode: string) => {
     try {
-      // Appel unique au backend pour activer/désactiver automatiquement
-      const response = await axios.put(
-        `${API_URL}/domiciliations/${d.DOM_CODE}/toggle`,
-        {},
-        { headers }
+      const token = localStorage.getItem("token");
+
+      const response = await axios.get(
+        `${API_URL}/domiciliations/${domCode}/telecharger-rib`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          responseType: "blob",
+        }
       );
 
-      // Mettre à jour l’état local avec le résultat du backend
-      setDomiciliations((prev) =>
-        prev.map((item) =>
-          item.DOM_CODE === d.DOM_CODE
-            ? { ...item, DOM_STATUT: response.data.DOM_STATUT === "Active" }
-            : // Si le backend a activé celle-ci, désactiver les autres
-              response.data.DOM_STATUT === "Active"
-              ? { ...item, DOM_STATUT: false }
-              : item
-        )
-      );
+      //  Récupérer le nom depuis Content-Disposition
+      const contentDisposition = response.headers["content-disposition"];
+      let filename = "RIB";
 
-      const res = await axios.get(`${API_URL}/domiciliations/${benefCode}`, { headers });
-      setDomiciliations(res.data);
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (match?.[1]) {
+          filename = match[1];
+        }
+      }
 
-      toast({
-        title: "Succès",
-        description: response.data.message,
-        variant: "success",
+      const blob = new Blob([response.data], {
+        type: response.headers["content-type"],
       });
-    } catch (error: any) {
+
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename; // vrai nom du fichier
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
       toast({
         title: "Erreur",
-        description: error?.response?.data?.message || "Erreur lors du chargement de statut.",
+        description: "Impossible de télécharger le fichier",
         variant: "destructive",
       });
     }
@@ -549,6 +581,59 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
     });
     if (onFinish) onFinish();
     if (onSuccess) onSuccess();
+  };
+
+  const handleConfirmValidateStatus = async () => {
+    if (!selectedRowsForStatus || selectedRowsForStatus.length === 0) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const id = selectedRowsForStatus[0].DOM_CODE; // seule ligne
+      const { data } = await axios.put(`${API_URL}/domiciliations/valider/${id}`, {}, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      toast({
+        title: "Succès",
+        description: "Soumission du RIB à l'approbation effectuée avec succès.",
+        variant: "success",
+      });
+
+       // Rafraîchir la liste
+      const list = await axios.get(`${API_URL}/domiciliations/${benefCode}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setDomiciliations(list.data);
+
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Erreur",
+        description: err?.response?.data?.message || "Erreur lors de la soumission.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsValidateStatusDialogOpen(false);
+      setSelectedRowsForStatus([]);
+    }
+  };
+
+  const handleStatusUpdate = (rows: any[]) => {
+    if (!rows || rows.length === 0) {
+      toast({
+        title: "Erreur",
+        description: "Aucun RIB sélectionné !",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // On prend seulement la première ligne
+    setSelectedRowsForStatus([rows[0]]);
+    setIsValidateStatusDialogOpen(true);
   };
 
   // ComboBox réutilisable
@@ -636,6 +721,14 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
   const banquesPrimaires = ["20001", "20002", "20003", "20005"]; // numéros officiels des banques primaires
 
   const stepTitles = ["Informations du bénéficiaire", "RIB du bénéficiaire"];
+
+  const banqueSelectionnee = banques.find(
+    (b) => String(b.BNQ_CODE).trim() === String(currentDomiciliation.BNQ_CODE).trim()
+  );
+
+  const isBanquePrimaire = banqueSelectionnee
+    ? banquesPrimaires.includes(String(banqueSelectionnee.BNQ_CODE))
+    : false;
 
   if (!dataReady && beneficiaireData) {
     return <TableSkeletonWizard />;
@@ -923,48 +1016,107 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                     value={currentDomiciliation.DOM_NUMCPT}
                     onChange={(e) => {
                       let num = e.target.value;
-                      const banque = banques.find(
-                        (b) => String(b.BNQ_CODE).trim() === String(currentDomiciliation.BNQ_CODE).trim()
-                      );
-                      const isPrimaire = banque ? banquesPrimaires.includes(String(banque.BNQ_CODE)) : false;
-                      if (isPrimaire) {
+
+                      // Si banque primaire, garder que les chiffres et max 11
+                      if (isBanquePrimaire) {
                         num = num.replace(/\D/g, "").slice(0, 11);
                       }
+
                       const rib = calculerCleRib(currentDomiciliation.BNQ_CODE, currentDomiciliation.GUI_ID, num);
                       setCurrentDomiciliation({ ...currentDomiciliation, DOM_NUMCPT: num, DOM_RIB: rib });
                     }}
-                    placeholder={
-                      currentDomiciliation.BNQ_CODE &&
-                      banques.find((b) => String(b.BNQ_CODE).trim() === String(currentDomiciliation.BNQ_CODE).trim())?.BNQ_CODE &&
-                      banquesPrimaires.includes(
-                        banques.find((b) => String(b.BNQ_CODE).trim() === String(currentDomiciliation.BNQ_CODE).trim())?.BNQ_CODE
-                      )
-                        ? "11 chiffres uniquement"
-                        : ""
-                    }
+                    placeholder={isBanquePrimaire ? "11 chiffres uniquement" : ""}
                     className="h-9 w-full"
                   />
                 </div>
 
                 {/* Clé RIB et actions */}
                 <div className="md:col-span-3 mt-1 flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <span className="text-sm text-muted-foreground">Clé RIB :</span>
-                    <span className="font-semibold text-blue-600">{currentDomiciliation.DOM_RIB || "—"}</span>
+                  <div className="flex items-center gap-4 w-full sm:w-auto">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-muted-foreground">Clé RIB :</span>
+                      <span className="font-semibold text-blue-600">
+                        {currentDomiciliation.DOM_RIB || "—"}
+                      </span>
+                    </div>
+
+                    {/* Upload fichier RIB */}
+                    <label className="flex items-center gap-2 px-2 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-md cursor-pointer max-w-[220px]">
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setCurrentDomiciliation((prev) => ({ ...prev, DOM_FICHIER: file }));
+                          setRibFile(file);
+                          setRibFileError(!file);
+                        }}
+                      />
+
+                      <Paperclip className="w-4 h-4 text-gray-600 shrink-0" />
+
+                      <span
+                        title={
+                          currentDomiciliation.DOM_FICHIER instanceof File
+                            ? currentDomiciliation.DOM_FICHIER.name
+                            : currentDomiciliation.DOM_FICHIER
+                              ? currentDomiciliation.DOM_FICHIER.split("/").pop()
+                              : ""
+                        }
+                        className={`text-xs truncate whitespace-nowrap overflow-hidden max-w-[150px]
+                          ${currentDomiciliation.DOM_FICHIER ? "text-gray-700" : "text-gray-500"}
+                        `}
+                      >
+                        {currentDomiciliation.DOM_FICHIER instanceof File
+                          ? currentDomiciliation.DOM_FICHIER.name
+                          : currentDomiciliation.DOM_FICHIER
+                            ? currentDomiciliation.DOM_FICHIER.split("/").pop()
+                            : "Joindre RIB *"}
+                      </span>
+                    </label>
+
+                    {/* Télécharger le fichier existant */}
+                    {currentDomiciliation.DOM_FICHIER && !(currentDomiciliation.DOM_FICHIER instanceof File) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDownloadRib(currentDomiciliation.DOM_CODE)}
+                        title="Télécharger le fichier"
+                      >
+                        <Download className="w-4 h-4 text-green-500" />
+                      </Button>
+                    )}
                   </div>
 
                   <div className="flex-1" />
 
                   <div className="w-full sm:w-auto flex gap-2">
+                    {selectedRows.length > 0 && (
+                      <div className="flex justify-end mb-4">
+                        <Button
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => handleStatusUpdate([selectedRows[0]])}
+                        >
+                          <Send className="w-4 h-4 mr-2" />
+                          Soumettre
+                        </Button>
+                      </div>
+                    )}
+
                     <Button
                       onClick={isEditing ? handleUpdateDomiciliation : handleAddDomiciliation}
-                      disabled={!isEditing && !currentDomiciliation.BNQ_CODE}
+                      disabled={
+                        !currentDomiciliation.BNQ_CODE ||
+                        (isBanquePrimaire && currentDomiciliation.DOM_NUMCPT.length < 11)
+                      }
                       className={`px-3 py-1.5 rounded-md text-sm
-                        ${isEditing
+                        ${!currentDomiciliation.BNQ_CODE ||
+                        (isBanquePrimaire && currentDomiciliation.DOM_NUMCPT.length < 11)
+                          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                          : isEditing
                           ? "bg-green-600 hover:bg-green-700 text-white"
-                          : currentDomiciliation.BNQ_CODE
-                            ? "bg-blue-600 hover:bg-blue-700 text-white"
-                            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                          : "bg-blue-600 hover:bg-blue-700 text-white"
                         }
                       `}
                     >
@@ -993,6 +1145,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                             BNQ_CODE: "",
                             GUI_ID: "",
                             DOM_RIB: "",
+                            DOM_FICHIER: null,
                           });
                         }}
                       >
@@ -1010,47 +1163,120 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
               ) : (
                 <div className="flex flex-col gap-2 md:hidden mb-3">
                   {domiciliations.length === 0 ? (
-                    <div className="p-4 bg-gray-50 rounded-md text-center text-gray-500">Aucune domiciliation ajoutée.</div>
+                    <div className="p-4 bg-gray-50 rounded-md text-center text-gray-500">
+                      Aucune domiciliation ajoutée.
+                    </div>
                   ) : (
-                    domiciliations.map((d, i) => (
-                      <div key={i} className="p-2 bg-white rounded-lg shadow-sm border flex flex-col gap-2">
-                        <div className="flex justify-between items-start">
-                          <div className="text-sm font-medium">{getBanqueInfo(d.BNQ_CODE)}</div>
-                          <div className="text-xs">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${d.DOM_STATUT ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-                              {d.DOM_STATUT ? "Actif" : "Inactif"}
-                            </span>
-                          </div>
-                        </div>
+                    domiciliations.map((d, i) => {
+                      // Gestion des couleurs de statut comme desktop
+                      let bgColor = "";
+                      let textColor = "";
+                      let label = "";
+                      switch (d.DOM_STATUT) {
+                        case 0:
+                          bgColor = "bg-gray-100";
+                          textColor = "text-gray-600";
+                          label = "Non approuvé";
+                          break;
+                        case 1:
+                          bgColor = "bg-orange-100";
+                          textColor = "text-orange-700";
+                          label = "En cours d'approbation...";
+                          break;
+                        case 2:
+                          bgColor = "bg-green-100";
+                          textColor = "text-green-700";
+                          label = "Approuvé";
+                          break;
+                        case 3:
+                          bgColor = "bg-red-100";
+                          textColor = "text-red-700";
+                          label = "Rejeté";
+                          break;
+                        default:
+                          bgColor = "bg-gray-100";
+                          textColor = "text-gray-600";
+                          label = "Inconnu";
+                      }
 
-                        <div className="text-sm text-gray-600">{getGuichetInfo(d.GUI_ID)}</div>
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <div className="text-xs text-gray-500">N° Compte</div>
-                            <div className="font-medium">{d.DOM_NUMCPT}</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xs text-gray-500">Clé RIB</div>
-                            <div className="text-blue-600 font-medium">{d.DOM_RIB || "—"}</div>
-                          </div>
-                        </div>
+                      return (
+                        <div
+                          key={i}
+                          className={`p-2 bg-white rounded-lg shadow-sm border flex flex-col gap-2 relative`}
+                        >
+                          {/* Checkbox mobile */}
+                          <input
+                            type="checkbox"
+                            className="absolute top-2 left-2 w-4 h-4"
+                            checked={isSelected(d)}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={() => toggleRowSelection(d)}
+                          />
 
-                        <div className="flex gap-2 pt-1">
-                          <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(d)} title={d.DOM_STATUT ? "Désactiver" : "Activer"}>
-                            <Power className={`w-4 h-4 ${d.DOM_STATUT ? "text-gray-500" : "text-green-500"}`} />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleEdit(d)}>
-                            <Edit className="w-4 h-4 text-blue-500" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => {
-                            setSelectedDomiciliation(d);
-                            setIsDeleteDialogOpen(true);
-                          }}>
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </Button>
+                          <div className="flex justify-between items-start ml-6">
+                            <div>
+                              <div className="text-xs text-gray-500">Banque :</div>
+                              <div className="text-sm font-medium">{getBanqueInfo(d.BNQ_CODE)}</div>
+                            </div>
+                            <div className="text-xs">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${bgColor} ${textColor}`}>
+                                {label}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="items-center ml-6">
+                            <div className="text-xs text-gray-500">Guichet :</div>
+                            <div className="text-sm font-medium">{getGuichetInfo(d.GUI_ID)}</div>
+                          </div>
+
+                          <div className="flex justify-between items-center ml-6">
+                            <div>
+                              <div className="text-xs text-gray-500">N° Compte :</div>
+                              <div className="font-medium">{d.DOM_NUMCPT}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-xs text-gray-500">Clé RIB :</div>
+                              <div className="text-blue-600 font-medium">{d.DOM_RIB || "—"}</div>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2 pt-1 ml-6">
+                            {d.DOM_FICHIER && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDownloadRib(d.DOM_CODE)}
+                                title="Télécharger le fichier"
+                              >
+                                <Download className="w-4 h-4 text-green-500" />
+                              </Button>
+                            )}
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(d)}
+                              title="Modifier le RIB"
+                            >
+                              <Edit className="w-4 h-4 text-blue-500" />
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedDomiciliation(d);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                              title="Supprimer le RIB"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               )}
@@ -1063,12 +1289,13 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                   <table className="min-w-full divide-y divide-gray-100 text-sm">
                     <thead className="bg-gray-50 sticky top-0 z-10">
                       <tr>
-                        <th className="px-3 py-2 text-left">Banque</th>
-                        <th className="px-3 py-2 text-left">Guichet</th>
-                        <th className="px-3 py-2 text-left">N° Compte</th>
-                        <th className="px-3 py-2 text-left">Clé RIB</th>
-                        <th className="px-3 py-2 text-left">Statut</th>
-                        <th className="px-3 py-2 text-right">Actions</th>
+                        <th className="px-3 py-2 text-center">Choix</th>
+                        <th className="px-3 py-2 text-center">Banque</th>
+                        <th className="px-3 py-2 text-center">Guichet</th>
+                        <th className="px-3 py-2 text-center">N° Compte</th>
+                        <th className="px-3 py-2 text-center">Clé RIB</th>
+                        <th className="px-3 py-2 text-center">Statut</th>
+                        <th className="px-3 py-2 text-center">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
@@ -1078,27 +1305,87 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                         </tr>
                       ) : (
                         domiciliations.map((d, i) => (
-                          <tr key={i} className="hover:bg-gray-50 transition-colors">
+                          <tr
+                            key={i}
+                            onClick={() => toggleRowSelection(d)}
+                            className={`hover:bg-gray-50 transition-colors cursor-pointer
+                              ${isSelected(d) ? "bg-green-50" : ""}
+                            `}
+                          >
+                            <td className="px-3 py-2 text-center align-top">
+                              <input
+                                type="checkbox"
+                                checked={isSelected(d)}
+                                onClick={(e) => e.stopPropagation()} // pour éviter que le clic déclenche la ligne entière
+                                onChange={() => toggleRowSelection(d)}
+                              />
+                            </td>
                             <td className="px-3 py-2 align-top">{getBanqueInfo(d.BNQ_CODE)}</td>
                             <td className="px-3 py-2 align-top">{getGuichetInfo(d.GUI_ID)}</td>
                             <td className="px-3 py-2 font-medium align-top">{d.DOM_NUMCPT}</td>
                             <td className="px-3 py-2 text-blue-600 font-medium align-top">{d.DOM_RIB || "—"}</td>
                             <td className="px-3 py-2 align-top">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${d.DOM_STATUT ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-                                {d.DOM_STATUT ? "Actif" : "Inactif"}
-                              </span>
+                              {(() => {
+                                let bgColor = "";
+                                let textColor = "";
+                                let label = "";
+
+                                switch (d.DOM_STATUT) {
+                                  case 0:
+                                    bgColor = "bg-gray-100";
+                                    textColor = "text-gray-600";
+                                    label = "Non approuvé";
+                                    break;
+                                  case 1:
+                                    bgColor = "bg-orange-100";
+                                    textColor = "text-orange-700";
+                                    label = "En cours d'approbation...";
+                                    break;
+                                  case 2:
+                                    bgColor = "bg-green-100";
+                                    textColor = "text-green-700";
+                                    label = "Approuvé";
+                                    break;
+                                  case 3:
+                                    bgColor = "bg-red-100";
+                                    textColor = "text-red-700";
+                                    label = "Rejeté";
+                                    break;
+                                  default:
+                                    bgColor = "bg-gray-100";
+                                    textColor = "text-gray-600";
+                                    label = "Inconnu";
+                                }
+
+                                return (
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${bgColor} ${textColor}`}>
+                                    {label}
+                                  </span>
+                                );
+                              })()}
                             </td>
                             <td className="px-3 py-2 text-right align-top space-x-1">
-                              <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(d)} title={d.DOM_STATUT ? "Désactiver" : "Activer"}>
-                                <Power className={`w-4 h-4 ${d.DOM_STATUT ? "text-gray-500" : "text-green-500"}`} />
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleEdit(d)}>
+                              {d.DOM_FICHIER && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownloadRib(d.DOM_CODE);
+                                  }}
+                                  title="Télécharger le fichier"
+                                >
+                                  <Download className="w-4 h-4 text-green-500" />
+                                </Button>
+                              )}
+                              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleEdit(d)}} title="Modifier le RIB">
                                 <Edit className="w-4 h-4 text-blue-500" />
                               </Button>
-                              <Button variant="ghost" size="sm" onClick={() => {
+                              <Button variant="ghost" size="sm" onClick={(e) => {
+                                e.stopPropagation();
                                 setSelectedDomiciliation(d);
                                 setIsDeleteDialogOpen(true);
-                              }}>
+                              }} title="Supprimer le RIB">
                                 <Trash2 className="w-4 h-4 text-red-500" />
                               </Button>
                             </td>
@@ -1155,6 +1442,14 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
               ? `Le RIB : ${getBanqueInfo(selectedDomiciliation.BNQ_CODE)} - ${selectedDomiciliation.DOM_NUMCPT || "_"}-${selectedDomiciliation.DOM_RIB}`
               : ""
           }
+        />
+
+        {/* Confirmation validation statut */}
+        <ConfirmValidateDialog
+          open={isValidateStatusDialogOpen}
+          onClose={() => setIsValidateStatusDialogOpen(false)}
+          onConfirm={handleConfirmValidateStatus}
+          itemName={selectedRowsForStatus.length > 0 ? `${selectedRowsForStatus.length} RIB sélectionné` : ""}
         />
       </div>
     </div>
