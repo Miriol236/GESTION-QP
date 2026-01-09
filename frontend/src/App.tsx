@@ -26,6 +26,9 @@ import TypeMouvements from "./pages/TypeMouvements";
 import NiveauValidations from "./pages/NiveauValidations";
 import Positions from "./pages/Positions";
 import Virements from "./pages/Virements";
+import MouvementBeneficiaires from "./pages/MouvementBeneficiaires";
+import MouvementDomiciliers from "./pages/MouvementDomiciliers";
+import MouvementPaiements from "./pages/MouvementPaiements";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +64,9 @@ const App = () => (
               <Route path="/niveau-validations" element={<NiveauValidations/>} />
               <Route path="/positions" element={<Positions/>} />
               <Route path="/virements" element={<Virements/>} />
+              <Route path="/mouvements/beneficiaires" element={<MouvementBeneficiaires/>} />
+              <Route path="/mouvements/domiciliers" element={<MouvementDomiciliers/>} />
+              <Route path="/mouvements/paiements" element={<MouvementPaiements/>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

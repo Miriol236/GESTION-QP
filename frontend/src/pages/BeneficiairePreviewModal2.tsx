@@ -1,10 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Eye, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { API_URL } from "@/config/api";
+import axios from "axios";
+import { toast } from "sonner";
 
-export default function BeneficiairePreviewModal({ open, onClose, beneficiaire }: any) {
-  if (!open || !beneficiaire) return null;
+export default function BeneficiairePreviewModal2({ open, onClose, beneficiaire }: any) {
+  const [loading, setLoading] = useState(false);
 
   // Bloquer la fermeture via la touche Échap lorsqu'on affiche le modal
   useEffect(() => {
@@ -22,10 +26,21 @@ export default function BeneficiairePreviewModal({ open, onClose, beneficiaire }
     return () => window.removeEventListener("keydown", handler, true);
   }, [open]);
 
+  if (!open) return null;
+
+  const getStatutBadge = (statut: number) => {
+    switch (statut) {
+      case 1:
+        return <Badge className="bg-orange-100 text-orange-700">En attente d’approbation...</Badge>;
+      default:
+        return <Badge className="bg-gray-100 text-gray-600">Inconnu</Badge>;
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center"
-      // Empêcher le clic hors modal de fermer
+      // Empêcher tout comportement par défaut sur le backdrop (clic hors modal)
       onPointerDown={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -36,12 +51,14 @@ export default function BeneficiairePreviewModal({ open, onClose, beneficiaire }
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0 }}
         className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+        // Empêcher la propagation des events vers le backdrop
         onPointerDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b bg-gradient-to-r from-blue-600 to-blue-500 text-white">
+        <div className="flex justify-between items-center p-1 border-b bg-gradient-to-r from-blue-600 to-blue-500 text-white">
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Eye className="w-5 h-5" /> Aperçu du bénéficiaire
+            <Eye className="w-5 h-5" />
+            Informations du bénéficiaire
           </h2>
           <Button variant="ghost" className="text-white hover:bg-white/20" onClick={onClose}>
             <X className="w-5 h-5" />
@@ -50,50 +67,42 @@ export default function BeneficiairePreviewModal({ open, onClose, beneficiaire }
 
         {/* Contenu */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-gray-300">
-          {/* Informations personnelles */}
+          {/* Informations du bénéficiaire */}
           <div>
-            <h3 className="text-blue-600 font-semibold mb-3 border-b pb-1">Informations personnelles</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <Info label="Code" value={beneficiaire.CODE} />
-              <Info label="Matricule solde" value={beneficiaire.MATRICULE} />
-              <Info label="Nom et Prénom" value={beneficiaire.BENEFICIAIRE} />
-              <Info label="Sexe" value={beneficiaire.SEXE} />
-              <Info label="Régie" value={beneficiaire.REGIE} />
-              <Info label="Type de bénéficiaire" value={beneficiaire.TYPE_BENEFICIAIRE} />
-              <Info label="Fonction" value={beneficiaire.FONCTION} />
-              <Info label="Grade" value={beneficiaire.GRADE} />
+            <div className="grid grid-cols-4 gap-4 text-sm">
+              <Info label="Code :" value={beneficiaire.BEN_CODE} />
+              <Info label="Matricule solde :" value={beneficiaire.BEN_MATRICULE} />
+              <Info label="Nom(s) et Prénom(s) :" value={`${beneficiaire.MVT_BEN_NOM_PRE}`} />
+              <Info label="Sexe :" value={beneficiaire.BEN_SEXE === "M" ? "Masculin" : beneficiaire.BEN_SEXE === "F" ? "Féminin" : "_"} />
+              <Info label="Type bénéficiaire :" value={beneficiaire.TYPE_BENEFICIAIRE} />
+              <Info label="Fonction :" value={beneficiaire.FONCTION} />
+              <Info label="Grade :" value={beneficiaire.GRADE} />
+              <Info label="Position :" value={beneficiaire.POSITION} />
+              <Info label="Statut :" value={getStatutBadge(beneficiaire.BEN_STATUT)} />
             </div>
           </div>
 
-          {/* RIB */}
           <div>
-            <h3 className="text-blue-600 font-semibold mb-3 border-b pb-1">RIB</h3>
-            <div className="border rounded-md overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="px-4 py-2 text-left">Banque</th>
-                    <th className="px-4 py-2 text-left">Guichet</th>
-                    <th className="px-4 py-2 text-left">N° Compte</th>
-                    <th className="px-4 py-2 text-left">Clé RIB</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-t">
-                    <td className="px-4 py-2">{beneficiaire.BANQUE || "—"}</td>
-                    <td className="px-4 py-2">{beneficiaire.GUICHET || "—"}</td>
-                    <td className="font-semibold px-4 py-2">{beneficiaire.NUMERO_DE_COMPTE || "_"}</td>
-                    <td className="px-4 py-2 font-semibold text-blue-600">{beneficiaire.CLE_RIB || "—"}</td>
-                  </tr>
-                </tbody>
-              </table>
+            <h3 className="text-blue-600 font-semibold mb-3 border-b pb-1"></h3>
+            <div className="grid grid-cols-4 gap-4 text-sm">
+              <Info label="Date de Transmission :" value={beneficiaire.MVT_DATE ? new Date(beneficiaire.MVT_DATE).toLocaleDateString("fr-FR", {
+                  year: "numeric",
+                  month: "numeric",
+                  day: "numeric",
+                })
+                : "_"
+              }
+              />
+              <Info label="Heure de Transmission :" value={beneficiaire.MVT_HEURE} />
+              <Info label="Gestionnaire :" value={beneficiaire.MVT_CREER_PAR} />
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t text-right bg-gray-50">
+        <div className="p-1 border-t text-right bg-gray-50">
           <Button variant="default" onClick={onClose}>
+            <X className="w-4 h-4" />
             Fermer
           </Button>
         </div>
@@ -105,7 +114,7 @@ export default function BeneficiairePreviewModal({ open, onClose, beneficiaire }
 function Info({ label, value }: { label: string; value: any }) {
   return (
     <div>
-      <p className="text-xs text-gray-500">{label}</p>
+      <p className="text-sm font-semibold text-gray-500">{label}</p>
       <p className="font-medium text-gray-800">{value || "—"}</p>
     </div>
   );

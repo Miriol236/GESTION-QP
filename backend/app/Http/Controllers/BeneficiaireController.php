@@ -47,7 +47,7 @@ class BeneficiaireController extends Controller
             return response()->json(['message' => 'Utilisateur non authentifié.'], 401);
         }
 
-        $beneficiaires = Beneficiaire::orderBy('BEN_NOM', 'asc')->get();
+        $beneficiaires = Beneficiaire::orderBy('BEN_CODE', 'desc')->get();
 
         return response()->json($beneficiaires);
     }
@@ -382,6 +382,8 @@ class BeneficiaireController extends Controller
                     'MVT_DATE'          => $now->toDateString(),
                     'MVT_HEURE'         => $now->toTimeString(),
                     'MVT_NIV'           => $nivValeur,
+                    'MVT_UTI_CODE'      => $user->UTI_CODE,
+                    'MVT_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
                     'TYP_CODE'          => '20250001', // en dur
                 ]);
 
@@ -398,7 +400,7 @@ class BeneficiaireController extends Controller
                 ]);
             });
 
-            return response()->json(['message' => "Soumission à l'approbation réussie."]);
+            return response()->json(['message' => "Transmission à l'approbation réussie."]);
         }
 
         // ===== VALIDATION MULTIPLE =====
@@ -444,6 +446,8 @@ class BeneficiaireController extends Controller
                     'MVT_DATE'          => $now->toDateString(),
                     'MVT_HEURE'         => $now->toTimeString(),
                     'MVT_NIV'           => $nivValeur,
+                    'MVT_UTI_CODE'      => $user->UTI_CODE,
+                    'MVT_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
                     'TYP_CODE'          => '20250001', // en dur
                 ]);
 
@@ -471,7 +475,7 @@ class BeneficiaireController extends Controller
         }
 
         return response()->json([
-            'message' => 'Soumission à l\'approbation réussie.',
+            'message' => 'Transmission à l\'approbation réussie.',
             'updated' => count($results['success']),
             'failed'  => $results['failed'],
             'success' => $results['success']

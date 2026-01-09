@@ -39,13 +39,13 @@ export default function ConfirmValidateDialog({
           </p>
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={onClose}>
-              Annuler
+              Non
             </Button>
             <Button
               className="bg-green-500 hover:bg-green-600 text-white"
               onClick={onConfirm}
             >
-              Valider
+              Oui
             </Button>
           </div>
         </div>

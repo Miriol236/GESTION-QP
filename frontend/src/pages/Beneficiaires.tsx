@@ -33,7 +33,7 @@ export default function Beneficiaires() {
   const { toast } = useToast();
 
   const { user } = useAuth();
-  const regCodeUser = user?.REG_CODE || null; // null si l'utilisateur n'est pas rattaché à une régie
+  const grpCodeUser = user?.GRP_CODE || null; 
 
   // Récupérer NIV_CODE du groupe
   const nivCode = user?.groupe?.NIV_CODE || null;
@@ -41,9 +41,9 @@ export default function Beneficiaires() {
 
   // Permissions par groupe (si besoin on peut externaliser)
   const can = {
-    onAdd: regCodeUser != null,       // seuls les admins (sans régie) peuvent ajouter
-    onEdit: regCodeUser != null,      // idem pour éditer
-    onDelete: regCodeUser != null,    // idem pour supprimer
+    onAdd: grpCodeUser === "0003",       // seuls les bénéficiaire peuvent ajouter
+    onEdit: grpCodeUser === "0003",      // idem pour éditer
+    onDelete: grpCodeUser === "0003",    // idem pour supprimer
     // onDeleteAll: regCodeUser != null, // idem pour suppression multiple
     onViews: true,                     // tous peuvent voir leurs paiements
   };
@@ -194,13 +194,13 @@ export default function Beneficiaires() {
       if (selectedRowsForStatus.length === 1) {
         toast({
           title: "Succès",
-          description: (`Soumission du bénéficiaire à l'approbation effectuée avec succès.`),
+          description: (`Transmission du bénéficiaire à l'approbation effectuée avec succès.`),
           variant: "success",
         });
       } else if (data.updated > 0) {
         toast({
           title: "Succès",
-          description: (`${data.updated} Soumission(s) effectuée(s) avec succès.`),
+          description: (`${data.updated} Transmission(s) effectuée(s) avec succès.`),
           variant: "success",
         });
       }
@@ -210,7 +210,7 @@ export default function Beneficiaires() {
         const failedMessages = data.failed.map((f: any) => `${f.BEN_CODE}: ${f.reason}`).join(', ');
         toast({
           title: "Erreur",
-          description: (`Échecs de soumission: ${failedMessages}`),
+          description: (`Échecs de transmission: ${failedMessages}`),
           variant: "destructive",
         });
       }
@@ -221,7 +221,7 @@ export default function Beneficiaires() {
       console.error(err);
       toast({
         title: "Erreur",
-        description: err?.response?.data?.message || "Erreur lors de la soumission.",
+        description: err?.response?.data?.message || "Erreur lors de la transmission.",
         variant: "destructive",
       });
     } finally {
@@ -238,7 +238,7 @@ export default function Beneficiaires() {
       render: (value: string) => {
         const ben = beneficiaires.find(b => b.BEN_CODE === value);
         return (
-          <div  className="bg-primary/10 font-semibold text-primary">
+          <div  className="bg-primary/10 font-semibold">
             {ben ? ben.BEN_CODE : "—"}
           </div>
         );

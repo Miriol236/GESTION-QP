@@ -1,7 +1,8 @@
 <IfModule mod_rewrite.c>
     Options -MultiViews -Indexes
     RewriteEngine On
-    RewriteBase /backend/
+    RewriteBase /
+    # RewriteBase /backend/
 
     # Transmettre le header Authorization à PHP
     RewriteCond %{HTTP:Authorization} ^(.*)

@@ -199,6 +199,7 @@ return [
     |
     */
 
+    'secure' => env('SESSION_SECURE_COOKIE'), 
     'same_site' => env('SESSION_SAME_SITE', 'lax'),
 
     /*

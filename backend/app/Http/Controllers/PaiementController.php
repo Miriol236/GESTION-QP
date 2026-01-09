@@ -96,7 +96,7 @@ class PaiementController extends Controller
             ->when($user->REG_CODE, fn($q) => $q->where('t_paiements.REG_CODE', $user->REG_CODE))
             // Filtrer par échéance
             ->when($echCodeFilter, fn($q) => $q->where('t_paiements.ECH_CODE', $echCodeFilter))
-            ->orderBy('t_paiements.PAI_BENEFICIAIRE', 'asc')
+            ->orderBy('t_paiements.PAI_CODE', 'desc')
             ->get();
 
         return response()->json($paiements);
@@ -679,10 +679,11 @@ class PaiementController extends Controller
                     'MVT_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
                     'MVT_NUMCPT'      => $domiciliation->DOM_NUMCPT,
                     'MVT_CLE_RIB'     => $domiciliation->DOM_RIB,
-
                     'MVT_DATE'        => $now->toDateString(),
                     'MVT_HEURE'       => $now->toTimeString(),
                     'MVT_NIV'         => $nivValeur,
+                    'MVT_UTI_CODE'      => $user->UTI_CODE,
+                    'MVT_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
                     'TYP_CODE'        => '20250002',
                 ]);
 
@@ -691,13 +692,11 @@ class PaiementController extends Controller
                     'VAL_PAI_CODE'    => $paiement->PAI_CODE,
                     'VAL_BEN_CODE'    => $paiement->BEN_CODE,
                     'VAL_BEN_NOM_PRE' => $paiement->PAI_BENEFICIAIRE,
-
                     'VAL_BNQ_CODE'    => $domiciliation->BNQ_CODE,
                     'VAL_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
                     'VAL_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
                     'VAL_NUMCPT'      => $domiciliation->DOM_NUMCPT,
                     'VAL_CLE_RIB'     => $domiciliation->DOM_RIB,
-
                     'VAL_DATE'        => $now->toDateString(),
                     'VAL_HEURE'       => $now->toTimeString(),
                     'VAL_NIV'         => $nivValeur,
@@ -706,7 +705,7 @@ class PaiementController extends Controller
                     'MVT_CODE'        => $mvtCode,
                 ]);
             });
-            return response()->json(['message' => "Soumission à l'approbation réussie."]);
+            return response()->json(['message' => "Transmission à l'approbation réussie."]);
         }
 
         // ===== VALIDATION MULTIPLE =====
@@ -767,6 +766,8 @@ class PaiementController extends Controller
                     'MVT_DATE'        => $now->toDateString(),
                     'MVT_HEURE'       => $now->toTimeString(),
                     'MVT_NIV'         => $nivValeur,
+                    'MVT_UTI_CODE'      => $user->UTI_CODE,
+                    'MVT_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
                     'TYP_CODE'        => '20250002',
                 ]);
 
@@ -800,11 +801,100 @@ class PaiementController extends Controller
         }
 
         return response()->json([
-            'message' => 'Soumission à l\'approbation réussie.',
+            'message' => 'Transmission à l\'approbation réussie.',
             'updated' => count($results['success']),
             'failed' => $results['failed'],
             'success' => $results['success']
         ]);
+    }
+
+    public function validerPaiementTerminer(Request $request, $paiCode = null)
+    {
+        $user = Auth::user();
+        $now = Carbon::now();
+
+        // récupération du niveau de validation
+        $nivValeur = DB::table('t_niveau_validations')
+            ->join('t_groupes', 't_groupes.NIV_CODE', '=', 't_niveau_validations.NIV_CODE')
+            ->where('t_groupes.GRP_CODE', $user->GRP_CODE)
+            ->value('NIV_VALEUR');
+
+        // Récupération du paiement
+        $paiement = Paiement::where('PAI_CODE', $paiCode)->first();
+        if (!$paiement) {
+            return response()->json(['message' => 'Paiement introuvable.'], 404);
+        }
+
+        // Vérification des statuts
+        $paiementNonTransmis = $paiement->PAI_STATUT != 1 && $paiement->PAI_STATUT != 2 && $paiement->PAI_STATUT != 3;
+
+        $confirmed = $request->input('confirm', false);
+
+        if (($paiementNonTransmis) && !$confirmed) {
+            $message = "Voulez-vous transmettre ";
+            if ($paiementNonTransmis) {
+                $message .= "le paiement à l'approbation ?";
+            }
+
+            return response()->json([
+                'message' => $message,
+                'requiresConfirmation' => true
+            ]);
+        }
+
+        // ===== Transmission en BDD =====
+        DB::transaction(function () use ($paiement, $user, $nivValeur, $now) {
+
+                $domiciliation = $this->getDomiciliationBeneficiaire($paiement->BEN_CODE);
+
+                if (!$domiciliation) {
+                    throw new \Exception("Aucune domiciliation trouvée pour le bénéficiaire {$paiement->BEN_CODE}");
+                }
+
+                $paiement->PAI_STATUT = 1;
+                $paiement->save();
+
+                $mvtCode = $this->generateMvtCode($user->REG_CODE);
+
+                Mouvement::create([
+                    'MVT_CODE'        => $mvtCode,
+                    'MVT_PAI_CODE'    => $paiement->PAI_CODE,
+                    'MVT_BEN_CODE'    => $paiement->BEN_CODE,
+                    'MVT_BEN_NOM_PRE' => $paiement->PAI_BENEFICIAIRE,
+
+                    'MVT_BNQ_CODE'    => $domiciliation->BNQ_CODE,
+                    'MVT_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
+                    'MVT_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
+                    'MVT_NUMCPT'      => $domiciliation->DOM_NUMCPT,
+                    'MVT_CLE_RIB'     => $domiciliation->DOM_RIB,
+                    'MVT_DATE'        => $now->toDateString(),
+                    'MVT_HEURE'       => $now->toTimeString(),
+                    'MVT_NIV'         => $nivValeur,
+                    'MVT_UTI_CODE'      => $user->UTI_CODE,
+                    'MVT_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
+                    'TYP_CODE'        => '20250002',
+                ]);
+
+                HistoriquesValidation::create([
+                    'VAL_CODE'        => $mvtCode,
+                    'VAL_PAI_CODE'    => $paiement->PAI_CODE,
+                    'VAL_BEN_CODE'    => $paiement->BEN_CODE,
+                    'VAL_BEN_NOM_PRE' => $paiement->PAI_BENEFICIAIRE,
+                    'VAL_BNQ_CODE'    => $domiciliation->BNQ_CODE,
+                    'VAL_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
+                    'VAL_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
+                    'VAL_NUMCPT'      => $domiciliation->DOM_NUMCPT,
+                    'VAL_CLE_RIB'     => $domiciliation->DOM_RIB,
+                    'VAL_DATE'        => $now->toDateString(),
+                    'VAL_HEURE'       => $now->toTimeString(),
+                    'VAL_NIV'         => $nivValeur,
+                    'VAL_UTI_CODE'    => $user->UTI_CODE,
+                    'VAL_CREER_PAR'   => $user->UTI_NOM . ' ' . $user->UTI_PRENOM,
+                    'MVT_CODE'        => $mvtCode,
+                ]);
+            });
+
+        return response()->json(['message' => "Transmission à l'approbation réussie."]);
     }
 
 }

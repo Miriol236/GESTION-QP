@@ -6,7 +6,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { 
   Search, Plus, Power, Edit, Trash2, Eye, Tags, Check,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  ChevronUp, ChevronDown, ArrowUpDown, Printer, Filter, PowerOff, Send // Ajouté ArrowUpDown pour l'icône de tri
+  ChevronUp, ChevronDown, ArrowUpDown, Printer, Filter, PowerOff, Send, // Ajouté ArrowUpDown pour l'icône de tri
+  CheckCheck, X
 } from "lucide-react"; // Import mis à jour
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -43,6 +44,8 @@ export interface DataTableProps {
   // Callback when the user validates virement for selected rows (receives selected rows)
   onValidateVirement?: (rows: any[]) => void;
   onValidate?: (rows: any[]) => void;
+  onValidate2?: (rows: any[]) => void;
+  onRejet?: (rows: any[]) => void;
   // Callback when the user requests a status update for selected rows (receives selected rows)
   onStatusUpdate?: (rows: any[]) => void;
   // Callback to view selected rows in bulk
@@ -91,6 +94,8 @@ export function DataTable({
   onSearchChange3,
   onValidateVirement,
   onValidate,
+  onValidate2,
+  onRejet,
   onStatusUpdate,
   onViews,
   loading = false,
@@ -495,7 +500,28 @@ export function DataTable({
                 className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 <Send className="h-4 w-4" />
-                <span className="hidden sm:inline">Soumettre ({selectedRows.length})</span>
+                <span className="hidden sm:inline">Transmettre ({selectedRows.length})</span>
+              </Button>
+            )}
+
+            {onValidate2 && selectedRows.length >= 1 && (
+              <Button
+                onClick={() => onValidate2(selectedRows)}
+                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <CheckCheck className="h-4 w-4" />
+                <span className="hidden sm:inline">Approuver ({selectedRows.length})</span>
+              </Button>
+            )}
+
+            {onRejet && selectedRows.length >= 1 && (
+              <Button
+                onClick={() => onRejet(selectedRows)}
+                variant="destructive"
+                className="gap-2"
+              >
+                <X className="h-4 w-4" />
+                <span className="hidden sm:inline">Rejeter ({selectedRows.length})</span>
               </Button>
             )}
 

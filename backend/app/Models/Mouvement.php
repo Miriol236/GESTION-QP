@@ -27,6 +27,8 @@ class Mouvement extends Model
         'MVT_DATE',
         'MVT_HEURE',
         'MVT_NIV',
+        'MVT_UTI_CODE',  
+        'MVT_CREER_PAR',
         'TYP_CODE',
     ];
 }

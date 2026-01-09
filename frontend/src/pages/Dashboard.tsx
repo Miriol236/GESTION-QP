@@ -46,6 +46,14 @@ export default function Dashboard() {
     datasets: [],
   });
 
+  const [totaux, setTotaux] = useState<{
+    total_general: number;
+    par_type: Record<string, { total: number }>;
+  }>({
+    total_general: 0,
+    par_type: {},
+  });
+
   const { user, isLoading } = useAuth(); // <- récupère `user` depuis ton contexte
 
   // Vérifie si le filtre Régie doit s'afficher
@@ -71,6 +79,21 @@ export default function Dashboard() {
           variant: "destructive",
         })
       );
+  }, []);
+  
+  useEffect(() => {
+    const fetchTotaux = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/mouvements/totaux`);
+        setTotaux(res.data);
+      } catch (err) {
+        console.error("Erreur récupération totaux mouvements :", err);
+      }
+    };
+
+    fetchTotaux();
+    // const interval = setInterval(fetchTotaux, 30000); // actualisation toutes les 30s
+    // return () => clearInterval(interval);
   }, []);
 
   // Fetch statistiques
@@ -208,14 +231,14 @@ export default function Dashboard() {
         labels: data.map((r: any) => r.regie),
         datasets: [
           {
-            label: "Montant brut",
+            label: "Brut",
             data: data.map((r: any) => r.total_gain),
             backgroundColor: data.map((r: any) => regieColorMap[r.regie].brut),
             borderColor: "#ffffff",
             borderWidth: 2,
           },
           {
-            label: "Montant net",
+            label: "Net",
             data: data.map((r: any) => r.total_net),
             backgroundColor: data.map((r: any) => regieColorMap[r.regie].net),
             borderColor: "#ffffff",
@@ -244,6 +267,27 @@ export default function Dashboard() {
   if (isLoadings) {
     return <DashboardSkeleton />;
   }
+
+  // const typCodeMap: Record<string, string> = {
+  //   "Bénéficiaires": "20250001",
+  //   "Paiements QP": "20250002",
+  //   "Domiciliations (RIB)": "20250003",
+  // };
+
+  // // Construire les titres dynamiques
+  // const mouvementsAvecTotaux = [
+  //   "Bénéficiaires",
+  //   "Paiements QP",
+  //   "Domiciliations (RIB)"
+  // ].map((titre) => {
+  //   const code = typCodeMap[titre];
+  //   const total = code ? totaux.par_type[code]?.total : 0;
+  //   return {
+  //     titre,
+  //     total,
+  //     affichage: `${titre}${total && total > 0 ? ` (${total})` : ""}`,
+  //   };
+  // });
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -414,6 +458,21 @@ export default function Dashboard() {
         })}
       </div>
 
+      {/* <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+        {mouvementsAvecTotaux.map((mvt) => (
+          <Card key={mvt.titre} className="rounded-xl hover:shadow-sm transition-shadow">
+            <CardHeader className="p-2">
+              <CardTitle className="text-xs font-semibold text-center">
+                {mvt.affichage}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-2 pb-2">
+              <div className="text-lg font-bold text-right">{mvt.total}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div> */}
+
       {/* GRAPHIQUE */}
       <div className="grid gap-2 
                 grid-cols-1 
@@ -448,8 +507,13 @@ export default function Dashboard() {
                           data.labels.forEach((regie: any, i: number) => {
                             data.datasets.forEach((dataset: any) => {
                               const value = Number(dataset.data[i] || 0);
-                              const formatted =
-                                value.toLocaleString("fr-FR") + " F CFA";
+                              const total = dataset.data.reduce(
+                                (acc: number, v: number) => acc + Number(v || 0),
+                                0
+                              );
+                              const percent = total ? ((value / total) * 100).toFixed(2) : "0.00";
+
+                              const formatted = `${value.toLocaleString("fr-FR")} F CFA (${percent}%)`;
 
                               labels.push({
                                 text: `${regie} – ${dataset.label} : ${formatted}`,
@@ -503,7 +567,7 @@ export default function Dashboard() {
         {/* PIE */}
         <Card className="h-[400px]">
           <CardHeader>
-            <CardTitle className="text-center w-full">Répartition Montant viré et reste à virer</CardTitle>
+            <CardTitle className="text-center w-full">Répartition Montants virés et restes à virer</CardTitle>
           </CardHeader>
           <CardContent className="h-[calc(100%-60px)]">
             {chartData.datasets.length > 0 && (

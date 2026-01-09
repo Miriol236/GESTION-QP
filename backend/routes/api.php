@@ -23,6 +23,7 @@ use App\Http\Controllers\TypeMouvementController;
 use App\Http\Controllers\NiveauValidationController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\VirementController;
+use App\Http\Controllers\MouvementController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->get('/user-fonctionnalites', [AuthController::class, 'getUserFonctionnalites']);
@@ -127,12 +128,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/beneficiaires', [BeneficiaireController::class, 'store'])->middleware('fonctionnalite:0011');
     Route::post('/domiciliations', [DomicilierController::class, 'store']);
     Route::put('/beneficiaires/valider/{id?}', [BeneficiaireController::class, 'validerBeneficiaire']);
+    Route::put('/beneficiaires/approuver/{id?}', [MouvementController::class, 'approuverBeneficiaire']);
+    Route::put('/beneficiaires/rejeter/{id?}', [MouvementController::class, 'rejeterBeneficiaire']);
+    Route::put('beneficiaires/valider-domicilier/{BEN_CODE}', [MouvementController::class, 'validerBeneficiaireEtDomicilier']);
     Route::put('/beneficiaires/{id}', [BeneficiaireController::class, 'update'])->middleware('fonctionnalite:0011');
     Route::delete('/beneficiaires/{id}', [BeneficiaireController::class, 'destroy'])->middleware('fonctionnalite:0011');
     Route::get('/domiciliations/{BEN_CODE}', [DomicilierController::class, 'showByBeneficiaire']);
     Route::put('/domiciliations/{DOM_CODE}', [DomicilierController::class, 'update']);
     Route::delete('/domiciliations/{DOM_CODE}', [DomicilierController::class, 'destroy']);
     Route::put('/domiciliations/valider/{id?}', [DomicilierController::class, 'validerDomicilier']);
+    Route::put('/domiciliers/approuver/{id?}', [MouvementController::class, 'approuverDomicilier']);
+    Route::put('/domiciliers/rejeter/{id?}', [MouvementController::class, 'rejeterDomicilier']);
     Route::get('/domiciliations/{DOM_CODE}/telecharger-rib', [DomicilierController::class, 'telechargerRib']);
     
     // Routes éléments
@@ -150,6 +156,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/paiements/{id}', [PaiementController::class, 'show'])->middleware('fonctionnalite:0014');
     Route::post('/paiements', [PaiementController::class, 'store'])->middleware('fonctionnalite:0014');
     Route::put('/paiements/valider-virement/{id?}', [PaiementController::class, 'validerVirement']);
+    Route::put('/paiements/approuver/{id?}', [MouvementController::class, 'approuverPaiement']);
+    Route::put('/paiements/rejeter/{id?}', [MouvementController::class, 'rejeterPaiement']);
+    Route::put('paiements/valider-terminer/{PAI_CODE}', [PaiementController::class, 'validerPaiementTerminer']);
     Route::put('/paiements/valider/{id?}', [PaiementController::class, 'validerPaiement']);
     Route::put('/paiements/{id}', [PaiementController::class, 'update'])->middleware('fonctionnalite:0014');
     Route::delete('/paiements/supprimer-virements', [PaiementController::class, 'deletePaiement']);
@@ -200,5 +209,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/virements', [VirementController::class, 'store'])->middleware('fonctionnalite:0018');
     Route::put('/virements/{id}', [VirementController::class, 'update'])->middleware('fonctionnalite:0018');
     Route::delete('/virements/{id}', [VirementController::class, 'destroy'])->middleware('fonctionnalite:0018');
+
+    // Routes mouvements
+    Route::get('/mouvements/beneficiaires', [MouvementController::class, 'getMouvementsBeneficiairesEnCours'])->middleware('fonctionnalite:0019');
+    Route::get('/mouvements/domiciliers', [MouvementController::class, 'getMouvementsDomiciliersEnCours'])->middleware('fonctionnalite:0020');
+    Route::get('/mouvements/paiements', [MouvementController::class, 'getMouvementsPaiementsEnCours'])->middleware('fonctionnalite:0021');
+    Route::get('/mouvements/totaux', [MouvementController::class, 'getTotauxMouvementsEnCours']);
 
 });

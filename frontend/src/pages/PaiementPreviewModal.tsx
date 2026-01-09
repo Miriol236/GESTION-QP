@@ -168,7 +168,7 @@ useEffect(() => {
           </div>
           <div>
             <h3 className="text-blue-600 font-semibold mb-3 border-b pb-1">
-              Informations du RIB actif
+              Informations du RIB
             </h3>
 
             <div className="grid grid-cols-4 gap-4 text-sm">

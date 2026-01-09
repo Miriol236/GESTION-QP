@@ -55,13 +55,15 @@ const menuItems = [
       { title: "Paiements QP", url: "/paiements", icon: CreditCard, foncCode: "0014" },
     ],
   },
-  // {
-  //   title: "Mouvements",
-  //   icon: CheckCheck,
-  //   children: [
-
-  //   ],
-  // },
+  {
+    title: "Mouvements",
+    icon: CheckCheck,
+    children: [
+      { title: "Validation Bénéficiaires", url: "/mouvements/beneficiaires", icon: User, foncCode: "0019" },
+      { title: "Validation RIB", url: "/mouvements/domiciliers", icon: Building2, foncCode: "0020" },
+      { title: "Validation Paiements", url: "/mouvements/paiements", icon: CreditCard, foncCode: "0021" },
+    ],
+  },
   {
     title: "Paramètres",
     icon: Settings,
@@ -125,6 +127,52 @@ export function AppSidebar() {
       window.removeEventListener("droitUpdated", handleDroitUpdate);
     };
   }, []);
+
+  // Totaux des mouvements
+  // const [totaux, setTotaux] = useState<{ total_general: number; par_type: Record<string, { total: number }> }>({
+  //   total_general: 0,
+  //   par_type: {},
+  // });
+
+  // useEffect(() => {
+  //   const fetchTotaux = async () => {
+  //     try {
+  //       const res = await axios.get(`${API_URL}/mouvements/totaux`);
+  //       setTotaux(res.data);
+  //     } catch (err) {
+  //       console.error("Erreur récupération totaux mouvements :", err);
+  //     }
+  //   };
+
+  //   fetchTotaux();
+  //   // const interval = setInterval(fetchTotaux, 30000); // actualisation toutes les 30s
+  //   // return () => clearInterval(interval);
+  // }, []);
+
+  // //  Mettre à jour dynamiquement les titres des mouvements avec totaux
+  // menuItems.forEach((menu) => {
+  //   if (menu.title === "Mouvements") {
+  //     // titre parent avec total général
+  //     menu.title = `Mouvements${totaux.total_general > 0 ? ` (${totaux.total_general})` : ""}`;
+
+  //     // titre des sous-menus
+  //     menu.children = menu.children.map((child) => {
+  //       const typCodeMap: Record<string, string> = {
+  //         "Validation Bénéficiaires": "20250001",
+  //         "Validation Paiements": "20250002",
+  //         "Validation RIB": "20250003",
+  //       };
+
+  //       const code = typCodeMap[child.title.replace(/\s*\(\d+\)/, "")]; // enlever ancien total s'il existe
+  //       const total = code ? totaux.par_type[code]?.total : 0;
+
+  //       return {
+  //         ...child,
+  //         title: `${child.title.replace(/\s*\(\d+\)/, "")}${total && total > 0 ? ` (${total})` : ""}`,
+  //       };
+  //     });
+  //   }
+  // });
 
   // Filtrer le menu selon les droits
   const filterMenuItems = (items: any[]): any[] => {

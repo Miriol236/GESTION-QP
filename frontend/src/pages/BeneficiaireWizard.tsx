@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ConfirmDeleteDialog from "@/components/common/ConfirmDeleteDialog";
 import ConfirmValidateDialog from "@/components/common/ConfirmValidateDialog";
+import ConfirmValidateDialog2 from "@/components/common/ConfirmValidateDialog2";
 import {
   Popover,
   PopoverContent,
@@ -46,6 +47,10 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
   const [ribFileError, setRibFileError] = useState(false);
   const [selectedRowsForStatus, setSelectedRowsForStatus] = useState<any[]>([]);
   const [isValidateStatusDialogOpen, setIsValidateStatusDialogOpen] = useState(false);
+  const [openValidateDialog, setOpenValidateDialog] = useState(false);
+  const [validateMessage, setValidateMessage] = useState("");
+  const [loadingValidation, setLoadingValidation] = useState(false);
+
   const { toast } = useToast();
 
   const [beneficiaire, setBeneficiaire] = useState({
@@ -598,7 +603,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
 
       toast({
         title: "Succès",
-        description: "Soumission du RIB à l'approbation effectuée avec succès.",
+        description: "Transmission du RIB à l'approbation effectuée avec succès.",
         variant: "success",
       });
 
@@ -612,7 +617,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
       console.error(err);
       toast({
         title: "Erreur",
-        description: err?.response?.data?.message || "Erreur lors de la soumission.",
+        description: err?.response?.data?.message || "Erreur lors de la transmission.",
         variant: "destructive",
       });
     } finally {
@@ -634,6 +639,99 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
     // On prend seulement la première ligne
     setSelectedRowsForStatus([rows[0]]);
     setIsValidateStatusDialogOpen(true);
+  };
+
+  const handleFinishValidation = async () => {
+    if (!benefCode) {
+      toast({
+        title: "Erreur",
+        description: "Bénéficiaire introuvable.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setLoadingValidation(true);
+      const token = localStorage.getItem("token");
+
+      const { data } = await axios.put(
+        `${API_URL}/beneficiaires/valider-domicilier/${benefCode}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      //  Le backend demande confirmation
+      if (data?.requiresConfirmation) {
+        setValidateMessage(data.message);
+        setOpenValidateDialog(true);
+        return;
+      }
+
+      //  Succès direct
+      toast({
+        title: "Succès",
+        description: data.message,
+        variant: "success",
+      });
+
+      //  on laisse ton handleFinish EXISTANT gérer la suite
+      handleFinish();
+
+    } catch (err: any) {
+      toast({
+        title: "Erreur",
+        description: err?.response?.data?.message || "Erreur lors de la validation.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingValidation(false);
+    }
+  };
+
+  const handleConfirmFinishValidation = async () => {
+    if (!benefCode) return;
+
+    try {
+      setLoadingValidation(true);
+      const token = localStorage.getItem("token");
+
+      const { data } = await axios.put(
+        `${API_URL}/beneficiaires/valider-domicilier/${benefCode}`,
+        { confirm: true },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      toast({
+        title: "Succès",
+        description: data.message,
+        variant: "success",
+      });
+
+      setOpenValidateDialog(false);
+
+      //  on appelle ton handleFinish existant
+      handleFinish();
+
+    } catch (err: any) {
+      toast({
+        title: "Erreur",
+        description: err?.response?.data?.message || "Erreur lors de la confirmation.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingValidation(false);
+    }
   };
 
   // ComboBox réutilisable
@@ -1413,7 +1511,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                   Précédent
                 </Button>
                 <Button
-                  onClick={handleFinish}
+                  onClick={handleFinishValidation}
                   disabled={loading}
                   className="w-full md:w-auto"
                 >
@@ -1450,6 +1548,13 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
           onClose={() => setIsValidateStatusDialogOpen(false)}
           onConfirm={handleConfirmValidateStatus}
           itemName={selectedRowsForStatus.length > 0 ? `${selectedRowsForStatus.length} RIB sélectionné` : ""}
+        />
+
+        <ConfirmValidateDialog2
+          open={openValidateDialog}
+          onClose={() => setOpenValidateDialog(false)}
+          onConfirm={handleConfirmFinishValidation}
+          itemName={validateMessage}
         />
       </div>
     </div>

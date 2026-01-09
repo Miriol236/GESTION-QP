@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ConfirmDeleteDialog from "@/components/common/ConfirmDeleteDialog";
 import EditDomiciliationModal from "@/pages/EditDomiciliationModal";
+import ConfirmValidateDialog2 from "@/components/common/ConfirmValidateDialog2";
 import {
   Popover,
   PopoverContent,
@@ -41,6 +42,9 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedDetailsPaiement, setSelectedDetailsPaiement] = useState<any>(null);
   const [selectedRib, setSelectedRib] = useState<any | null>(null);
+  const [openValidateDialog, setOpenValidateDialog] = useState(false);
+  const [validateMessage, setValidateMessage] = useState("");
+  const [loadingValidation, setLoadingValidation] = useState(false);
   const { toast } = useToast();
 
   const [paiement, setPaiement] = useState({
@@ -175,8 +179,8 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
           (b) => String(b.BEN_CODE) === String(paiement.BEN_CODE)
       );
 
-      // Prendre le premier RIB actif (DOM_STATUT = 1)
-      const rib = foundBenef?.domiciliations?.find(d => d.DOM_STATUT === 1) || null;
+      // Prendre le premier RIB actif (DOM_STATUT = 2)
+      const rib = foundBenef?.domiciliations?.find(d => d.DOM_STATUT === 2) || null;
 
       setSelectedBenef(foundBenef || null);
       setSelectedRib(rib);
@@ -451,6 +455,99 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     if (onFinish) onFinish();
   };
 
+  const handleFinishValidation = async () => {
+      if (!paieCode) {
+        toast({
+          title: "Erreur",
+          description: "Paiement introuvable.",
+          variant: "destructive",
+        });
+        return;
+      }
+  
+      try {
+        setLoadingValidation(true);
+        const token = localStorage.getItem("token");
+  
+        const { data } = await axios.put(
+          `${API_URL}/paiements/valider-terminer/${paieCode}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+  
+        //  Le backend demande confirmation
+        if (data?.requiresConfirmation) {
+          setValidateMessage(data.message);
+          setOpenValidateDialog(true);
+          return;
+        }
+  
+        //  Succès direct
+        toast({
+          title: "Succès",
+          description: data.message,
+          variant: "success",
+        });
+  
+        //  on laisse ton handleFinish EXISTANT gérer la suite
+        handleFinish();
+  
+      } catch (err: any) {
+        toast({
+          title: "Erreur",
+          description: err?.response?.data?.message || "Erreur lors de la validation.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingValidation(false);
+      }
+    };
+  
+    const handleConfirmFinishValidation = async () => {
+      if (!paieCode) return;
+  
+      try {
+        setLoadingValidation(true);
+        const token = localStorage.getItem("token");
+  
+        const { data } = await axios.put(
+          `${API_URL}/paiements/valider-terminer/${paieCode}`,
+          { confirm: true },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+  
+        toast({
+          title: "Succès",
+          description: data.message,
+          variant: "success",
+        });
+  
+        setOpenValidateDialog(false);
+  
+        //  on appelle ton handleFinish existant
+        handleFinish();
+  
+      } catch (err: any) {
+        toast({
+          title: "Erreur",
+          description: err?.response?.data?.message || "Erreur lors de la confirmation.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingValidation(false);
+      }
+    };
+
   // ComboBox réutilisable
   const ComboBox = ({ label, items, value, onSelect, display, disabled = false }: any) => {
     const [open, setOpen] = useState(false);
@@ -684,7 +781,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                           </div>
 
                           {/* Bouton d'édition */}
-                          <div className="ml-auto mt-2">
+                          {/* <div className="ml-auto mt-2">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -693,7 +790,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                             >
                               <Edit className="w-5 h-5" />
                             </Button>
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     )}
@@ -955,7 +1052,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                   Précédent
                 </Button>
                 <Button
-                  onClick={handleFinish}
+                  onClick={handleFinishValidation}
                   disabled={loading}
                   className="w-full md:w-auto"
                 >
@@ -984,6 +1081,13 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
               ? `Le détail du paiement : ${getElementInfo(selectedDetailsPaiement.ELT_CODE)} - Montant = ${selectedDetailsPaiement.PAI_MONTANT || "0"} F CFA`
               : ""
           }
+        />
+
+        <ConfirmValidateDialog2
+          open={openValidateDialog}
+          onClose={() => setOpenValidateDialog(false)}
+          onConfirm={handleConfirmFinishValidation}
+          itemName={validateMessage}
         />
 
       </div>

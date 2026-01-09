@@ -27,13 +27,19 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(`${API_URL}/login`, {
-        username,
-        password,
+      //  Récupération du cookie CSRF
+      await axios.get(`${API_URL.replace('/api','')}/sanctum/csrf-cookie`, {
+        withCredentials: true
       });
 
-      const { access_token, user, fonctionnalites } = response.data;
+      //  Login
+      const response = await axios.post(
+        `${API_URL}/login`,
+        { username, password },
+        { withCredentials: true }
+      );
 
+      const { access_token, user, fonctionnalites } = response.data;
       localStorage.setItem("token", access_token);
       setUser(user);
 

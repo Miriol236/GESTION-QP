@@ -99,11 +99,7 @@ class DomicilierController extends Controller
         }
 
         DB::beginTransaction();
-        try {
-            //  Désactiver les anciens comptes actifs du même bénéficiaire
-            // Domicilier::where('BEN_CODE', $request->BEN_CODE)
-            //     ->where('DOM_STATUT', true)
-            //     ->update(['DOM_STATUT' => false]);
+        try {          
 
             //  Créer le nouveau compte (toujours actif)
             $domiciliation = new Domicilier();
@@ -409,11 +405,13 @@ class DomicilierController extends Controller
                     'MVT_DATE'          => $now->toDateString(),
                     'MVT_HEURE'         => $now->toTimeString(),
                     'MVT_NIV'           => $nivValeur,
+                    'MVT_UTI_CODE'      => $user->UTI_CODE,
+                    'MVT_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
                     'TYP_CODE'          => '20250003', 
                 ]);
 
                 HistoriquesValidation::create([
-                    'VAL_CODE'      => $mvtCode,
+                    'VAL_CODE'          => $mvtCode,
                     'VAL_DOM_CODE'      => $domiciliation->DOM_CODE,
                     'VAL_BEN_CODE'      => $beneficiaire->BEN_CODE,
                     'VAL_BEN_NOM_PRE'   => $beneficiaire->BEN_NOM. " " .$beneficiaire->BEN_PRENOM,
@@ -423,16 +421,16 @@ class DomicilierController extends Controller
                     'VAL_GUI_NOM'       => $domiciliation->guichet?->GUI_NOM,
                     'VAL_NUMCPT'        => $domiciliation->DOM_NUMCPT,
                     'VAL_CLE_RIB'       => $domiciliation->DOM_RIB,
-                    'VAL_DATE'      => $now->toDateString(),
-                    'VAL_HEURE'     => $now->toTimeString(),
+                    'VAL_DATE'          => $now->toDateString(),
+                    'VAL_HEURE'         => $now->toTimeString(),
                     'VAL_NIV'           => $nivValeur,
-                    'VAL_UTI_CODE'  => $user->UTI_CODE,
-                    'VAL_CREER_PAR' => $user->UTI_NOM." ".$user->UTI_PRENOM,
-                    'MVT_CODE'      => $mvtCode,
+                    'VAL_UTI_CODE'      => $user->UTI_CODE,
+                    'VAL_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
+                    'MVT_CODE'          => $mvtCode,
                 ]);
             });
 
-            return response()->json(['message' => "Soumission à l'approbation réussie."]);
+            return response()->json(['message' => "Transmission à l'approbation réussie."]);
         }
     }
 }

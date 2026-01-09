@@ -51,10 +51,10 @@ export default function Paiements() {
 
   // Permissions par groupe (si besoin on peut externaliser)
   const can = {
-    onAdd: regCodeUser != null,       // seuls les gestionnaires (avec régie) peuvent ajouter
-    onEdit: regCodeUser != null,      // idem pour éditer
-    onDelete: regCodeUser != null,    // idem pour supprimer
-    onDeleteAll: regCodeUser != null, // idem pour suppression multiple
+    onAdd: grpCodeUser === "0003",       // seuls les bénéficiaire peuvent ajouter
+    onEdit: grpCodeUser === "0003",      // idem pour éditer
+    onDelete: grpCodeUser === "0003",    // idem pour supprimer
+    // onDeleteAll: regCodeUser != null, // idem pour suppression multiple
     onViews: true,                     // tous peuvent voir leurs paiements
   };
 
@@ -192,21 +192,6 @@ export default function Paiements() {
         setIsDeleteDialogOpen(false);
       }
     };
-
-  // Valider virement pour les lignes sélectionnées (appelée depuis DataTable)
-  // const handleValidateVirement = (rows: any[]) => {
-  //     if (!rows || rows.length === 0) {
-  //         toast({
-  //           title: "Erreur",
-  //           description: "Aucun paiement sélectionné.",
-  //           variant: "destructive",
-  //         });
-  //         return;
-  //     }
-
-  //     setSelectedRowsForVirement(rows);
-  //     setIsValidateVirementDialogOpen(true);
-  // };
 
   const handleConfirmValidateVirement = async () => {
       if (!selectedRowsForVirement || selectedRowsForVirement.length === 0) return;
@@ -524,7 +509,7 @@ export default function Paiements() {
       render: (value: string) => {
         const ben = paiements.find(b => b.PAI_CODE === value);
         return (
-          <div  className="bg-primary/10 font-semibold text-primary">
+          <div  className="bg-primary/10 font-semibold">
             {ben ? ben.PAI_CODE : "—"}
           </div>
         );
