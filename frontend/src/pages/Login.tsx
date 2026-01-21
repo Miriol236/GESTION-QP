@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Lock, User, Eye, EyeOff } from "lucide-react";
@@ -18,21 +18,31 @@ export default function Login() {
   const { user, setUser } = useAuth();
   const { toast } = useToast();
 
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  if (user) return <Navigate to="/dashboard" replace />;
+
+  // 🔹 Fonction pour supprimer tous les cookies existants
+  const clearOldCookies = () => {
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
+      //  Supprimer les anciens cookies (session + CSRF obsolètes)
+      clearOldCookies();
+
       //  Récupération du cookie CSRF
-      await axios.get(`${API_URL.replace('/api','')}/sanctum/csrf-cookie`, {
-        withCredentials: true
+      await axios.get(`${API_URL.replace("/api", "")}/sanctum/csrf-cookie`, {
+        withCredentials: true,
       });
 
-      //  Login
+      //  Login avec credentials
       const response = await axios.post(
         `${API_URL}/login`,
         { username, password },
@@ -40,6 +50,7 @@ export default function Login() {
       );
 
       const { access_token, user, fonctionnalites } = response.data;
+
       localStorage.setItem("token", access_token);
       setUser(user);
 
@@ -55,7 +66,8 @@ export default function Login() {
     } catch (error: any) {
       toast({
         title: "Erreur de connexion",
-        description: error?.response?.data?.message || "Erreur de serveur. Veuillez réessayer.",
+        description:
+          error?.response?.data?.message || "Erreur de serveur. Veuillez réessayer.",
         variant: "destructive",
       });
     } finally {
@@ -66,33 +78,30 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300 relative overflow-hidden">
 
-      {/*  Texte défilant en haut ----> animate-marquee */}
+      {/* Texte défilant */}
       <div className="absolute top-16 w-full overflow-hidden">
         <div className="text-2xl font-bold text-center text-primary">
           BIENVENUE SUR LA PLATEFORME DIGITALISEE DE GESTION DES QUOTES-PARTS
         </div>
       </div>
 
-
-      {/*  Contenu principal */}
+      {/* Contenu principal */}
       <div className="w-full max-w-md px-4 mt-12">
         <Card className="shadow-lg border border-gray-300 bg-white">
           <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-semibold">AUTHENTIFICATION</CardTitle>
-          {/* <div className="mx-auto w-24 h-24 bg-gradient-primary rounded-full flex items-center justify-center mb-4">
-            <User className="text-white w-20 h-20" />
-          </div> */}
-          <div className="mx-auto w-32 h-32 flex items-center justify-center mb-4">
-            <img
-              src={`${import.meta.env.BASE_URL}armoirie.png`}
-              alt="User"
-              className="w-full h-full object-contain"
-            />
-          </div>
-        </CardHeader>
+            <CardTitle className="text-2xl font-semibold">AUTHENTIFICATION</CardTitle>
+            <div className="mx-auto w-32 h-32 flex items-center justify-center mb-4">
+              <img
+                src={`${import.meta.env.BASE_URL}armoirie.png`}
+                alt="User"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </CardHeader>
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Username */}
               <div className="space-y-2">
                 <Label htmlFor="username">Nom d'utilisateur</Label>
                 <div className="relative">
@@ -108,7 +117,8 @@ export default function Login() {
                 </div>
               </div>
 
-             <div className="space-y-2">
+              {/* Password */}
+              <div className="space-y-2">
                 <Label htmlFor="password">Mot de passe</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -125,15 +135,12 @@ export default function Login() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-3 text-muted-foreground hover:text-primary transition"
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
 
+              {/* Submit */}
               <Button
                 type="submit"
                 className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
@@ -146,10 +153,7 @@ export default function Login() {
         </Card>
       </div>
 
-      {/*  Footer avec copyright */}
-      {/* <footer className="absolute bottom-4 text-sm text-muted-foreground text-center">
-        © {new Date().getFullYear()} Développé par l’Office National d’Informatique - Tous droits réservés.
-      </footer> */}
+      {/* Footer */}
       <footer className="absolute bottom-4 text-sm text-muted-foreground text-center flex items-center justify-center gap-2">
         © {new Date().getFullYear()} Développé par l’Office National d’Informatique
         <img
@@ -160,7 +164,7 @@ export default function Login() {
         - Tous droits réservés.
       </footer>
 
-      {/*  Animation du texte défilant */}
+      {/* Animation texte */}
       <style>{`
         @keyframes marquee {
           0% { transform: translateX(100%); }

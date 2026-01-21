@@ -28,6 +28,7 @@ return new class extends Migration
             $table->integer('MVT_NIV');
             $table->string('MVT_UTI_CODE', 4);
             $table->string('MVT_CREER_PAR');
+            $table->string('MVT_UTI_REG', 3);
             $table->string('TYP_CODE', 8);
             $table->foreign('TYP_CODE')->references('TYP_CODE')->on('t_type_mouvements');
         });

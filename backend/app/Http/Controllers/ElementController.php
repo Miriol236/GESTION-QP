@@ -36,7 +36,7 @@ class ElementController extends Controller
     public function indexPublic()
     {
         return response()->json(
-            \App\Models\Element::select('ELT_CODE', 'ELT_LIBELLE')
+            \App\Models\Element::select('ELT_CODE', 'ELT_LIBELLE', 'ELT_SENS')
                 ->orderBy('ELT_CODE')
                 ->get()
         );

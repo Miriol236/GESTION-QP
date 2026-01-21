@@ -289,6 +289,25 @@ export default function Dashboard() {
   //   };
   // });
 
+  // Vérifie si le Pie par régie contient des données > 0
+  const hasPieRegieData =
+    pieRegieData &&
+    pieRegieData.datasets?.length > 0 &&
+    pieRegieData.datasets.some((ds: any) =>
+      ds.data.some((v: number) => Number(v) > 0)
+    );
+
+  // Vérifie si le Pie paiement contient des données > 0
+  const hasChartData =
+    chartData &&
+    chartData.datasets?.length > 0 &&
+    chartData.datasets.some((ds: any) =>
+      ds.data.some((v: number) => Number(v) > 0)
+    );
+
+  // Afficher le bloc graphique seulement si au moins un graphique a des données
+  const showGraphs = hasPieRegieData || hasChartData;
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* FILTRES */}
@@ -474,135 +493,148 @@ export default function Dashboard() {
       </div> */}
 
       {/* GRAPHIQUE */}
-      <div className="grid gap-2 
-                grid-cols-1 
-                sm:grid-cols-2 
-                md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]">
-        {/* PIE – Total gain par régie */}
-        <Card className="h-[400px]">
-          <CardHeader>
-            <CardTitle className="text-center w-full">Répartition Montants bruts et nets par Régie</CardTitle>
-          </CardHeader>
+      {showGraphs && (
+        <div
+          className="grid gap-2 
+            grid-cols-1 
+            sm:grid-cols-2 
+            md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]"
+        >
+          {/* PIE – Total gain par régie */}
+          {hasPieRegieData && (
+            <Card className="h-[400px]">
+              <CardHeader>
+                <CardTitle className="text-center w-full">
+                  Répartition Montants bruts et nets par Régie
+                </CardTitle>
+              </CardHeader>
 
-          <CardContent className="h-[calc(100%-60px)] flex items-center justify-center">
-            {pieRegieData && (
-              <Pie
-                data={pieRegieData}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: "right",
-                      labels: {
-                        boxWidth: 14,
-                        padding: 14,
+              <CardContent className="h-[calc(100%-60px)] flex items-center justify-center">
+                {pieRegieData && (
+                  <Pie
+                    data={pieRegieData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: "right",
+                          labels: {
+                            boxWidth: 14,
+                            padding: 14,
+                            generateLabels: (chart) => {
+                              const { data } = chart;
+                              if (!data.labels || data.datasets.length < 2) return [];
 
-                        generateLabels: (chart) => {
-                          const { data } = chart;
-                          if (!data.labels || data.datasets.length < 2) return [];
+                              const labels: any[] = [];
 
-                          const labels: any[] = [];
+                              data.labels.forEach((regie: any, i: number) => {
+                                data.datasets.forEach((dataset: any) => {
+                                  const value = Number(dataset.data[i] || 0);
+                                  const total = dataset.data.reduce(
+                                    (acc: number, v: number) => acc + Number(v || 0),
+                                    0
+                                  );
+                                  const percent = total
+                                    ? ((value / total) * 100).toFixed(2)
+                                    : "0.00";
 
-                          data.labels.forEach((regie: any, i: number) => {
-                            data.datasets.forEach((dataset: any) => {
-                              const value = Number(dataset.data[i] || 0);
-                              const total = dataset.data.reduce(
-                                (acc: number, v: number) => acc + Number(v || 0),
+                                  const formatted = `${value.toLocaleString(
+                                    "fr-FR"
+                                  )} F CFA (${percent}%)`;
+
+                                  labels.push({
+                                    text: `${regie} – ${dataset.label} : ${formatted}`,
+                                    fillStyle: dataset.backgroundColor[i],
+                                    strokeStyle: "#fff",
+                                    lineWidth: 2,
+                                    hidden: false,
+                                  });
+                                });
+                              });
+
+                              return labels;
+                            },
+                          },
+                          title: {
+                            display: true,
+                            text: "Légendes",
+                            color: "#374151",
+                            font: {
+                              size: 14,
+                              weight: "bold",
+                            },
+                          },
+                        },
+                        tooltip: {
+                          callbacks: {
+                            label: (ctx) => {
+                              const value = Number(ctx.raw).toLocaleString("fr-FR");
+                              const total = ctx.dataset.data.reduce(
+                                (acc: number, v: number) => acc + v,
                                 0
                               );
-                              const percent = total ? ((value / total) * 100).toFixed(2) : "0.00";
+                              const percent = total
+                                ? ((Number(ctx.raw) / total) * 100).toFixed(2)
+                                : "0.00";
 
-                              const formatted = `${value.toLocaleString("fr-FR")} F CFA (${percent}%)`;
-
-                              labels.push({
-                                text: `${regie} – ${dataset.label} : ${formatted}`,
-                                fillStyle: dataset.backgroundColor[i],
-                                strokeStyle: "#fff",
-                                lineWidth: 2,
-                                hidden: false,
-                              });
-                            });
-                          });
-
-                          return labels;
+                              return `${ctx.dataset.label} – ${ctx.label} : ${value} F CFA (${percent} %)`;
+                            },
+                          },
                         },
                       },
-                      title: {
-                        display: true,
-                        text: "Légendes",
-                        color: "#374151",
-                        font: {
-                          size: 14,
-                          weight: "bold",
+                    }}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* PIE – Paiements */}
+          {hasChartData && (
+            <Card className="h-[400px]">
+              <CardHeader>
+                <CardTitle className="text-center w-full">
+                  Répartition Montants virés et restes à virer
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="h-[calc(100%-60px)]">
+                {chartData.datasets.length > 0 && (
+                  <Pie
+                    data={chartData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: "right",
+                          title: {
+                            display: true,
+                            text: "Légendes",
+                            color: "#374151",
+                            font: {
+                              size: 14,
+                              weight: "bold",
+                            },
+                            padding: {
+                              bottom: 10,
+                            },
+                          },
+                          labels: {
+                            boxWidth: 14,
+                            padding: 12,
+                          },
                         },
                       },
-                    },
-
-                    tooltip: {
-                      callbacks: {
-                        label: (ctx) => {
-                          const value = Number(ctx.raw).toLocaleString("fr-FR");
-
-                          const total = ctx.dataset.data.reduce(
-                            (acc: number, v: number) => acc + v,
-                            0
-                          );
-
-                          const percent = total
-                            ? ((Number(ctx.raw) / total) * 100).toFixed(2)
-                            : "0.00";
-
-                          return `${ctx.dataset.label} – ${ctx.label} : ${value} F CFA (${percent} %)`;
-                        },
-                      },
-                    },
-                  },
-                }}
-              />
-            )}
-          </CardContent>
-        </Card>
-
-        {/* PIE */}
-        <Card className="h-[400px]">
-          <CardHeader>
-            <CardTitle className="text-center w-full">Répartition Montants virés et restes à virer</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[calc(100%-60px)]">
-            {chartData.datasets.length > 0 && (
-              <Pie
-                data={chartData}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: "right",
-                      title: {
-                        display: true,
-                        text: "Légendes",
-                        color: "#374151", // gris foncé (Tailwind gray-700)
-                        font: {
-                          size: 14,
-                          weight: "bold",
-                        },
-                        padding: {
-                          bottom: 10,
-                        },
-                      },
-                      labels: {
-                        boxWidth: 14,
-                        padding: 12,
-                      },
-                    },
-                  },
-                }}
-              />
-            )}
-          </CardContent>
-        </Card>        
-      </div>
+                    }}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 }

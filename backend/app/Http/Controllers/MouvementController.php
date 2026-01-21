@@ -27,14 +27,6 @@ class MouvementController extends Controller
 
         $mouvements = Mouvement::query()
 
-            //  AJOUT 3 : jointure utilisateurs (pour la régie)
-            ->join(
-                't_utilisateurs',
-                't_utilisateurs.UTI_CODE',
-                '=',
-                't_mouvements.MVT_UTI_CODE'
-            )
-
             ->join(
                 't_beneficiaires',
                 't_beneficiaires.BEN_CODE',
@@ -65,15 +57,10 @@ class MouvementController extends Controller
                 '=',
                 't_beneficiaires.POS_CODE'
             )
-            ->where('t_beneficiaires.BEN_STATUT', 1)
+            ->where('t_beneficiaires.BEN_STATUT', 2)
             ->where('t_mouvements.TYP_CODE', '20250001')
-
-            //  AJOUT 4 : filtre MÉTIER
-            ->when($nivValeur == 2, function ($query) use ($user) {
-                $query
-                    ->where('t_mouvements.MVT_NIV', 1) // transmis par niveau 1
-                    ->where('t_utilisateurs.REG_CODE', $user->REG_CODE); // même régie
-            })
+            ->where('t_mouvements.MVT_NIV', $nivValeur)
+            ->where('t_mouvements.MVT_UTI_REG', $user->REG_CODE) // même régie
 
             ->orderBy('t_mouvements.MVT_DATE', 'desc')
             ->orderBy('t_mouvements.MVT_HEURE', 'desc')
@@ -149,39 +136,35 @@ class MouvementController extends Controller
                 return response()->json(['message' => 'Bénéficiaire introuvable.'], 404);
             }
 
-            if ($beneficiaire->BEN_STATUT == 2) {
+            if ($beneficiaire->BEN_STATUT == 3) {
                 return response()->json(['message' => 'Ce bénéficiaire a déjà été approuvé.'], 400);
             }
 
             DB::transaction(function () use ($beneficiaire, $user, $nivValeur, $now) {
-
-                $beneficiaire->BEN_STATUT = 2;
+                $beneficiaire->BEN_STATUT = 3;
                 $beneficiaire->save();
 
-                $mvtCode = $this->generateMvtCode($user->REG_CODE);
+                // Mise à jour du dernier Mouvement de niveau 1 seulement
+                $dernierMvt = Mouvement::where('MVT_BEN_CODE', $beneficiaire->BEN_CODE)
+                    ->where('MVT_NIV', 2)
+                    ->first();
 
-                Mouvement::create([
-                    'MVT_CODE'          => $mvtCode,
-                    'MVT_BEN_CODE'      => $beneficiaire->BEN_CODE,
-                    'MVT_BEN_NOM_PRE'   => $beneficiaire->BEN_NOM. " " .$beneficiaire->BEN_PRENOM,
-                    'MVT_DATE'          => $now->toDateString(),
-                    'MVT_HEURE'         => $now->toTimeString(),
-                    'MVT_NIV'           => $nivValeur,
-                    'MVT_UTI_CODE'      => $user->UTI_CODE,
-                    'MVT_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
-                    'TYP_CODE'          => '20250001', // en dur
-                ]);
+                if ($dernierMvt) {
+                    $dernierMvt->MVT_NIV += 1;
+                    $dernierMvt->MVT_DATE = $now->toDateString();
+                    $dernierMvt->save();
+                }
 
+                $valCode = $this->generateValCode($user->REG_CODE);
+
+                // Création historique
                 HistoriquesValidation::create([
-                    'VAL_CODE'          => $mvtCode,
-                    'VAL_BEN_CODE'      => $beneficiaire->BEN_CODE,
-                    'VAL_BEN_NOM_PRE'   => $beneficiaire->BEN_NOM. " " .$beneficiaire->BEN_PRENOM,
-                    'VAL_UTI_CODE'      => $user->UTI_CODE,
-                    'VAL_DATE'          => $now->toDateString(),
-                    'VAL_HEURE'         => $now->toTimeString(),
-                    'VAL_NIV'           => $nivValeur,
-                    'VAL_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
-                    'MVT_CODE'          => $mvtCode,
+                    'VAL_CODE'      => $valCode,
+                    'VAL_DATE'      => $now->toDateString(),
+                    'VAL_HEURE'     => $now->toTimeString(),
+                    'VAL_UTI_CODE'  => $user->UTI_CODE,
+                    'VAL_CREER_PAR' => $user->UTI_NOM . " " . $user->UTI_PRENOM,
+                    'MVT_CODE'      => $dernierMvt ? $dernierMvt->MVT_CODE : null,
                 ]);
             });
 
@@ -211,38 +194,35 @@ class MouvementController extends Controller
                         return;
                     }
 
-                    if ($beneficiaire->BEN_STATUT == 2) {
+                    if ($beneficiaire->BEN_STATUT == 3) {
                         $results['failed'][] = ['BEN_CODE' => $code, 'reason' => 'Déjà approuvé.'];
                         return;
                     }
 
-                    $beneficiaire->BEN_STATUT = 2;
+                    $beneficiaire->BEN_STATUT = 3;
                     $beneficiaire->save();
 
-                    $mvtCode = $this->generateMvtCode($user->REG_CODE);
+                    // Mise à jour du dernier Mouvement de niveau 1 seulement
+                    $dernierMvt = Mouvement::where('MVT_BEN_CODE', $beneficiaire->BEN_CODE)
+                        ->where('MVT_NIV', 2)
+                        ->first();
 
-                    Mouvement::create([
-                        'MVT_CODE'        => $mvtCode,
-                        'MVT_BEN_CODE'    => $beneficiaire->BEN_CODE,
-                        'MVT_BEN_NOM_PRE' => $beneficiaire->BEN_NOM . " " . $beneficiaire->BEN_PRENOM,
-                        'MVT_DATE'        => $now->toDateString(),
-                        'MVT_HEURE'       => $now->toTimeString(),
-                        'MVT_NIV'         => $nivValeur,
-                        'MVT_UTI_CODE'    => $user->UTI_CODE,
-                        'MVT_CREER_PAR'   => $user->UTI_NOM . " " . $user->UTI_PRENOM,
-                        'TYP_CODE'        => '20250001',
-                    ]);
+                    if ($dernierMvt) {
+                        $dernierMvt->MVT_NIV += 1;
+                        $dernierMvt->MVT_DATE = $now->toDateString();
+                        $dernierMvt->save();
+                    }
 
+                    $valCode = $this->generateValCode($user->REG_CODE);
+
+                    // Création historique
                     HistoriquesValidation::create([
-                        'VAL_CODE'        => $mvtCode,
-                        'VAL_BEN_CODE'    => $beneficiaire->BEN_CODE,
-                        'VAL_BEN_NOM_PRE' => $beneficiaire->BEN_NOM . " " . $beneficiaire->BEN_PRENOM,
-                        'VAL_UTI_CODE'    => $user->UTI_CODE,
-                        'VAL_DATE'        => $now->toDateString(),
-                        'VAL_HEURE'       => $now->toTimeString(),
-                        'VAL_NIV'         => $nivValeur,
-                        'VAL_CREER_PAR'   => $user->UTI_NOM . " " . $user->UTI_PRENOM,
-                        'MVT_CODE'        => $mvtCode,
+                        'VAL_CODE'      => $valCode,
+                        'VAL_DATE'      => $now->toDateString(),
+                        'VAL_HEURE'     => $now->toTimeString(),
+                        'VAL_UTI_CODE'  => $user->UTI_CODE,
+                        'VAL_CREER_PAR' => $user->UTI_NOM . " " . $user->UTI_PRENOM,
+                        'MVT_CODE'      => $dernierMvt ? $dernierMvt->MVT_CODE : null,
                     ]);
 
                     $results['success'][] = ['BEN_CODE' => $code];
@@ -270,70 +250,124 @@ class MouvementController extends Controller
         $user = Auth::user();
         $now = Carbon::now();
 
-        // récupération du niveau de validation
-        $nivValeur = DB::table('t_niveau_validations')
-            ->join('t_groupes', 't_groupes.NIV_CODE', '=', 't_niveau_validations.NIV_CODE')
-            ->where('t_groupes.GRP_CODE', $user->GRP_CODE)
-            ->value('NIV_VALEUR');
+        DB::beginTransaction();
 
-        if ($id) {
-            // ===== VALIDATION UNIQUE =====
-            $beneficiaire = Beneficiaire::where('BEN_CODE', $id)->first();
+        try {
 
-            if (!$beneficiaire) {
-                return response()->json(['message' => 'Bénéficiaire introuvable.'], 404);
+            /*
+            |--------------------------------------------------------------------------
+            | REJET UNIQUE
+            |--------------------------------------------------------------------------
+            */
+            if ($id) {
+
+                $beneficiaire = Beneficiaire::where('BEN_CODE', $id)->first();
+
+                if (!$beneficiaire) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Bénéficiaire introuvable.'], 404);
+                }
+
+                // récupérer les mouvements liés au bénéficiaire
+                $mvtCodes = DB::table('t_mouvements')
+                    ->where('MVT_BEN_CODE', $id)
+                    ->where('TYP_CODE', '20250001') // type mouvement bénéficiaire
+                    ->pluck('MVT_CODE');
+
+                if ($mvtCodes->isNotEmpty()) {
+
+                    // supprimer historiques
+                    DB::table('t_historiques_validations')
+                        ->whereIn('MVT_CODE', $mvtCodes)
+                        ->delete();
+
+                    // supprimer mouvements
+                    DB::table('t_mouvements')
+                        ->whereIn('MVT_CODE', $mvtCodes)
+                        ->delete();
+                }
+
+                // mise à jour bénéficiaire
+                $beneficiaire->BEN_STATUT = 0; // rejeté
+                $beneficiaire->save();
+
+                DB::commit();
+
+                return response()->json([
+                    'message' => 'Rejet effectué avec succès.'
+                ]);
             }
 
-            DB::transaction(function () use ($beneficiaire, $user, $nivValeur, $now) {
+            /*
+            |--------------------------------------------------------------------------
+            | REJET MULTIPLE
+            |--------------------------------------------------------------------------
+            */
+            $ids = $request->input('ids', []);
 
-                $beneficiaire->BEN_STATUT = 3;
-                $beneficiaire->save();
-            });
+            if (!is_array($ids) || count($ids) === 0) {
+                DB::rollBack();
+                return response()->json(['message' => 'Aucun ID fourni.'], 400);
+            }
 
-            return response()->json(['message' => "Rejet effectué avec succès."]);
-        }
+            $results = ['success' => [], 'failed' => []];
 
-        // ===== VALIDATION MULTIPLE =====
-        $ids = $request->input('ids', []);
-
-        if (!is_array($ids) || count($ids) === 0) {
-            return response()->json(['message' => 'Aucun ID fourni.'], 400);
-        }
-
-        $results = ['success' => [], 'failed' => []];
-
-        DB::beginTransaction();
-        try {
-            $beneficiaires = Beneficiaire::whereIn('BEN_CODE', $ids)->get()->keyBy('BEN_CODE');
+            $beneficiaires = Beneficiaire::whereIn('BEN_CODE', $ids)
+                ->get()
+                ->keyBy('BEN_CODE');
 
             foreach ($ids as $code) {
+
                 $beneficiaire = $beneficiaires->get($code);
 
                 if (!$beneficiaire) {
-                    $results['failed'][] = ['BEN_CODE' => $code, 'reason' => 'Bénéficiaire introuvable.'];
+                    $results['failed'][] = [
+                        'BEN_CODE' => $code,
+                        'reason' => 'Bénéficiaire introuvable.'
+                    ];
                     continue;
                 }
 
-                $beneficiaire->BEN_STATUT = 3;
+                $mvtCodes = DB::table('t_mouvements')
+                    ->where('MVT_BEN_CODE', $code)
+                    ->where('TYP_CODE', '20250001')
+                    ->pluck('MVT_CODE');
+
+                if ($mvtCodes->isNotEmpty()) {
+
+                    DB::table('t_historiques_validations')
+                        ->whereIn('MVT_CODE', $mvtCodes)
+                        ->delete();
+
+                    DB::table('t_mouvements')
+                        ->whereIn('MVT_CODE', $mvtCodes)
+                        ->delete();
+                }
+
+                $beneficiaire->BEN_STATUT = 0;
                 $beneficiaire->save();
 
                 $results['success'][] = ['BEN_CODE' => $code];
             }
 
             DB::commit();
-        } catch (\Exception $e) {
-            DB::rollBack();
+
             return response()->json([
-                'message' => 'Erreur de base de données : ' . $e->getMessage()
+                'message' => 'Rejet effectué avec succès.',
+                'updated' => count($results['success']),
+                'failed'  => $results['failed'],
+                'success' => $results['success']
+            ]);
+
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'message' => 'Erreur lors du rejet',
+                'error' => $e->getMessage()
             ], 500);
         }
-
-        return response()->json([
-            'message' => 'Rejet effectué avec succès.',
-            'updated' => count($results['success']),
-            'failed'  => $results['failed'],
-            'success' => $results['success']
-        ]);
     }
 
     public function getMouvementsDomiciliersEnCours()
@@ -348,14 +382,6 @@ class MouvementController extends Controller
             ->value('NIV_VALEUR');
 
         $mouvements = Mouvement::query()
-
-            //  AJOUT 3 : jointure utilisateurs (pour la régie)
-            ->join(
-                't_utilisateurs',
-                't_utilisateurs.UTI_CODE',
-                '=',
-                't_mouvements.MVT_UTI_CODE'
-            )
 
             ->join(
                 't_beneficiaires',
@@ -393,15 +419,10 @@ class MouvementController extends Controller
                 '=',
                 't_beneficiaires.POS_CODE'
             )
-            ->where('t_domiciliers.DOM_STATUT', 1)
+            ->where('t_domiciliers.DOM_STATUT', 2)
             ->where('t_mouvements.TYP_CODE', '20250003')
-
-            //  AJOUT 4 : filtre métier (niveau 2 uniquement)
-            ->when($nivValeur == 2, function ($query) use ($user) {
-                $query
-                    ->where('t_mouvements.MVT_NIV', 1) // transmis par niveau 1
-                    ->where('t_utilisateurs.REG_CODE', $user->REG_CODE); // même régie
-            })
+            ->where('t_mouvements.MVT_NIV', $nivValeur)
+            ->where('t_mouvements.MVT_UTI_REG', $user->REG_CODE) // même régie
 
             ->orderBy('t_mouvements.MVT_DATE', 'desc')
             ->orderBy('t_mouvements.MVT_HEURE', 'desc')
@@ -466,7 +487,7 @@ class MouvementController extends Controller
                 return response()->json(['message' => 'RIB introuvable.'], 404);
             }
 
-            if ($domiciliation->DOM_STATUT == 2) {
+            if ($domiciliation->DOM_STATUT == 3) {
                 return response()->json(['message' => 'Ce RIB a déjà été approuvé.'], 400);
             }
 
@@ -476,50 +497,35 @@ class MouvementController extends Controller
 
                 // Désactiver les anciens RIB approuvés
                 Domicilier::where('BEN_CODE', $beneficiaire->BEN_CODE)
-                    ->where('DOM_STATUT', 2)
-                    ->update(['DOM_STATUT' => 0]);
+                    ->where('DOM_STATUT', 3)
+                    ->update(['DOM_STATUT' => 1]);
 
-                $domiciliation->DOM_STATUT = 2;
+                $domiciliation->DOM_STATUT = 3;
                 $domiciliation->save();
 
-                $mvtCode = $this->generateMvtCode($user->REG_CODE);
+                 // Mise à jour du dernier Mouvement de niveau 1 seulement
+                $dernierMvt = Mouvement::where('MVT_DOM_CODE', $domiciliation->DOM_CODE)
+                    ->where('MVT_NIV', 2)
+                    ->orderByDesc('MVT_DATE')
+                    ->orderByDesc('MVT_HEURE')
+                    ->first();
 
-                Mouvement::create([
-                    'MVT_CODE'        => $mvtCode,
-                    'MVT_DOM_CODE'    => $domiciliation->DOM_CODE,
-                    'MVT_BEN_CODE'    => $beneficiaire->BEN_CODE,
-                    'MVT_BEN_NOM_PRE' => $beneficiaire->BEN_NOM . ' ' . $beneficiaire->BEN_PRENOM,
-                    'MVT_BNQ_CODE'    => $domiciliation->BNQ_CODE,
-                    'MVT_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                    'MVT_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
-                    'MVT_GUI_NOM'     => $domiciliation->guichet?->GUI_NOM,
-                    'MVT_NUMCPT'      => $domiciliation->DOM_NUMCPT,
-                    'MVT_CLE_RIB'     => $domiciliation->DOM_RIB,
-                    'MVT_DATE'        => $now->toDateString(),
-                    'MVT_HEURE'       => $now->toTimeString(),
-                    'MVT_NIV'         => $nivValeur,
-                    'MVT_UTI_CODE'    => $user->UTI_CODE,
-                    'MVT_CREER_PAR'   => $user->UTI_NOM . ' ' . $user->UTI_PRENOM,
-                    'TYP_CODE'        => '20250003',
-                ]);
+                if ($dernierMvt) {
+                    $dernierMvt->MVT_NIV += 1;
+                    $dernierMvt->MVT_DATE = $now->toDateString();
+                    $dernierMvt->save();
+                }
 
+                $valCode = $this->generateValCode($user->REG_CODE);
+
+                // Création historique
                 HistoriquesValidation::create([
-                    'VAL_CODE'        => $mvtCode,
-                    'VAL_DOM_CODE'    => $domiciliation->DOM_CODE,
-                    'VAL_BEN_CODE'    => $beneficiaire->BEN_CODE,
-                    'VAL_BEN_NOM_PRE' => $beneficiaire->BEN_NOM . ' ' . $beneficiaire->BEN_PRENOM,
-                    'VAL_BNQ_CODE'    => $domiciliation->BNQ_CODE,
-                    'VAL_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                    'VAL_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
-                    'VAL_GUI_NOM'     => $domiciliation->guichet?->GUI_NOM,
-                    'VAL_NUMCPT'      => $domiciliation->DOM_NUMCPT,
-                    'VAL_CLE_RIB'     => $domiciliation->DOM_RIB,
-                    'VAL_DATE'        => $now->toDateString(),
-                    'VAL_HEURE'       => $now->toTimeString(),
-                    'VAL_NIV'         => $nivValeur,
-                    'VAL_UTI_CODE'    => $user->UTI_CODE,
-                    'VAL_CREER_PAR'   => $user->UTI_NOM . ' ' . $user->UTI_PRENOM,
-                    'MVT_CODE'        => $mvtCode,
+                    'VAL_CODE'      => $valCode,
+                    'VAL_DATE'      => $now->toDateString(),
+                    'VAL_HEURE'     => $now->toTimeString(),
+                    'VAL_UTI_CODE'  => $user->UTI_CODE,
+                    'VAL_CREER_PAR' => $user->UTI_NOM . " " . $user->UTI_PRENOM,
+                    'MVT_CODE'      => $dernierMvt ? $dernierMvt->MVT_CODE : null,
                 ]);
             });
 
@@ -555,7 +561,7 @@ class MouvementController extends Controller
                     continue;
                 }
 
-                if ($domiciliation->DOM_STATUT == 2) {
+                if ($domiciliation->DOM_STATUT == 3) {
                     $results['failed'][] = ['DOM_CODE' => $domCode, 'reason' => 'Déjà approuvé.'];
                     continue;
                 }
@@ -564,50 +570,35 @@ class MouvementController extends Controller
 
                 // Désactiver anciens RIB approuvés
                 Domicilier::where('BEN_CODE', $beneficiaire->BEN_CODE)
-                    ->where('DOM_STATUT', 2)
-                    ->update(['DOM_STATUT' => 0]);
+                    ->where('DOM_STATUT', 3)
+                    ->update(['DOM_STATUT' => 1]);
 
-                $domiciliation->DOM_STATUT = 2;
+                $domiciliation->DOM_STATUT = 3;
                 $domiciliation->save();
 
-                $mvtCode = $this->generateMvtCode($user->REG_CODE);
+                 // Mise à jour du dernier Mouvement de niveau 1 seulement
+                $dernierMvt = Mouvement::where('MVT_DOM_CODE', $domiciliation->DOM_CODE)
+                    ->where('MVT_NIV', 2)
+                    ->orderByDesc('MVT_DATE')
+                    ->orderByDesc('MVT_HEURE')
+                    ->first();
 
-                Mouvement::create([
-                    'MVT_CODE'        => $mvtCode,
-                    'MVT_DOM_CODE'    => $domiciliation->DOM_CODE,
-                    'MVT_BEN_CODE'    => $beneficiaire->BEN_CODE,
-                    'MVT_BEN_NOM_PRE' => $beneficiaire->BEN_NOM . ' ' . $beneficiaire->BEN_PRENOM,
-                    'MVT_BNQ_CODE'    => $domiciliation->BNQ_CODE,
-                    'MVT_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                    'MVT_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
-                    'MVT_GUI_NOM'     => $domiciliation->guichet?->GUI_NOM,
-                    'MVT_NUMCPT'      => $domiciliation->DOM_NUMCPT,
-                    'MVT_CLE_RIB'     => $domiciliation->DOM_RIB,
-                    'MVT_DATE'        => $now->toDateString(),
-                    'MVT_HEURE'       => $now->toTimeString(),
-                    'MVT_NIV'         => $nivValeur,
-                    'MVT_UTI_CODE'    => $user->UTI_CODE,
-                    'MVT_CREER_PAR'   => $user->UTI_NOM . ' ' . $user->UTI_PRENOM,
-                    'TYP_CODE'        => '20250003',
-                ]);
+                if ($dernierMvt) {
+                    $dernierMvt->MVT_NIV += 1;
+                    $dernierMvt->MVT_DATE = $now->toDateString();
+                    $dernierMvt->save();
+                }
 
+                $valCode = $this->generateValCode($user->REG_CODE);
+
+                // Création historique
                 HistoriquesValidation::create([
-                    'VAL_CODE'        => $mvtCode,
-                    'VAL_DOM_CODE'    => $domiciliation->DOM_CODE,
-                    'VAL_BEN_CODE'    => $beneficiaire->BEN_CODE,
-                    'VAL_BEN_NOM_PRE' => $beneficiaire->BEN_NOM . ' ' . $beneficiaire->BEN_PRENOM,
-                    'VAL_BNQ_CODE'    => $domiciliation->BNQ_CODE,
-                    'VAL_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                    'VAL_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
-                    'VAL_GUI_NOM'     => $domiciliation->guichet?->GUI_NOM,
-                    'VAL_NUMCPT'      => $domiciliation->DOM_NUMCPT,
-                    'VAL_CLE_RIB'     => $domiciliation->DOM_RIB,
-                    'VAL_DATE'        => $now->toDateString(),
-                    'VAL_HEURE'       => $now->toTimeString(),
-                    'VAL_NIV'         => $nivValeur,
-                    'VAL_UTI_CODE'    => $user->UTI_CODE,
-                    'VAL_CREER_PAR'   => $user->UTI_NOM . ' ' . $user->UTI_PRENOM,
-                    'MVT_CODE'        => $mvtCode,
+                    'VAL_CODE'      => $valCode,
+                    'VAL_DATE'      => $now->toDateString(),
+                    'VAL_HEURE'     => $now->toTimeString(),
+                    'VAL_UTI_CODE'  => $user->UTI_CODE,
+                    'VAL_CREER_PAR' => $user->UTI_NOM . " " . $user->UTI_PRENOM,
+                    'MVT_CODE'      => $dernierMvt ? $dernierMvt->MVT_CODE : null,
                 ]);
 
                 $results['success'][] = ['DOM_CODE' => $domCode];
@@ -630,55 +621,78 @@ class MouvementController extends Controller
         ]);
     }
 
-    public function rejeterDomicilier(Request $request, $id = null)
+   public function rejeterDomicilier(Request $request, $id = null)
     {
         $user = Auth::user();
         $now = Carbon::now();
 
-        // Récupération du niveau de validation
-        $nivValeur = DB::table('t_niveau_validations')
-            ->join('t_groupes', 't_groupes.NIV_CODE', '=', 't_niveau_validations.NIV_CODE')
-            ->where('t_groupes.GRP_CODE', $user->GRP_CODE)
-            ->value('NIV_VALEUR');
-
-        if ($id) {
-            // ===== VALIDATION UNIQUE =====
-            $domiciliation = Domicilier::with(['banque', 'guichet'])
-                ->where('DOM_CODE', $id)
-                ->first();
-
-            if (!$domiciliation) {
-                return response()->json(['message' => 'RIB introuvable.'], 404);
-            }
-
-            $beneficiaire = Beneficiaire::where('BEN_CODE', $domiciliation->BEN_CODE)->first();
-
-            DB::transaction(function () use ($domiciliation, $beneficiaire, $user, $nivValeur, $now) {
-
-                $domiciliation->DOM_STATUT = 3;
-                $domiciliation->save();
-            });
-
-            return response()->json(['message' => "Rejet effectué avec succès."]);
-        }
-
-         /* =========================================================
-        * VALIDATION MULTIPLE
-        * ========================================================= */
-
-        $ids = $request->input('ids', []);
-
-        if (!is_array($ids) || count($ids) === 0) {
-            return response()->json(['message' => 'Aucun ID fourni.'], 400);
-        }
-
-        $results = ['success' => [], 'failed' => []];
-
         DB::beginTransaction();
+
         try {
 
-            $domiciliations = Domicilier::with(['banque', 'guichet'])
-                ->whereIn('DOM_CODE', $ids)
+            /*
+            |--------------------------------------------------------------------------
+            | REJET UNIQUE
+            |--------------------------------------------------------------------------
+            */
+            if ($id) {
+
+                $domiciliation = Domicilier::where('DOM_CODE', $id)->first();
+
+                if (!$domiciliation) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'RIB introuvable.'], 404);
+                }
+
+                if ($domiciliation->DOM_STATUT == 3) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'RIB déjà approuvé.'], 400);
+                }
+
+                $mvtCodes = DB::table('t_mouvements')
+                    ->where('MVT_DOM_CODE', $id)
+                    ->where('TYP_CODE', '20250003') // type mouvement domiciliation
+                    ->pluck('MVT_CODE');
+
+                if ($mvtCodes->isNotEmpty()) {
+
+                    //  supprimer historiques
+                    DB::table('t_historiques_validations')
+                        ->whereIn('MVT_CODE', $mvtCodes)
+                        ->delete();
+
+                    // supprimer mouvements
+                    DB::table('t_mouvements')
+                        ->whereIn('MVT_CODE', $mvtCodes)
+                        ->delete();
+                }
+
+                // mise à jour domiciliation
+                $domiciliation->DOM_STATUT = 0; // rejeté
+                $domiciliation->save();
+
+                DB::commit();
+
+                return response()->json([
+                    'message' => 'Rejet effectué avec succès.'
+                ]);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | REJET MULTIPLE
+            |--------------------------------------------------------------------------
+            */
+            $ids = $request->input('ids', []);
+
+            if (!is_array($ids) || count($ids) === 0) {
+                DB::rollBack();
+                return response()->json(['message' => 'Aucun ID fourni.'], 400);
+            }
+
+            $results = ['success' => [], 'failed' => []];
+
+            $domiciliations = Domicilier::whereIn('DOM_CODE', $ids)
                 ->get()
                 ->keyBy('DOM_CODE');
 
@@ -687,75 +701,227 @@ class MouvementController extends Controller
                 $domiciliation = $domiciliations->get($domCode);
 
                 if (!$domiciliation) {
-                    $results['failed'][] = ['DOM_CODE' => $domCode, 'reason' => 'RIB introuvable.'];
+                    $results['failed'][] = [
+                        'DOM_CODE' => $domCode,
+                        'reason' => 'RIB introuvable.'
+                    ];
                     continue;
                 }
 
-                if ($domiciliation->DOM_STATUT == 2) {
-                    $results['failed'][] = ['DOM_CODE' => $domCode, 'reason' => 'Déjà approuvé.'];
+                if ($domiciliation->DOM_STATUT == 3) {
+                    $results['failed'][] = [
+                        'DOM_CODE' => $domCode,
+                        'reason' => 'Déjà approuvé.'
+                    ];
                     continue;
                 }
 
-                $beneficiaire = Beneficiaire::where('BEN_CODE', $domiciliation->BEN_CODE)->first();
+                $mvtCodes = DB::table('t_mouvements')
+                    ->where('MVT_DOM_CODE', $domCode)
+                    ->where('TYP_CODE', '20250003')
+                    ->pluck('MVT_CODE');
 
-                $domiciliation->DOM_STATUT = 3;
+                if ($mvtCodes->isNotEmpty()) {
+
+                    DB::table('t_historiques_validations')
+                        ->whereIn('MVT_CODE', $mvtCodes)
+                        ->delete();
+
+                    DB::table('t_mouvements')
+                        ->whereIn('MVT_CODE', $mvtCodes)
+                        ->delete();
+                }
+
+                $domiciliation->DOM_STATUT = 0;
                 $domiciliation->save();
-
-                $mvtCode = $this->generateMvtCode($user->REG_CODE);
 
                 $results['success'][] = ['DOM_CODE' => $domCode];
             }
 
             DB::commit();
 
-        } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
-                'message' => 'Erreur de base de données : ' . $e->getMessage()
+                'message' => 'Rejet effectué avec succès.',
+                'updated' => count($results['success']),
+                'failed'  => $results['failed'],
+                'success' => $results['success']
+            ]);
+
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'message' => 'Erreur lors du rejet',
+                'error' => $e->getMessage()
             ], 500);
         }
-
-        return response()->json([
-            'message' => 'Rejet effectué avec succès.',
-            'updated' => count($results['success']),
-            'failed'  => $results['failed'],
-            'success' => $results['success'],
-        ]);
     }
 
-    public function getMouvementsPaiementsEnCours()
+    // public function getMouvementsPaiementsEnCours(Request $request)
+    // {
+    //     // Utilisateur connecté
+    //     $user = Auth::user();
+
+    //     // Récupérer le niveau de validation
+    //     $nivValeur = DB::table('t_niveau_validations')
+    //         ->join('t_groupes', 't_groupes.NIV_CODE', '=', 't_niveau_validations.NIV_CODE')
+    //         ->where('t_groupes.GRP_CODE', $user->GRP_CODE)
+    //         ->value('NIV_VALEUR');
+
+    //     // ===== Filtre échéance : si non envoyé, prendre la dernière active =====
+    //     $echCodeFilter = $request->input('ech_code');
+    //     if (empty($echCodeFilter)) {
+    //         $currentEcheance = DB::table('t_echeances')
+    //             ->where('ECH_STATUT', true)
+    //             ->orderBy('ECH_CODE', 'desc')
+    //             ->first();
+    //         $echCodeFilter = $currentEcheance?->ECH_CODE;
+    //     }
+
+    //     // ===== Requête mouvements =====
+    //     $query = Mouvement::query()
+    //         ->join('t_beneficiaires', 't_beneficiaires.BEN_CODE', '=', 't_mouvements.MVT_BEN_CODE')
+    //         ->join('t_paiements', 't_paiements.PAI_CODE', '=', 't_mouvements.MVT_PAI_CODE')
+    //         ->leftJoin('t_type_beneficiaires', 't_type_beneficiaires.TYP_CODE', '=', 't_beneficiaires.TYP_CODE')
+    //         ->leftJoin('t_fonctions', 't_fonctions.FON_CODE', '=', 't_beneficiaires.FON_CODE')
+    //         ->leftJoin('t_grades', 't_grades.GRD_CODE', '=', 't_beneficiaires.GRD_CODE')
+    //         ->leftJoin('t_positions', 't_positions.POS_CODE', '=', 't_beneficiaires.POS_CODE')
+    //         ->where('t_paiements.PAI_STATUT', 2)
+    //         ->where('t_mouvements.TYP_CODE', '20250002')
+    //         ->where('t_mouvements.MVT_NIV', $nivValeur)
+    //         ->when($echCodeFilter, fn ($q) =>
+    //             $q->where('t_paiements.ECH_CODE', $echCodeFilter)
+    //         );
+
+    //     // ===== Filtre régie (LOGIQUE CONSULTANT) =====
+    //     if ($user->REG_CODE !== null) {
+    //         $query->where('t_mouvements.MVT_UTI_REG', $user->REG_CODE);
+    //     }
+
+    //     $mouvements = $query
+    //         ->orderBy('t_mouvements.MVT_DATE', 'desc')
+    //         ->orderBy('t_mouvements.MVT_HEURE', 'desc')
+    //         ->orderByDesc('t_paiements.PAI_CODE')
+    //         ->select([
+    //             // ===== Mouvement =====
+    //             't_mouvements.MVT_CODE',
+    //             't_mouvements.MVT_DOM_CODE as DOM_CODE',
+    //             't_mouvements.MVT_BEN_NOM_PRE',
+    //             't_mouvements.MVT_BNQ_LIBELLE as BANQUE',
+    //             't_mouvements.MVT_GUI_CODE as GUICHET',
+    //             't_mouvements.MVT_NUMCPT as NUMCPT',
+    //             't_mouvements.MVT_CLE_RIB as RIB',
+    //             't_mouvements.MVT_DATE',
+    //             't_mouvements.MVT_HEURE',
+    //             't_mouvements.MVT_NIV',
+    //             't_mouvements.MVT_UTI_CODE',
+    //             't_mouvements.MVT_CREER_PAR',
+    //             't_mouvements.TYP_CODE',
+
+    //             // ===== Paiement =====
+    //             't_paiements.PAI_CODE',
+    //             't_paiements.PAI_STATUT',
+    //             't_paiements.ECH_CODE',
+
+    //             // ===== Bénéficiaire =====
+    //             't_beneficiaires.BEN_MATRICULE',
+    //             't_beneficiaires.BEN_SEXE',
+    //             't_beneficiaires.BEN_STATUT',
+
+    //             // ===== Infos complémentaires =====
+    //             't_type_beneficiaires.TYP_LIBELLE as TYPE_BENEFICIAIRE',
+    //             't_fonctions.FON_LIBELLE as FONCTION',
+    //             't_grades.GRD_LIBELLE as GRADE',
+    //             't_positions.POS_LIBELLE as POSITION',
+    //         ])
+    //         ->get();
+
+    //     // ===== Détails paiements =====
+    //     $detailsPaiements = DB::table('t_details_paiement')
+    //         ->join('t_elements', 't_elements.ELT_CODE', '=', 't_details_paiement.ELT_CODE')
+    //         ->select(
+    //             't_details_paiement.PAI_CODE',
+    //             't_elements.ELT_LIBELLE',
+    //             't_elements.ELT_SENS',
+    //             DB::raw('t_details_paiement.PAI_MONTANT as ELT_MONTANT')
+    //         )
+    //         ->orderBy('t_details_paiement.DET_CODE')
+    //         ->get()
+    //         ->groupBy('PAI_CODE');
+
+    //     // ===== Totaux =====
+    //     $totauxPaiements = DB::table('t_details_paiement')
+    //         ->join('t_elements', 't_elements.ELT_CODE', '=', 't_details_paiement.ELT_CODE')
+    //         ->select(
+    //             't_details_paiement.PAI_CODE',
+    //             DB::raw('SUM(CASE WHEN t_elements.ELT_SENS = 1 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) AS TOTAL_GAIN'),
+    //             DB::raw('SUM(CASE WHEN t_elements.ELT_SENS = 2 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) AS TOTAL_RETENU'),
+    //             DB::raw('(SUM(CASE WHEN t_elements.ELT_SENS = 1 THEN t_details_paiement.PAI_MONTANT ELSE 0 END)
+    //                     - SUM(CASE WHEN t_elements.ELT_SENS = 2 THEN t_details_paiement.PAI_MONTANT ELSE 0 END)) AS MONTANT_NET')
+    //         )
+    //         ->groupBy('t_details_paiement.PAI_CODE')
+    //         ->get()
+    //         ->keyBy('PAI_CODE');
+
+    //     // ===== Mapping =====
+    //     $mouvements = $mouvements->map(function ($mvt) use ($detailsPaiements, $totauxPaiements) {
+    //         $paiCode = $mvt->PAI_CODE;
+
+    //         $mvt->details = $detailsPaiements[$paiCode] ?? [];
+
+    //         $totaux = $totauxPaiements[$paiCode] ?? (object)[
+    //             'TOTAL_GAIN' => 0,
+    //             'TOTAL_RETENU' => 0,
+    //             'MONTANT_NET' => 0
+    //         ];
+
+    //         $mvt->TOTAL_GAIN   = $totaux->TOTAL_GAIN;
+    //         $mvt->TOTAL_RETENU = $totaux->TOTAL_RETENU;
+    //         $mvt->MONTANT_NET  = $totaux->MONTANT_NET;
+
+    //         return $mvt;
+    //     });
+
+    //     return response()->json([
+    //         'count' => $mouvements->count(),
+    //         'data'  => $mouvements
+    //     ]);
+    // }
+
+    public function getMouvementsPaiementsEnCours(Request $request)
     {
-        // AJOUT 1 : utilisateur connecté
+        // Utilisateur connecté
         $user = Auth::user();
 
-        // AJOUT 2 : récupération du niveau
+        // Récupérer le niveau de validation
         $nivValeur = DB::table('t_niveau_validations')
             ->join('t_groupes', 't_groupes.NIV_CODE', '=', 't_niveau_validations.NIV_CODE')
             ->where('t_groupes.GRP_CODE', $user->GRP_CODE)
             ->value('NIV_VALEUR');
 
-        //  Récupérer tous les mouvements
+        // ===== Filtre échéance : si non envoyé, prendre la dernière active =====
+        $echCodeFilter = $request->input('ech_code');
+        if (empty($echCodeFilter)) {
+            $currentEcheance = DB::table('t_echeances')
+                ->where('ECH_STATUT', true)
+                ->orderBy('ECH_CODE', 'desc')
+                ->first();
+            $echCodeFilter = $currentEcheance?->ECH_CODE;
+        }
+
+        // Récupérer tous les mouvements
         $mouvements = Mouvement::query()
             ->join('t_beneficiaires', 't_beneficiaires.BEN_CODE', '=', 't_mouvements.MVT_BEN_CODE')
             ->join('t_paiements', 't_paiements.PAI_CODE', '=', 't_mouvements.MVT_PAI_CODE')
-
-            // AJOUT 3 : jointure utilisateurs pour filtrer par régie
-            ->join('t_utilisateurs', 't_utilisateurs.UTI_CODE', '=', 't_mouvements.MVT_UTI_CODE')
-
             ->leftJoin('t_type_beneficiaires', 't_type_beneficiaires.TYP_CODE', '=', 't_beneficiaires.TYP_CODE')
             ->leftJoin('t_fonctions', 't_fonctions.FON_CODE', '=', 't_beneficiaires.FON_CODE')
             ->leftJoin('t_grades', 't_grades.GRD_CODE', '=', 't_beneficiaires.GRD_CODE')
             ->leftJoin('t_positions', 't_positions.POS_CODE', '=', 't_beneficiaires.POS_CODE')
-            ->where('t_paiements.PAI_STATUT', 1)
+            ->where('t_paiements.PAI_STATUT', 2)
             ->where('t_mouvements.TYP_CODE', '20250002')
-
-            // AJOUT 4 : filtre métier (niveau 2 uniquement)
-            ->when($nivValeur == 2, function ($query) use ($user) {
-                $query
-                    ->where('t_mouvements.MVT_NIV', 1) // transmis par niveau 1
-                    ->where('t_utilisateurs.REG_CODE', $user->REG_CODE); // même régie
-            })
-
+            ->where('t_mouvements.MVT_NIV', $nivValeur)
+            ->where('t_mouvements.MVT_UTI_REG', $user->REG_CODE)
             ->orderBy('t_mouvements.MVT_DATE', 'desc')
             ->orderBy('t_mouvements.MVT_HEURE', 'desc')
             ->select([
@@ -785,14 +951,16 @@ class MouvementController extends Controller
                 't_beneficiaires.BEN_STATUT',
 
                 // ===== Infos complémentaires =====
+                't_type_beneficiaires.TYP_CODE',
                 't_type_beneficiaires.TYP_LIBELLE as TYPE_BENEFICIAIRE',
                 't_fonctions.FON_LIBELLE as FONCTION',
                 't_grades.GRD_LIBELLE as GRADE',
                 't_positions.POS_LIBELLE as POSITION',
             ])
+            ->orderByDesc('t_paiements.PAI_CODE')
             ->get();
 
-        //  Récupérer tous les détails de paiement en une seule requête
+        // Récupérer tous les détails de paiement
         $detailsPaiements = DB::table('t_details_paiement')
             ->join('t_elements', 't_elements.ELT_CODE', '=', 't_details_paiement.ELT_CODE')
             ->select(
@@ -803,9 +971,9 @@ class MouvementController extends Controller
             )
             ->orderBy('t_details_paiement.DET_CODE')
             ->get()
-            ->groupBy('PAI_CODE'); // groupe par PAI_CODE pour lier aux mouvements
+            ->groupBy('PAI_CODE');
 
-        //  Calculer les totaux pour chaque paiement
+        // Calculer les totaux pour chaque paiement
         $totauxPaiements = DB::table('t_details_paiement')
             ->join('t_elements', 't_elements.ELT_CODE', '=', 't_details_paiement.ELT_CODE')
             ->select(
@@ -816,16 +984,13 @@ class MouvementController extends Controller
             )
             ->groupBy('t_details_paiement.PAI_CODE')
             ->get()
-            ->keyBy('PAI_CODE'); // clé = PAI_CODE pour lier facilement
+            ->keyBy('PAI_CODE');
 
-        //  Lier détails et totaux à chaque mouvement
+        // Lier détails et totaux à chaque mouvement
         $mouvements = $mouvements->map(function ($mvt) use ($detailsPaiements, $totauxPaiements) {
             $paiCode = $mvt->PAI_CODE;
 
-            // détails du paiement
             $mvt->details = $detailsPaiements[$paiCode] ?? [];
-
-            // totaux
             $totaux = $totauxPaiements[$paiCode] ?? (object)[
                 'TOTAL_GAIN' => 0,
                 'TOTAL_RETENU' => 0,
@@ -839,18 +1004,22 @@ class MouvementController extends Controller
             return $mvt;
         });
 
+        // ===== Filtre échéance appliqué comme index =====
+        $mouvements = $mouvements->filter(function($mvt) use ($echCodeFilter) {
+            return !$echCodeFilter || $mvt->ECH_CODE == $echCodeFilter;
+        });
+
         return response()->json([
             'count' => $mouvements->count(),
-            'data'  => $mouvements
+            'data'  => $mouvements->values()
         ]);
     }
 
-    // Ajoutez cette méthode dans MouvementController
     private function getDomiciliationBeneficiaire($benCode)
     {
         return Domicilier::with(['banque', 'guichet'])
             ->where('BEN_CODE', $benCode)
-            ->where('DOM_STATUT', 2) // seulement les domiciliations actives
+            ->where('DOM_STATUT', 3) // seulement les domiciliations actives
             ->first();
     }
 
@@ -873,7 +1042,7 @@ class MouvementController extends Controller
                 return response()->json(['message' => 'Paiement introuvable.'], 404);
             }
 
-            if ($paiement->PAI_STATUT == 2) {
+            if ($paiement->PAI_STATUT == 3) {
                 return response()->json(['message' => 'Ce paiement a déjà été approuvé.'], 400);
             }
 
@@ -885,46 +1054,32 @@ class MouvementController extends Controller
                     throw new \Exception("Aucune domiciliation trouvée pour le bénéficiaire {$paiement->BEN_CODE}");
                 }
 
-                $paiement->PAI_STATUT = 2;
+                $paiement->PAI_STATUT = 3;
                 $paiement->save();
 
-                $mvtCode = $this->generateMvtCode($user->REG_CODE);
+                // Mise à jour du dernier Mouvement de niveau 1 seulement
+                $dernierMvt = Mouvement::where('MVT_PAI_CODE', $paiement->PAI_CODE)
+                    ->where('MVT_NIV', 2)
+                    ->orderByDesc('MVT_DATE')
+                    ->orderByDesc('MVT_HEURE')
+                    ->first();
 
-                Mouvement::create([
-                    'MVT_CODE'        => $mvtCode,
-                    'MVT_PAI_CODE'    => $paiement->PAI_CODE,
-                    'MVT_BEN_CODE'    => $paiement->BEN_CODE,
-                    'MVT_BEN_NOM_PRE' => $paiement->PAI_BENEFICIAIRE,
+                if ($dernierMvt) {
+                    $dernierMvt->MVT_NIV += 1;
+                    $dernierMvt->MVT_DATE = $now->toDateString();
+                    $dernierMvt->save();
+                }
 
-                    'MVT_BNQ_CODE'    => $domiciliation->BNQ_CODE,
-                    'MVT_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                    'MVT_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
-                    'MVT_NUMCPT'      => $domiciliation->DOM_NUMCPT,
-                    'MVT_CLE_RIB'     => $domiciliation->DOM_RIB,
-                    'MVT_DATE'        => $now->toDateString(),
-                    'MVT_HEURE'       => $now->toTimeString(),
-                    'MVT_NIV'         => $nivValeur,
-                    'MVT_UTI_CODE'      => $user->UTI_CODE,
-                    'MVT_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
-                    'TYP_CODE'        => '20250002',
-                ]);
+                $valCode = $this->generateValCode($user->REG_CODE);
 
+                // Création historique
                 HistoriquesValidation::create([
-                    'VAL_CODE'        => $mvtCode,
-                    'VAL_PAI_CODE'    => $paiement->PAI_CODE,
-                    'VAL_BEN_CODE'    => $paiement->BEN_CODE,
-                    'VAL_BEN_NOM_PRE' => $paiement->PAI_BENEFICIAIRE,
-                    'VAL_BNQ_CODE'    => $domiciliation->BNQ_CODE,
-                    'VAL_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                    'VAL_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
-                    'VAL_NUMCPT'      => $domiciliation->DOM_NUMCPT,
-                    'VAL_CLE_RIB'     => $domiciliation->DOM_RIB,
-                    'VAL_DATE'        => $now->toDateString(),
-                    'VAL_HEURE'       => $now->toTimeString(),
-                    'VAL_NIV'         => $nivValeur,
-                    'VAL_UTI_CODE'    => $user->UTI_CODE,
-                    'VAL_CREER_PAR'   => $user->UTI_NOM . ' ' . $user->UTI_PRENOM,
-                    'MVT_CODE'        => $mvtCode,
+                    'VAL_CODE'      => $valCode,
+                    'VAL_DATE'      => $now->toDateString(),
+                    'VAL_HEURE'     => $now->toTimeString(),
+                    'VAL_UTI_CODE'  => $user->UTI_CODE,
+                    'VAL_CREER_PAR' => $user->UTI_NOM . " " . $user->UTI_PRENOM,
+                    'MVT_CODE'      => $dernierMvt ? $dernierMvt->MVT_CODE : null,
                 ]);
             });
             return response()->json(['message' => "Approbation réussie."]);
@@ -952,7 +1107,7 @@ class MouvementController extends Controller
                     continue;
                 }
 
-                if (in_array($paiementItem->PAI_STATUT, [2])) {
+                if (in_array($paiementItem->PAI_STATUT, [3])) {
                     $results['failed'][] = [
                         'PAI_CODE' => $code,
                         'reason' => 'Paiement déjà approuvé'
@@ -970,45 +1125,32 @@ class MouvementController extends Controller
                     continue;
                 }
 
-                $paiementItem->PAI_STATUT = 2;
+                $paiementItem->PAI_STATUT = 3;
                 $paiementItem->save();
 
-                $mvtCode = $this->generateMvtCode($user->REG_CODE);
+                // Mise à jour du dernier Mouvement de niveau 1 seulement
+                $dernierMvt = Mouvement::where('MVT_PAI_CODE', $paiementItem->PAI_CODE)
+                    ->where('MVT_NIV', 2)
+                    ->orderByDesc('MVT_DATE')
+                    ->orderByDesc('MVT_HEURE')
+                    ->first();
 
-                Mouvement::create([
-                    'MVT_CODE'        => $mvtCode,
-                    'MVT_PAI_CODE'    => $paiementItem->PAI_CODE,
-                    'MVT_BEN_CODE'    => $paiementItem->BEN_CODE,
-                    'MVT_BEN_NOM_PRE' => $paiementItem->PAI_BENEFICIAIRE,
-                    'MVT_BNQ_CODE'    => $domiciliation->BNQ_CODE,
-                    'MVT_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                    'MVT_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
-                    'MVT_NUMCPT'      => $domiciliation->DOM_NUMCPT,
-                    'MVT_CLE_RIB'     => $domiciliation->DOM_RIB,
-                    'MVT_DATE'        => $now->toDateString(),
-                    'MVT_HEURE'       => $now->toTimeString(),
-                    'MVT_NIV'         => $nivValeur,
-                    'MVT_UTI_CODE'      => $user->UTI_CODE,
-                    'MVT_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
-                    'TYP_CODE'        => '20250002',
-                ]);
+                if ($dernierMvt) {
+                    $dernierMvt->MVT_NIV += 1;
+                    $dernierMvt->MVT_DATE = $now->toDateString();
+                    $dernierMvt->save();
+                }
 
+                $valCode = $this->generateValCode($user->REG_CODE);
+
+                // Création historique
                 HistoriquesValidation::create([
-                    'VAL_CODE'        => $mvtCode,
-                    'VAL_PAI_CODE'    => $paiementItem->PAI_CODE,
-                    'VAL_BEN_CODE'    => $paiementItem->BEN_CODE,
-                    'VAL_BEN_NOM_PRE' => $paiementItem->PAI_BENEFICIAIRE,
-                    'VAL_BNQ_CODE'    => $domiciliation->BNQ_CODE,
-                    'VAL_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                    'VAL_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
-                    'VAL_NUMCPT'      => $domiciliation->DOM_NUMCPT,
-                    'VAL_CLE_RIB'     => $domiciliation->DOM_RIB,
-                    'VAL_DATE'        => $now->toDateString(),
-                    'VAL_HEURE'       => $now->toTimeString(),
-                    'VAL_NIV'         => $nivValeur,
-                    'VAL_UTI_CODE'    => $user->UTI_CODE,
-                    'VAL_CREER_PAR'   => $user->UTI_NOM . ' ' . $user->UTI_PRENOM,
-                    'MVT_CODE'        => $mvtCode,
+                    'VAL_CODE'      => $valCode,
+                    'VAL_DATE'      => $now->toDateString(),
+                    'VAL_HEURE'     => $now->toTimeString(),
+                    'VAL_UTI_CODE'  => $user->UTI_CODE,
+                    'VAL_CREER_PAR' => $user->UTI_NOM . " " . $user->UTI_PRENOM,
+                    'MVT_CODE'      => $dernierMvt ? $dernierMvt->MVT_CODE : null,
                 ]);
 
                 $results['success'][] = ['PAI_CODE' => $code];
@@ -1035,70 +1177,158 @@ class MouvementController extends Controller
         $user = Auth::user();
         $now = Carbon::now();
 
-        // récupération du niveau de validation
-        $nivValeur = DB::table('t_niveau_validations')
-            ->join('t_groupes', 't_groupes.NIV_CODE', '=', 't_niveau_validations.NIV_CODE')
-            ->where('t_groupes.GRP_CODE', $user->GRP_CODE)
-            ->value('NIV_VALEUR');
+        DB::beginTransaction();
 
-        if ($id) {
-            // ===== VALIDATION UNIQUE =====
-            $paiement = Paiement::where('PAI_CODE', $id)->first();
+        try {
 
-            if (!$paiement) {
-                return response()->json(['message' => 'Paiement introuvable.'], 404);
+            /*
+            |--------------------------------------------------------------------------
+            | REJET UNIQUE
+            |--------------------------------------------------------------------------
+            */
+            if ($id) {
+
+                $paiement = Paiement::where('PAI_CODE', $id)->first();
+
+                if (!$paiement) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Paiement introuvable.'], 404);
+                }
+
+                if ($paiement->PAI_STATUT == 3) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'Paiement déjà approuvé.'], 400);
+                }
+
+                $mvtCodes = DB::table('t_mouvements')
+                    ->where('MVT_PAI_CODE', $id)
+                    ->where('TYP_CODE', '20250002') // type mouvement paiement
+                    ->pluck('MVT_CODE');
+
+                if ($mvtCodes->isNotEmpty()) {
+
+                    // supprimer historiques
+                    DB::table('t_historiques_validations')
+                        ->whereIn('MVT_CODE', $mvtCodes)
+                        ->delete();
+
+                    // supprimer mouvements
+                    DB::table('t_mouvements')
+                        ->whereIn('MVT_CODE', $mvtCodes)
+                        ->delete();
+                }
+
+                // mise à jour paiement
+                $paiement->PAI_STATUT = 0; // rejeté
+                $paiement->save();
+
+                DB::commit();
+
+                return response()->json([
+                    'message' => 'Rejet effectué avec succès.'
+                ]);
             }
 
-            DB::transaction(function () use ($paiement, $user, $nivValeur, $now) {
+            /*
+            |--------------------------------------------------------------------------
+            | REJET MULTIPLE
+            |--------------------------------------------------------------------------
+            */
+            $ids = $request->input('ids', []);
 
-                $paiement->PAI_STATUT = 3;
-                $paiement->save();
-            });
-            return response()->json(['message' => "Rejet effectué avec succès."]);
-        }
+            if (!is_array($ids) || count($ids) === 0) {
+                DB::rollBack();
+                return response()->json(['message' => 'Aucun ID fourni.'], 400);
+            }
 
-        // ===== VALIDATION MULTIPLE =====
-        $ids = $request->input('ids', []);
+            $results = ['success' => [], 'failed' => []];
 
-        if (!is_array($ids) || count($ids) === 0) {
-            return response()->json(['message' => 'Aucun ID fourni.'], 400);
-        }
-
-        $results = ['success' => [], 'failed' => []];
-
-        DB::beginTransaction();
-        try {
-            $paiements = Paiement::whereIn('PAI_CODE', $ids)->get()->keyBy('PAI_CODE');
+            $paiements = Paiement::whereIn('PAI_CODE', $ids)
+                ->get()
+                ->keyBy('PAI_CODE');
 
             foreach ($ids as $code) {
 
                 $paiementItem = $paiements->get($code);
 
                 if (!$paiementItem) {
-                    $results['failed'][] = ['PAI_CODE' => $code, 'reason' => 'Paiement introuvable'];
+                    $results['failed'][] = [
+                        'PAI_CODE' => $code,
+                        'reason' => 'Paiement introuvable.'
+                    ];
                     continue;
                 }
 
-                $paiementItem->PAI_STATUT = 3;
+                if ($paiementItem->PAI_STATUT == 3) {
+                    $results['failed'][] = [
+                        'PAI_CODE' => $code,
+                        'reason' => 'Déjà approuvé.'
+                    ];
+                    continue;
+                }
+
+                $mvtCodes = DB::table('t_mouvements')
+                    ->where('MVT_PAI_CODE', $code)
+                    ->where('TYP_CODE', '20250002')
+                    ->pluck('MVT_CODE');
+
+                if ($mvtCodes->isNotEmpty()) {
+
+                    DB::table('t_historiques_validations')
+                        ->whereIn('MVT_CODE', $mvtCodes)
+                        ->delete();
+
+                    DB::table('t_mouvements')
+                        ->whereIn('MVT_CODE', $mvtCodes)
+                        ->delete();
+                }
+
+                $paiementItem->PAI_STATUT = 0;
                 $paiementItem->save();
 
                 $results['success'][] = ['PAI_CODE' => $code];
             }
 
             DB::commit();
-        } catch (\Exception $e) {
-            DB::rollBack();
+
             return response()->json([
-                'message' => 'Erreur de base de données : ' . $e->getMessage()
+                'message' => 'Rejet effectué avec succès.',
+                'updated' => count($results['success']),
+                'failed'  => $results['failed'],
+                'success' => $results['success']
+            ]);
+
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'message' => 'Erreur lors du rejet',
+                'error'   => $e->getMessage()
             ], 500);
         }
+    }
 
-        return response()->json([
-            'message' => 'Rejet effectué avec succès.',
-            'updated' => count($results['success']),
-            'failed' => $results['failed'],
-            'success' => $results['success']
-        ]);
+    private function generateValCode($regCode)
+    {
+        $echeance = DB::table('t_echeances')
+            ->where('ECH_STATUT', 1)
+            ->first();
+
+        if (!$echeance) {
+            throw new \Exception('Aucune échéance active.');
+        }
+
+        $echCode = $echeance->ECH_CODE;
+
+        $lastNumber = DB::table('t_historiques_validations')
+            ->where('VAL_CODE', 'like', $echCode . $regCode . '%')
+            ->select(DB::raw("MAX(RIGHT(VAL_CODE,5)) as max_num"))
+            ->value('max_num');
+
+        $nextNumber = str_pad(((int)$lastNumber + 1), 6, '0', STR_PAD_LEFT);
+
+        return $echCode . $regCode . $nextNumber;
     }
 
     public function validerBeneficiaireEtDomicilier(Request $request, $benCode = null)
@@ -1106,7 +1336,7 @@ class MouvementController extends Controller
         $user = Auth::user();
         $now = Carbon::now();
 
-        // récupération du niveau de validation
+        // Récupération du niveau de validation
         $nivValeur = DB::table('t_niveau_validations')
             ->join('t_groupes', 't_groupes.NIV_CODE', '=', 't_niveau_validations.NIV_CODE')
             ->where('t_groupes.GRP_CODE', $user->GRP_CODE)
@@ -1124,14 +1354,14 @@ class MouvementController extends Controller
             ->first();
 
         // Vérification des statuts
-        $beneficiaireNonTransmis = $beneficiaire->BEN_STATUT != 1 && $beneficiaire->BEN_STATUT != 2;
-        $domicilierNonTransmis = $dernierDomicilier && $dernierDomicilier->DOM_STATUT != 1 && $dernierDomicilier->DOM_STATUT != 2;
+        $beneficiaireNonTransmis = $beneficiaire->BEN_STATUT != 0 && $beneficiaire->BEN_STATUT != 2 && $beneficiaire->BEN_STATUT != 3;
+        $domicilierNonTransmis = $dernierDomicilier && $dernierDomicilier->DOM_STATUT != 0 && $dernierDomicilier->DOM_STATUT != 2 && $dernierDomicilier->DOM_STATUT != 3;
 
         $confirmed = $request->input('confirm', false);
 
-        // Si ni le bénéficiaire ni le RIB n'ont été transmis, retourner info pour dialogue
+        // Dialogue de confirmation si nécessaire
         if (($beneficiaireNonTransmis || $domicilierNonTransmis) && !$confirmed) {
-            $message = "Voulez-vous transmettre ";
+            $message = "Voulez-vous soumettre ";
             if ($beneficiaireNonTransmis && $domicilierNonTransmis) {
                 $message .= "le bénéficiaire et son RIB ajouté récemment ?";
             } elseif ($beneficiaireNonTransmis) {
@@ -1146,10 +1376,10 @@ class MouvementController extends Controller
             ]);
         }
 
-        // Vérifier si un autre compte du même bénéficiaire est déjà en cours
+        // Vérifier un autre RIB en cours
         if ($dernierDomicilier) {
             $autreEnCours = Domicilier::where('BEN_CODE', $dernierDomicilier->BEN_CODE)
-                ->where('DOM_STATUT', 1)
+                ->where('DOM_STATUT', 2)
                 ->where('DOM_CODE', '!=', $dernierDomicilier->DOM_CODE)
                 ->exists();
 
@@ -1160,91 +1390,70 @@ class MouvementController extends Controller
             }
         }
 
-        // ===== Transmission en BDD =====
+        // ===== Transaction =====
         DB::transaction(function () use ($beneficiaire, $dernierDomicilier, $user, $nivValeur, $now) {
 
-            // Valider bénéficiaire
-            if ($beneficiaire->BEN_STATUT != 1 && $beneficiaire->BEN_STATUT != 2) {
-                $beneficiaire->BEN_STATUT = 1;
+            // -------- Bénéficiaire --------
+            if ($beneficiaire->BEN_STATUT != 0 && $beneficiaire->BEN_STATUT != 2 && $beneficiaire->BEN_STATUT != 3) {
+                $beneficiaire->BEN_STATUT = 2;
                 $beneficiaire->save();
 
-                $mvtCode = $this->generateMvtCode($user->REG_CODE);
+                // Dernier mouvement du bénéficiaire
+                $dernierMvt = Mouvement::where('MVT_BEN_CODE', $beneficiaire->BEN_CODE)
+                    ->where('MVT_NIV', 1)
+                    ->first();
 
-                Mouvement::create([
-                    'MVT_CODE'          => $mvtCode,
-                    'MVT_BEN_CODE'      => $beneficiaire->BEN_CODE,
-                    'MVT_BEN_NOM_PRE'   => $beneficiaire->BEN_NOM. " " .$beneficiaire->BEN_PRENOM,
-                    'MVT_DATE'          => $now->toDateString(),
-                    'MVT_HEURE'         => $now->toTimeString(),
-                    'MVT_NIV'           => $nivValeur,
-                    'MVT_UTI_CODE'      => $user->UTI_CODE,
-                    'MVT_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
-                    'TYP_CODE'          => '20250001', // en dur
-                ]);
+                if ($dernierMvt) {
+                    $dernierMvt->MVT_NIV += 1;
+                    $dernierMvt->MVT_DATE = $now->toDateString();
+                    $dernierMvt->MVT_HEURE = $now->toTimeString();
+                    $dernierMvt->save();
 
-                HistoriquesValidation::create([
-                    'VAL_CODE'          => $mvtCode,
-                    'VAL_BEN_CODE'      => $beneficiaire->BEN_CODE,
-                    'VAL_BEN_NOM_PRE'   => $beneficiaire->BEN_NOM. " " .$beneficiaire->BEN_PRENOM,
-                    'VAL_UTI_CODE'      => $user->UTI_CODE,
-                    'VAL_DATE'          => $now->toDateString(),
-                    'VAL_HEURE'         => $now->toTimeString(),
-                    'VAL_NIV'           => $nivValeur,
-                    'VAL_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
-                    'MVT_CODE'          => $mvtCode,
-                ]);
+                    // Historique
+                    $valCode = $this->generateValCode($user->REG_CODE);
+                    HistoriquesValidation::create([
+                        'VAL_CODE'      => $valCode,
+                        'VAL_DATE'      => $now->toDateString(),
+                        'VAL_HEURE'     => $now->toTimeString(),
+                        'VAL_UTI_CODE'  => $user->UTI_CODE,
+                        'VAL_CREER_PAR' => $user->UTI_NOM . " " . $user->UTI_PRENOM,
+                        'MVT_CODE'      => $dernierMvt->MVT_CODE,
+                    ]);
+                }
             }
 
-            // Valider dernier RIB si non transmis
-            if ($dernierDomicilier && $dernierDomicilier->DOM_STATUT != 1 && $dernierDomicilier->DOM_STATUT != 2) {                
-
-                $dernierDomicilier->DOM_STATUT = 1;
+            // -------- Dernier RIB --------
+            if ($dernierDomicilier && $dernierDomicilier->DOM_STATUT != 0 && $dernierDomicilier->DOM_STATUT != 2 && $dernierDomicilier->DOM_STATUT != 3) {
+                $dernierDomicilier->DOM_STATUT = 2;
                 $dernierDomicilier->save();
 
-                $mvtCode = $this->generateMvtCode($user->REG_CODE);
+                $dernierMvt = Mouvement::where('MVT_DOM_CODE', $dernierDomicilier->DOM_CODE)
+                    ->where('MVT_NIV', 1) 
+                    ->orderByDesc('MVT_DATE')
+                    ->orderByDesc('MVT_HEURE')
+                    ->first();
 
-                Mouvement::create([
-                    'MVT_CODE'          => $mvtCode,
-                    'MVT_DOM_CODE'      => $dernierDomicilier->DOM_CODE,
-                    'MVT_BEN_CODE'      => $beneficiaire->BEN_CODE,
-                    'MVT_BEN_NOM_PRE'   => $beneficiaire->BEN_NOM. " " .$beneficiaire->BEN_PRENOM,
-                    'MVT_BNQ_CODE'      => $dernierDomicilier->BNQ_CODE,
-                    'MVT_BNQ_LIBELLE'   => $dernierDomicilier->banque?->BNQ_LIBELLE,
-                    'MVT_GUI_CODE'      => $dernierDomicilier->guichet?->GUI_CODE,
-                    'MVT_GUI_NOM'       => $dernierDomicilier->guichet?->GUI_NOM,
-                    'MVT_NUMCPT'        => $dernierDomicilier->DOM_NUMCPT,
-                    'MVT_CLE_RIB'       => $dernierDomicilier->DOM_RIB,
-                    'MVT_DATE'          => $now->toDateString(),
-                    'MVT_HEURE'         => $now->toTimeString(),
-                    'MVT_NIV'           => $nivValeur,
-                    'MVT_UTI_CODE'      => $user->UTI_CODE,
-                    'MVT_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
-                    'TYP_CODE'          => '20250003', 
-                ]);
+                if ($dernierMvt) {
+                    $dernierMvt->MVT_NIV += 1;
+                    $dernierMvt->MVT_DATE = $now->toDateString();
+                    $dernierMvt->MVT_HEURE = $now->toTimeString();
+                    $dernierMvt->save();
 
-                HistoriquesValidation::create([
-                    'VAL_CODE'          => $mvtCode,
-                    'VAL_DOM_CODE'      => $dernierDomicilier->DOM_CODE,
-                    'VAL_BEN_CODE'      => $beneficiaire->BEN_CODE,
-                    'VAL_BEN_NOM_PRE'   => $beneficiaire->BEN_NOM. " " .$beneficiaire->BEN_PRENOM,
-                    'VAL_BNQ_CODE'      => $dernierDomicilier->BNQ_CODE,
-                    'VAL_BNQ_LIBELLE'   => $dernierDomicilier->banque?->BNQ_LIBELLE,
-                    'VAL_GUI_CODE'      => $dernierDomicilier->guichet?->GUI_CODE,
-                    'VAL_GUI_NOM'       => $dernierDomicilier->guichet?->GUI_NOM,
-                    'VAL_NUMCPT'        => $dernierDomicilier->DOM_NUMCPT,
-                    'VAL_CLE_RIB'       => $dernierDomicilier->DOM_RIB,
-                    'VAL_DATE'          => $now->toDateString(),
-                    'VAL_HEURE'         => $now->toTimeString(),
-                    'VAL_NIV'           => $nivValeur,
-                    'VAL_UTI_CODE'      => $user->UTI_CODE,
-                    'VAL_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
-                    'MVT_CODE'          => $mvtCode,
-                ]);
+                    $valCode = $this->generateValCode($user->REG_CODE);
+                    HistoriquesValidation::create([
+                        'VAL_CODE'      => $valCode,
+                        'VAL_DATE'      => $now->toDateString(),
+                        'VAL_HEURE'     => $now->toTimeString(),
+                        'VAL_UTI_CODE'  => $user->UTI_CODE,
+                        'VAL_CREER_PAR' => $user->UTI_NOM . " " . $user->UTI_PRENOM,
+                        'MVT_CODE'      => $dernierMvt->MVT_CODE,
+                    ]);
+                }
             }
         });
 
-        return response()->json(['message' => "Transmission à l'approbation réussie."]);
-    }   
+        return response()->json(['message' => "Soumission à l'approbation réussie."]);
+    }  
     
     public function getTotauxMouvementsEnCours()
     {
@@ -1264,7 +1473,7 @@ class MouvementController extends Controller
         $totalBeneficiaires = Mouvement::query()
             ->join('t_beneficiaires', 't_beneficiaires.BEN_CODE', '=', 't_mouvements.MVT_BEN_CODE')
             ->join('t_utilisateurs', 't_utilisateurs.UTI_CODE', '=', 't_mouvements.MVT_UTI_CODE')
-            ->where('t_beneficiaires.BEN_STATUT', 1)
+            ->where('t_beneficiaires.BEN_STATUT', 2)
             ->where('t_mouvements.TYP_CODE', '20250001')
             ->when($nivValeur == 2, function ($query) use ($user) {
                 $query
@@ -1281,7 +1490,7 @@ class MouvementController extends Controller
         $totalDomiciliers = Mouvement::query()
             ->join('t_domiciliers', 't_domiciliers.DOM_CODE', '=', 't_mouvements.MVT_DOM_CODE')
             ->join('t_utilisateurs', 't_utilisateurs.UTI_CODE', '=', 't_mouvements.MVT_UTI_CODE')
-            ->where('t_domiciliers.DOM_STATUT', 1)
+            ->where('t_domiciliers.DOM_STATUT', 2)
             ->where('t_mouvements.TYP_CODE', '20250003')
             ->when($nivValeur == 2, function ($query) use ($user) {
                 $query
@@ -1298,7 +1507,7 @@ class MouvementController extends Controller
         $totalPaiements = Mouvement::query()
             ->join('t_paiements', 't_paiements.PAI_CODE', '=', 't_mouvements.MVT_PAI_CODE')
             ->join('t_utilisateurs', 't_utilisateurs.UTI_CODE', '=', 't_mouvements.MVT_UTI_CODE')
-            ->where('t_paiements.PAI_STATUT', 1)
+            ->where('t_paiements.PAI_STATUT', 2)
             ->where('t_mouvements.TYP_CODE', '20250002')
             ->when($nivValeur == 2, function ($query) use ($user) {
                 $query

@@ -49,14 +49,25 @@ return Application::configure(basePath: dirname(__DIR__))
         //  Violation de contrainte (clé étrangère)
         $exceptions->render(function (Illuminate\Database\QueryException $e, $request) {
             if ($request->is('api/*')) {
-                if ($e->getCode() === '23000') {
+                $sqlMessage = $e->getMessage();
+
+                // Cas suppression avec clé étrangère
+                if ($e->getCode() === '23000' && str_contains($sqlMessage, 'FOREIGN KEY')) {
                     return response()->json([
                         'message' => 'Impossible de supprimer cet élément car il est lié à d\'autres enregistrements.',
                     ], 409);
                 }
 
+                // Cas violation de NOT NULL (champ obligatoire)
+                if ($e->getCode() === '23000' && str_contains($sqlMessage, 'cannot be null')) {
+                    return response()->json([
+                        'message' => 'Un ou plusieurs champs obligatoires ne sont pas remplis.',
+                    ], 422);
+                }
+
+                // Autres erreurs SQL 23000
                 return response()->json([
-                    'message' => 'Erreur de base de données : '.$e->getMessage(),
+                    'message' => 'Erreur de base de données : '.$sqlMessage,
                 ], 500);
             }
         });

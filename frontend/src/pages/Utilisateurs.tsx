@@ -262,7 +262,11 @@ export default function Utilisateurs() {
       await axios.delete(`${API_URL}/utilisateurs/${utilisateurToDelete.UTI_CODE}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast({ title: "Utilisateur supprimé avec succès" });
+      toast({ 
+        title: "Succès",
+        description: "Utilisateur supprimé avec succès.",
+        variant: "success" 
+      });
       fetchUtilisateurs();
     } catch (err: any) {
       toast({ title: "Erreur", description: err?.response?.data?.message || "Suppression échouée", variant: "destructive" });
@@ -329,7 +333,7 @@ export default function Utilisateurs() {
             </div>
             <div>
               <Label>Nom d'utilisateur <span className="text-red-500">*</span></Label>
-              <Input name="UTI_USERNAME" type="email" defaultValue={editingUtilisateur?.UTI_USERNAME || ""} placeholder="exemple@oni-car.com" required />
+              <Input name="UTI_USERNAME" defaultValue={editingUtilisateur?.UTI_USERNAME || ""} placeholder="exemple@oni-car.com" required />
             </div>
             <div>
               <Label>Mot de passe <span className="text-red-500">*</span></Label>

@@ -82,7 +82,7 @@ class DashbordController extends Controller
             $totalRetenu += $retenu;
             $totalNet += $net;
 
-            if ($p->PAI_STATUT == 2) {
+            if ($p->PAI_STATUT == 4) {
                 $totalPaye += $net;
             }
         }

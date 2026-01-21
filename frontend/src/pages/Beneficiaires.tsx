@@ -30,6 +30,7 @@ export default function Beneficiaires() {
   const [selectedBeneficiaire, setSelectedBeneficiaire] = useState<any>(null);
   const [selectedRowsForStatus, setSelectedRowsForStatus] = useState<any[]>([]);
   const [isValidateStatusDialogOpen, setIsValidateStatusDialogOpen] = useState(false);
+  const [selectedTypeBen, setSelectedTypeBen] = useState<any | null>(null);
   const { toast } = useToast();
 
   const { user } = useAuth();
@@ -72,7 +73,7 @@ export default function Beneficiaires() {
 
   //  Charger les bénéficiaires depuis l’API
   const fetchBeneficiaires = async () => {
-    setIsLoading(true);
+    // setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
       const { data } = await axios.get(`${API_URL}/beneficiaires`, {
@@ -92,15 +93,20 @@ export default function Beneficiaires() {
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  const displayed = beneficiaires
-    // Filtrer par recherche si searchTerm non vide
-    .filter((p) =>
+  const displayed = beneficiaires.filter((p) => {
+    // Recherche
+    const matchesSearch =
       !searchTerm ||
+      String(p.BEN_CODE).toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(p.BEN_MATRICULE).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(p.BEN_CODE).toLowerCase().includes(searchTerm.toLowerCase())  ||
-      String(p.BEN_NOM).toLowerCase().includes(searchTerm.toLowerCase())  ||
-      String(p.BEN_PRENOM).toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      String(p.BEN_NOM).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(p.BEN_PRENOM).toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Filtre Type bénéficiaire
+    const matchesTypeBen = !selectedTypeBen || p.TYP_CODE === selectedTypeBen.TYP_CODE;
+
+    return matchesSearch && matchesTypeBen;
+  });
 
   useEffect(() => {
     fetchBeneficiaires();
@@ -194,13 +200,13 @@ export default function Beneficiaires() {
       if (selectedRowsForStatus.length === 1) {
         toast({
           title: "Succès",
-          description: (`Transmission du bénéficiaire à l'approbation effectuée avec succès.`),
+          description: (`Soumission du bénéficiaire à l'approbation effectuée avec succès.`),
           variant: "success",
         });
       } else if (data.updated > 0) {
         toast({
           title: "Succès",
-          description: (`${data.updated} Transmission(s) effectuée(s) avec succès.`),
+          description: (`${data.updated} Soumission(s) effectuée(s) avec succès.`),
           variant: "success",
         });
       }
@@ -210,7 +216,7 @@ export default function Beneficiaires() {
         const failedMessages = data.failed.map((f: any) => `${f.BEN_CODE}: ${f.reason}`).join(', ');
         toast({
           title: "Erreur",
-          description: (`Échecs de transmission: ${failedMessages}`),
+          description: (`Échecs de soumission: ${failedMessages}`),
           variant: "destructive",
         });
       }
@@ -221,7 +227,7 @@ export default function Beneficiaires() {
       console.error(err);
       toast({
         title: "Erreur",
-        description: err?.response?.data?.message || "Erreur lors de la transmission.",
+        description: err?.response?.data?.message || "Erreur lors de la soumission.",
         variant: "destructive",
       });
     } finally {
@@ -313,33 +319,34 @@ export default function Beneficiaires() {
       title: "STATUT",
       render: (value) => {
         switch (value) {
+
           case 0:
+            return (
+              <Badge className="bg-red-500/20 text-red-700">
+                Rejeté
+              </Badge>
+            );
+
+          case 1:
             return (
               <Badge className="bg-blue-500/20 text-blue-700">
                 Non approuvé
               </Badge>
             );
 
-          case 1:
+          case 2:
             return (
               <Badge className="bg-orange-500/20 text-orange-700">
                 En cours d’approbation…
               </Badge>
             );
 
-          case 2:
+          case 3:
             return (
               <Badge className="bg-green-500/20 text-green-700">
                 Approuvé
               </Badge>
-            );
-
-          case 3:
-            return (
-              <Badge className="bg-red-500/20 text-red-700">
-                Rejeté
-              </Badge>
-            );
+            );          
 
           default:
             return (
@@ -401,6 +408,13 @@ export default function Beneficiaires() {
         data={displayed}
         onAdd={can.onAdd ? handleAdd : undefined}
         onValidate={nivCode === '01' ? handleStatusUpdate : undefined}
+        rowKey="BEN_CODE"
+        filterItems={types.map((e) => ({
+          ...e,
+          label: `${e.TYP_LIBELLE}`
+        }))}
+        filterDisplay={(it: any) => it.label || it.TYP_LIBELLE}
+        onFilterSelect={(it) => setSelectedTypeBen(it)}
         onView={(b) => {
           setSelectedBeneficiaire(b);
           setOpenPreview(true);
@@ -408,8 +422,9 @@ export default function Beneficiaires() {
         onEdit={can.onEdit ? handleEdit : undefined}
         onDelete={can.onDelete ? handleDelete : undefined}
         addButtonText="Nouveau"
+        filterPlaceholder="Tous les types"
         // onDeleteAll={(rows) => (rows)}
-        searchPlaceholder="Rechercher un bénéficiaire (Code, Mat, Nom et Prénom)."
+        searchPlaceholder="Rechercher (Code, Nom et Prénom)."
         onSearchChange={(value: string) => setSearchTerm(value)}
         // onPrint={handlePrint}
       />

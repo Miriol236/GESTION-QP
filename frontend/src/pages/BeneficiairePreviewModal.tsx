@@ -87,13 +87,13 @@ useEffect(() => {
   const getStatutBadge = (statut: number) => {
     switch (statut) {
       case 0:
-        return <Badge className="bg-gray-200 text-gray-700">Non approuvé</Badge>;
-      case 1:
-        return <Badge className="bg-orange-100 text-orange-700">En cours d’approbation</Badge>;
-      case 2:
-        return <Badge className="bg-green-100 text-green-700">Approuvé</Badge>;
-      case 3:
         return <Badge className="bg-red-100 text-red-700">Rejeté</Badge>;
+      case 1:
+        return <Badge className="bg-gray-200 text-gray-700">Non approuvé</Badge>;
+      case 2:
+        return <Badge className="bg-orange-100 text-orange-700">En cours d’approbation</Badge>;
+      case 3:
+        return <Badge className="bg-green-100 text-green-700">Approuvé</Badge>;
       default:
         return <Badge className="bg-gray-100 text-gray-600">Inconnu</Badge>;
     }
@@ -136,6 +136,14 @@ useEffect(() => {
               <Info label="Matricule solde :" value={beneficiaire.BEN_MATRICULE} />
               <Info label="Nom(s) et Prénom(s) :" value={`${beneficiaire.BEN_NOM} ${beneficiaire.BEN_PRENOM}`} />
               <Info label="Sexe :" value={beneficiaire.BEN_SEXE === "M" ? "Masculin" : beneficiaire.BEN_SEXE === "F" ? "Féminin" : "_"} />
+              <Info label="Date de naissance :" value={beneficiaire.BEN_DATE_NAISSANCE ? new Date(beneficiaire.BEN_DATE_NAISSANCE).toLocaleDateString("fr-FR", {
+                  year: "numeric",
+                  month: "numeric",
+                  day: "numeric",
+                })
+                : "_"
+              }
+              />
               <Info label="Type :" value={getTypesInfo(beneficiaire.TYP_CODE || "—")} />
               <Info label="Fonction :" value={getFonctionsInfo(beneficiaire.FON_CODE || "—")} />
               <Info label="Grade :" value={getGradesInfo(beneficiaire.GRD_CODE || "—")} />
@@ -179,24 +187,24 @@ useEffect(() => {
 
                               switch (d.DOM_STATUT) {
                                 case 0:
+                                  bgColor = "bg-red-100";
+                                  textColor = "text-red-700";
+                                  label = "Rejeté";
+                                  break;
+                                case 1:
                                   bgColor = "bg-gray-100";
                                   textColor = "text-gray-600";
                                   label = "Non approuvé";
                                   break;
-                                case 1:
+                                case 2:
                                   bgColor = "bg-orange-100";
                                   textColor = "text-orange-700";
                                   label = "En cours d'approbation...";
                                   break;
-                                case 2:
+                                case 3:
                                   bgColor = "bg-green-100";
                                   textColor = "text-green-700";
                                   label = "Approuvé";
-                                  break;
-                                case 3:
-                                  bgColor = "bg-red-100";
-                                  textColor = "text-red-700";
-                                  label = "Rejeté";
                                   break;
                                 default:
                                   bgColor = "bg-gray-100";

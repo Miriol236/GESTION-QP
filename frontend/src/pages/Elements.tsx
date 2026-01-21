@@ -82,7 +82,7 @@ export default function Element() {
               : "bg-red-500/20 text-red-700"
           }
         >
-          {value === 1 ? "Gain" : "Retenu"}
+          {value === 1 ? "+ Gain" : " - Retenue"}
         </Badge>
       ),
     },
@@ -202,8 +202,8 @@ export default function Element() {
                     <SelectValue placeholder="-- Sélectionner le sens --" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="1">Gain</SelectItem>
-                    <SelectItem value="2">Retenu</SelectItem>
+                    <SelectItem value="1">+ Gain</SelectItem>
+                    <SelectItem value="2">- Retenue</SelectItem>
                 </SelectContent>
                 </Select>
             </div>
@@ -213,11 +213,11 @@ export default function Element() {
               <div className="flex gap-6 mt-2">
                 <label className="flex items-center gap-2">
                   <input type="radio" name="sens" value="1" checked={editingElement?.ELT_SENS === 1} className="accent-blue-600 w-4 h-4" />
-                  Gain
+                  + Gain
                 </label>
                 <label className="flex items-center gap-2">
                   <input type="radio" name="sens" value="2" checked={editingElement?.ELT_SENS === 2} className="accent-pink-500 w-4 h-4" />
-                  Retenu
+                  - Retenue
                 </label>
               </div>
             </div> */}

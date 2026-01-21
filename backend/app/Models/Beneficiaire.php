@@ -20,6 +20,8 @@ class Beneficiaire extends Model
         'BEN_NOM',
         'BEN_PRENOM',
         'BEN_SEXE',
+        'BEN_DATE_NAISSANCE',
+        'BEN_STATUT',
         'BEN_DATE_CREER',
         'BEN_CREER_PAR',
         'BEN_DATE_MODIFIER',

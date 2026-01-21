@@ -29,6 +29,7 @@ class Mouvement extends Model
         'MVT_NIV',
         'MVT_UTI_CODE',  
         'MVT_CREER_PAR',
+        'MVT_UTI_REG',
         'TYP_CODE',
     ];
 }

@@ -255,7 +255,7 @@ const handleConfirmRejetStatus = async () => {
       render: (value) => {
         switch (value) {
 
-          case 1:
+          case 2:
             return (
               <Badge className="bg-orange-500/20 text-orange-700">
                 En attente d’approbation…

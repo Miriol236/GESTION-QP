@@ -4,15 +4,21 @@ import { DataTable, type Column } from "@/components/common/DataTable";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import ConfirmDeleteDialog from "@/components/common/ConfirmDeleteDialog";
 import ConfirmValidateDialog from "@/components/common/ConfirmValidateDialog";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import ConfirmGenerateDialog from "@/components/common/ConfirmGenerateDialog";
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import PaiementWizard from "./PaiementWizard";
+import GenerateFromOldEcheanceModal from "./GenerateFromOldEcheanceModal";
 import { API_URL } from "@/config/api";
 import { TableSkeleton } from "@/components/loaders/TableSkeleton";
-import { User, DollarSign, CheckCheck, Banknote } from "lucide-react";
+import { User, DollarSign, CheckCheck, Banknote, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import PaiementPreviewModal from "./PaiementPreviewModal";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+
+import { Button } from "@/components/ui/button";
+import { DialogTitle } from "@radix-ui/react-dialog";
 
 export default function Paiements() {
   const [paiements, setPaiements] = useState<any[]>([]);
@@ -37,6 +43,16 @@ export default function Paiements() {
   const [selectedPaiement, setSelectedPaiement] = useState<any>(null);
   const [selectedRegie, setSelectedRegie] = useState<any | null>(null);
   const [selectedStatut, setSelectedStatut] = useState<number | null>(null);
+  const [selectedTypeBen, setSelectedTypeBen] = useState<any | null>(null);
+  const [openGenerateModal, setOpenGenerateModal] = useState(false);
+  const [isGenerateConfirmOpen, setIsGenerateConfirmOpen] = useState(false);
+  const [selectedEcheanceToGenerate, setSelectedEcheanceToGenerate] = useState<string | null>(null);
+  const [generateProgress, setGenerateProgress] = useState<number>(0);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedEcheanceToGenerateLabel, setSelectedEcheanceToGenerateLabel] = useState<string | null>(null);
+  const [activeEcheance, setActiveEcheance] = useState<any | null>(null);
+  const [showIgnoredModal, setShowIgnoredModal] = useState(false);
+  const [ignoredDetails, setIgnoredDetails] = useState<{ title: string; items: string[] }[]>([]);
   const { toast } = useToast();
 
   // Récupérer l'utilisateur courant pour déterminer les permissions
@@ -52,6 +68,7 @@ export default function Paiements() {
   // Permissions par groupe (si besoin on peut externaliser)
   const can = {
     onAdd: grpCodeUser === "0003",       // seuls les bénéficiaire peuvent ajouter
+    onGenerate: grpCodeUser === "0003",      // idem pour générer
     onEdit: grpCodeUser === "0003",      // idem pour éditer
     onDelete: grpCodeUser === "0003",    // idem pour supprimer
     // onDeleteAll: regCodeUser != null, // idem pour suppression multiple
@@ -62,10 +79,11 @@ export default function Paiements() {
 
   const statutOptions = [
     { label: "Tous les statuts", value: null },
-    { label: "Non approuvé", value: 0 },
-    { label: "En cours d’approbation", value: 1 },
-    { label: "Approuvé", value: 2 },
-    { label: "Rejeté", value: 3 },
+    { label: "Non approuvé", value: 1 },
+    { label: "En cours d’approbation", value: 2 },
+    { label: "Non payé", value: 3 },
+    { label: "Payé", value: 4 },
+    { label: "Rejeté", value: 0 },
   ];
 
   // Handlers réutilisables (passés au DataTable seulement si permitted)
@@ -85,6 +103,22 @@ export default function Paiements() {
     setPaiementToDelete(b);
     setIsDeleteDialogOpen(true);
   };
+
+  useEffect(() => {
+    const fetchActiveEcheance = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const { data } = await axios.get(`${API_URL}/echeance/active`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setActiveEcheance(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchActiveEcheance();
+  }, []);
 
   //  Charger les paiements depuis l’API
   const fetchPaiements = async (ech_code: string | null = null) => {
@@ -132,11 +166,13 @@ export default function Paiements() {
       axios.get(`${API_URL}/info-beneficiaires`, { headers }),
       axios.get(`${API_URL}/echeances-publique`, { headers }),
       axios.get(`${API_URL}/regies-publiques`, { headers }),
+      axios.get(`${API_URL}/typeBeneficiaires-public`, { headers }),
     ])
-      .then(([b, e, r]) => {
+      .then(([b, e, r, t]) => {
         setBeneficiaires(b.data);
         setEcheances(e.data);
         setRegies(r.data);
+        setTypes(t.data);
       })
       .catch(() => toast({
         title: "Erreur",
@@ -151,8 +187,8 @@ export default function Paiements() {
     // Recherche
     const matchesSearch =
       !searchTerm ||
-      String(p.PAI_BENEFICIAIRE).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(p.PAI_CODE).toLowerCase().includes(searchTerm.toLowerCase());
+      String(p.PAI_CODE).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(p.PAI_BENEFICIAIRE).toLowerCase().includes(searchTerm.toLowerCase());
 
     // Filtre échéance
     const matchesEcheance = !selectedEcheance || p.ECH_CODE === selectedEcheance.ECH_CODE;
@@ -164,7 +200,10 @@ export default function Paiements() {
     const matchesStatut =
       selectedStatut === null || p.PAI_STATUT === selectedStatut;
 
-    return matchesSearch && matchesEcheance && matchesRegie && matchesStatut;
+    // Filtre Type bénéficiaire
+    const matchesTypeBen = !selectedTypeBen || p.TYP_CODE === selectedTypeBen.TYP_CODE;
+
+    return matchesSearch && matchesEcheance && matchesRegie && matchesStatut && matchesTypeBen;
   });
 
   // Suppression
@@ -582,36 +621,43 @@ export default function Paiements() {
         switch (value) {
           case 0:
             return (
-              <Badge className="bg-blue-500/20 text-blue-700">
-                Non approuvé
+              <Badge className="bg-red-500/20 text-red-700">
+                Rejeté
               </Badge>
             );
 
           case 1:
             return (
-              <Badge className="bg-orange-500/20 text-orange-700">
-                En cours d’approbation…
+              <Badge className="bg-blue-500/20 text-blue-700">
+                Non approuvé
               </Badge>
             );
 
           case 2:
             return (
-              <Badge className="bg-green-500/20 text-green-700">
-                Approuvé
+              <Badge className="bg-orange-500/20 text-orange-700">
+                En cours d’approbation…
+              </Badge>
+            );
+          
+          case 3:
+            return (
+              <Badge className="bg-gray-500/20 text-gray-700">
+                Non payé
               </Badge>
             );
 
-          case 3:
+          case 4:
             return (
-              <Badge className="bg-red-500/20 text-red-700">
-                Rejeté
+              <Badge className="bg-green-500/20 text-green-700">
+                Payé
               </Badge>
             );
 
           default:
             return (
               <Badge className="bg-gray-500/20 text-gray-700">
-                Statut inconnu
+                Inconnu
               </Badge>
             );
         }
@@ -724,6 +770,19 @@ export default function Paiements() {
         })}
       </div>
 
+      {/* Barre de recherche */}
+      <div className="flex gap-4 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher (Nom, prénom ou code de paiement...)"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
       {/* Liste des paiements */}
       {/* Table */}
       <DataTable
@@ -731,6 +790,7 @@ export default function Paiements() {
         columns={columns}
         data={displayedPaiements}
         onAdd={can.onAdd ? handleAdd : undefined}
+        onGenerate={can.onGenerate ? () => setOpenGenerateModal(true) : undefined} 
         onView={(b) => {
           setSelectedPaiement(b);
           setOpenPreview(true);
@@ -749,23 +809,30 @@ export default function Paiements() {
         })) : undefined}
         rowKey3="PAI_CODE"
         filterItems3={statutOptions}
+        rowKey4="PAI_CODE"
+        filterItems4={types.map((e) => ({
+          ...e,
+          label: e.TYP_LIBELLE  // <-- ici, utiliser TYP_LIBELLE
+        }))}
         filterDisplay={(it: any) => it.label || it.ECH_LIBELLE}
         filterDisplay2={showRegieFilter ? ((it) => it.label || it.REG_SIGLE) : undefined}
         filterDisplay3={(it: any) => it.label || it.PAI_STATUT}
+        filterDisplay4={(it: any) => it.label || it.TYP_LIBELLE}
         onFilterSelect={(it) => setSelectedEcheance(it)}
         onFilterSelect2={showRegieFilter ? (it) => setSelectedRegie(it) : undefined}
         onFilterSelect3={(it) => setSelectedStatut(it.value)}
+        onFilterSelect4={(it) => setSelectedTypeBen(it)}
         onEdit={can.onEdit ? handleEdit : undefined}
         onDelete={can.onDelete ? handleDelete : undefined}
         addButtonText="Nouveau"
         // onDeleteAll={can.onDeleteAll ? handleDeleteVirement : undefined}
-        searchPlaceholder="Rechercher un bénéficiaire (Nom et prénom)."
-        onSearchChange={(value: string) => setSearchTerm(value)}
+        // searchPlaceholder="Rechercher (Code, Nom et prénom)."
+        // onSearchChange={(value: string) => setSearchTerm(value)}
+        searchable={false}
         filterPlaceholder="Échéance en cours..."
-        onSearchChange2={(value: string) => setSearchTerm(value)}            
         filterPlaceholder2={showRegieFilter ? "Toutes les régies" : undefined}
-        onSearchChange3={(value: string) => setSearchTerm(value)}
         filterPlaceholder3="Tous les statuts"
+        filterPlaceholder4="Tous les types"
       />
       {/* Confirmation suppression */}
         <ConfirmDeleteDialog
@@ -806,6 +873,155 @@ export default function Paiements() {
           // fetchPaiements();
         }}
         paiement={selectedPaiement}
+      />
+
+      <GenerateFromOldEcheanceModal
+        open={openGenerateModal}
+        onClose={() => setOpenGenerateModal(false)}
+        onGenerate={(ech_code) => {
+          const echeance = echeances.find(e => e.ECH_CODE === ech_code);
+          setSelectedEcheanceToGenerate(ech_code);
+          setSelectedEcheanceToGenerateLabel(echeance?.ECH_LIBELLE || "");
+          setOpenGenerateModal(false);
+          setIsGenerateConfirmOpen(true); // ouvrir le dialog
+        }}
+      />
+
+      <Dialog
+        open={showIgnoredModal}
+        onOpenChange={(open) => {
+          if (!open) return; // empêche fermeture externe
+          setShowIgnoredModal(open);
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-4xl w-11/12 max-h-[80vh] flex flex-col"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>Paiements ignorés</DialogTitle>
+          </DialogHeader>
+
+          {/* Contenu scrollable */}
+          <div className="flex-1 overflow-y-auto px-4 py-2">
+            <div className="grid grid-cols-2 gap-6">
+              {ignoredDetails.map((group, idx) => (
+                <div key={idx}>
+                  <div className="font-bold text-gray-800 mb-2">
+                    {group.title} ({group.items.length})
+                  </div>
+                  <ul className="list-disc list-inside space-y-0.5 max-h-[60vh] overflow-y-auto pr-2">
+                    {group.items.map((name: string, i: number) => (
+                      <li key={i} className="text-sm text-gray-700">
+                        {name}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter className="mt-2 flex justify-end">
+            <Button onClick={() => setShowIgnoredModal(false)}>
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmGenerateDialog
+        open={isGenerateConfirmOpen}
+        onClose={() => setIsGenerateConfirmOpen(false)}
+        echCode={selectedEcheanceToGenerate}
+        echLibelle={selectedEcheanceToGenerateLabel}
+        activeEcheance={activeEcheance} 
+        onConfirm={async (ech_code, onProgress) => {
+          if (!ech_code) return;
+
+          try {
+            setIsGenerating(true);
+            setGenerateProgress(10);
+            onProgress?.(10);
+
+            const token = localStorage.getItem("token");
+
+            // Progression visuelle
+            let fakeProgress = 10;
+            const interval = setInterval(() => {
+              fakeProgress = Math.min(fakeProgress + 5, 90);
+              setGenerateProgress(fakeProgress);
+              onProgress?.(fakeProgress);
+            }, 400);
+
+            const response = await axios.post(
+              `${API_URL}/paiements/generate`,
+              { ECH_CODE_OLD: ech_code },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            const { message, paiements_copies, paiements_ignores, total } = response.data;
+
+            // Séparer les ignorés
+            const doublons: string[] = [];
+            const inactifs: string[] = [];
+
+            paiements_ignores.forEach((item: string) => {
+              if (item.includes("(Inactif)")) inactifs.push(item.replace(" (Inactif)", ""));
+              else if (item.includes("(Doublon)")) doublons.push(item.replace(" (Doublon)", ""));
+              else doublons.push(item);
+            });
+
+            // Préparer le toast
+            let toastTitle = "Génération terminée";
+            let toastVariant: "success" | "warning" = "success";
+            let toastMessage = `${paiements_copies.length} paiement(s) généré(s).`;
+
+            if (paiements_ignores.length === total) {
+              toastVariant = "warning";
+              toastMessage = "Aucun paiement généré : tous sont déjà existants ou inactifs.";
+            } else if (paiements_ignores.length > 0) {
+              toastVariant = "success";
+              toastMessage = `${paiements_copies.length} paiement(s) généré(s). ${paiements_ignores.length} ignoré(s).`;
+
+              // Préparer le modal
+              const ignoredList: { title: string; items: string[] }[] = [];
+              if (doublons.length > 0) ignoredList.push({ title: "Doublons", items: doublons });
+              if (inactifs.length > 0) ignoredList.push({ title: "Inactifs", items: inactifs });
+
+              setIgnoredDetails(ignoredList);
+              setShowIgnoredModal(true);
+            }
+
+            toast({
+              title: toastTitle,
+              description: toastMessage,
+              variant: toastVariant,
+            });
+
+            clearInterval(interval);
+            setGenerateProgress(100);
+            onProgress?.(100);
+
+            fetchPaiements();
+            fetchTotals(null);
+
+          } catch (err: any) {
+            toast({
+              title: "Erreur",
+              description: err?.response?.data?.message || "Erreur lors de la génération.",
+              variant: "destructive",
+            });
+          } finally {
+            setTimeout(() => {
+              setIsGenerating(false);
+              setGenerateProgress(0);
+              setIsGenerateConfirmOpen(false);
+              setSelectedEcheanceToGenerate(null);
+            }, 500);
+          }
+        }}
       />
     </div>
   );

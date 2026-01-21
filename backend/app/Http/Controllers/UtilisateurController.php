@@ -288,4 +288,24 @@ class UtilisateurController extends Controller
         ]);
     }
 
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string|min:6',
+        ]);
+
+        $user = auth()->user();
+
+        $user->update([
+            'UTI_PASSWORD' => Hash::make($request->password),
+            'UTI_DATE_MODIFIER' => now(),
+            'UTI_MODIFIER_PAR' => $user->UTI_NOM.' '.$user->UTI_PRENOM,
+            'UTI_VERSION' => ($user->UTI_VERSION ?? 0) + 1,
+        ]);
+
+        return response()->json([
+            'message' => 'Mot de passe mis à jour avec succès'
+        ]);
+    }
+
 }

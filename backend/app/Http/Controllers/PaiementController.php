@@ -68,6 +68,7 @@ class PaiementController extends Controller
                 't_beneficiaires.BEN_MATRICULE',
                 DB::raw("CONCAT(t_beneficiaires.BEN_NOM, ' ', t_beneficiaires.BEN_PRENOM) as BENEFICIAIRE"),
                 't_beneficiaires.BEN_SEXE',
+                't_type_beneficiaires.TYP_CODE',
                 't_type_beneficiaires.TYP_LIBELLE as TYPE_BENEFICIAIRE',
                 't_banques.BNQ_CODE',
                 't_banques.BNQ_LIBELLE',
@@ -84,7 +85,7 @@ class PaiementController extends Controller
             ->join('t_virements', 't_virements.VIR_CODE', '=', 't_paiements.PAI_VIREMENT')
             ->leftJoin('t_domiciliers', function($join){
                 $join->on('t_domiciliers.BEN_CODE', '=', 't_beneficiaires.BEN_CODE')
-                    ->where('t_domiciliers.DOM_STATUT', 2); // RIB approuvé
+                    ->where('t_domiciliers.DOM_STATUT', 3); // RIB approuvé
             })
             ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
             ->leftJoin('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
@@ -123,7 +124,7 @@ class PaiementController extends Controller
 
         $beneficiaires = Beneficiaire::with([
             'domiciliations' => function ($query) {
-                $query->where('DOM_STATUT', 2) // RIB approuvé
+                $query->where('DOM_STATUT', 3) // RIB approuvé
                     ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
                     ->leftJoin('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
                     ->select(
@@ -134,12 +135,8 @@ class PaiementController extends Controller
                     );
             }
         ])
-        ->where('BEN_STATUT', 2) //  Bénéficiaire approuvé
         ->where('POS_CODE', '01') // Position spécifique
-        ->whereHas('domiciliations', function ($query) {
-            $query->where('DOM_STATUT', 2); // Au moins un RIB approuvé
-        })
-        ->orderBy('BEN_NOM', 'asc')
+        ->orderBy('BEN_CODE', 'desc')
         ->get();
 
         return response()->json($beneficiaires);
@@ -195,7 +192,7 @@ class PaiementController extends Controller
         $query = Beneficiaire::query()
             ->join('t_domiciliers', function ($join) {
                 $join->on('t_domiciliers.BEN_CODE', '=', 't_beneficiaires.BEN_CODE')
-                    ->where('t_domiciliers.DOM_STATUT', 2); // RIB approuvé uniquement
+                    ->where('t_domiciliers.DOM_STATUT', 3); // RIB approuvé uniquement
             })
             ->leftJoin('t_paiements', 't_paiements.BEN_CODE', '=', 't_beneficiaires.BEN_CODE')
             ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
@@ -312,41 +309,82 @@ class PaiementController extends Controller
 
         // Récupération du bénéficiaire
         $beneficiaire = Beneficiaire::with(['domiciliations' => function ($query) {
-                $query->where('DOM_STATUT', 2)
+                $query->where('DOM_STATUT', 3)
                     ->with(['banque', 'guichet']);
             }, 'typeBeneficiaire'])
             ->where('BEN_CODE', $request->BEN_CODE)
             ->first();
+        
+        $user = Auth::user();
+        $now = Carbon::now();
 
-        if ($beneficiaire) {
-            $paiement->TYP_BENEFICIAIRE = $beneficiaire->typeBeneficiaire 
-                ? $beneficiaire->typeBeneficiaire->TYP_LIBELLE 
-                : null;
+        // Niveau de validation du mouvement
+        $nivValeur = DB::table('t_niveau_validations')
+            ->join('t_groupes', 't_groupes.NIV_CODE', '=', 't_niveau_validations.NIV_CODE')
+            ->where('t_groupes.GRP_CODE', $user->GRP_CODE)
+            ->value('NIV_VALEUR');
+        
+        DB::transaction(function () use ($request, $user, $now, $nivValeur, $beneficiaire, $echCode, &$paiement) {
 
-            $paiement->PAI_BENEFICIAIRE = trim($beneficiaire->BEN_NOM . ' ' . $beneficiaire->BEN_PRENOM);
-
-            $domiciliation = $beneficiaire->domiciliations->first();
-            if ($domiciliation) {
-                $paiement->PAI_NUMCPT = $domiciliation->DOM_NUMCPT;
-                $paiement->PAI_RIB = $domiciliation->DOM_RIB;
-                $paiement->PAI_REG_LIB = $user->regie?->REG_LIBELLE;
-                $paiement->PAI_BNQ_LIB = $domiciliation->banque?->BNQ_LIBELLE;
-                $paiement->PAI_BNQ_CODE = $domiciliation->banque?->BNQ_CODE;
-                $paiement->PAI_GUI_CODE = $domiciliation->guichet?->GUI_CODE;
+            if ($beneficiaire) {
+                $paiement->TYP_BENEFICIAIRE = $beneficiaire->typeBeneficiaire 
+                    ? $beneficiaire->typeBeneficiaire->TYP_LIBELLE 
+                    : null;
+    
+                $paiement->PAI_BENEFICIAIRE = trim($beneficiaire->BEN_NOM . ' ' . $beneficiaire->BEN_PRENOM);
+    
+                $domiciliation = $beneficiaire->domiciliations->first();
+                if ($domiciliation) {
+                    $paiement->PAI_NUMCPT = $domiciliation->DOM_NUMCPT;
+                    $paiement->PAI_RIB = $domiciliation->DOM_RIB;
+                    $paiement->PAI_REG_LIB = $user->regie?->REG_LIBELLE;
+                    $paiement->PAI_BNQ_LIB = $domiciliation->banque?->BNQ_LIBELLE;
+                    $paiement->PAI_BNQ_CODE = $domiciliation->banque?->BNQ_CODE;
+                    $paiement->PAI_GUI_CODE = $domiciliation->guichet?->GUI_CODE;
+                }
             }
-        }
+    
+            $paiement->PAI_STATUT    = 1;
+            $paiement->PAI_VIREMENT  = 0;
+            $paiement->PAI_DATE_CREER = now();
+            $paiement->PAI_CREER_PAR = auth()->check()
+                ? auth()->user()->UTI_NOM . ' ' . auth()->user()->UTI_PRENOM
+                : 'SYSTEM';
+            $paiement->BEN_CODE = $request->BEN_CODE;
+            $paiement->REG_CODE = auth()->check() ? auth()->user()->REG_CODE : 'SYSTEM';
+            $paiement->ECH_CODE = $echCode;
+    
+            $paiement->save();
 
-        $paiement->PAI_STATUT    = 0;
-        $paiement->PAI_VIREMENT  = 0;
-        $paiement->PAI_DATE_CREER = now();
-        $paiement->PAI_CREER_PAR = auth()->check()
-            ? auth()->user()->UTI_NOM . ' ' . auth()->user()->UTI_PRENOM
-            : 'SYSTEM';
-        $paiement->BEN_CODE = $request->BEN_CODE;
-        $paiement->REG_CODE = auth()->check() ? auth()->user()->REG_CODE : 'SYSTEM';
-        $paiement->ECH_CODE = $echCode;
+            $domiciliation = $this->getDomiciliationBeneficiaire($paiement->BEN_CODE);
 
-        $paiement->save();
+            if (!$domiciliation) {
+                throw new \Exception("Aucune domiciliation (RIB) trouvée pour le bénéficiaire {$paiement->PAI_BENEFICIAIRE}");
+            }
+
+            $mvtCode = $this->generateMvtCode($user->REG_CODE);
+
+            Mouvement::create([
+                'MVT_CODE'        => $mvtCode,
+                'MVT_PAI_CODE'    => $paiement->PAI_CODE,
+                'MVT_BEN_CODE'    => $paiement->BEN_CODE,
+                'MVT_BEN_NOM_PRE' => $paiement->PAI_BENEFICIAIRE,
+
+                'MVT_BNQ_CODE'    => $domiciliation->BNQ_CODE,
+                'MVT_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
+                'MVT_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
+                'MVT_NUMCPT'      => $domiciliation->DOM_NUMCPT,
+                'MVT_CLE_RIB'     => $domiciliation->DOM_RIB,
+                'MVT_DATE'        => $now->toDateString(),
+                'MVT_HEURE'       => $now->toTimeString(),
+                'MVT_NIV'         => $nivValeur,
+                'MVT_UTI_CODE'    => $user->UTI_CODE,
+                'MVT_CREER_PAR'   => $user->UTI_NOM." ".$user->UTI_PRENOM,
+                'MVT_UTI_REG'     => $user->REG_CODE,
+                'TYP_CODE'        => '20250002',
+            ]);
+    
+        });
 
         return response()->json([
             'message' => 'Bénéficiaire créé dans paiement avec succès',
@@ -391,8 +429,12 @@ class PaiementController extends Controller
         }
 
         // --- Contrôle : paiement déjà approuvé ---
-        if ($paiement->PAI_STATUT == 2) {
+        if ($paiement->PAI_STATUT == 3) {
             return response()->json(['message' => 'Impossible de modifier un paiement déjà approuvé'], 400);
+        } 
+
+        if ($paiement->PAI_STATUT == 4) {
+            return response()->json(['message' => 'Impossible de modifier un paiement déjà effectué'], 400);
         } 
 
         // Validation minimale
@@ -402,7 +444,7 @@ class PaiementController extends Controller
 
         // Récupération du bénéficiaire avec la domiciliation active
         $beneficiaire = Beneficiaire::with(['domiciliations' => function ($query) {
-                $query->where('DOM_STATUT', 2)
+                $query->where('DOM_STATUT', 3)
                     ->with(['banque', 'guichet']);
             }])
             ->where('BEN_CODE', $request->BEN_CODE)
@@ -493,29 +535,73 @@ class PaiementController extends Controller
         }
 
         //  Paiement déjà approuvé
-        if ($paiement->PAI_STATUT == 2) {
+        if ($paiement->PAI_STATUT == 3) {
             return response()->json([
                 'message' => 'Impossible de supprimer : paiement déjà approuvé.',
                 'PAI_CODE' => $code
             ], 400);
         }
 
-        //  Vérifier s’il existe des détails de paiement
-        $detailsExist = DetailsPaiement::where('PAI_CODE', $code)->exists();
-
-        if ($detailsExist) {
+        if ($paiement->PAI_STATUT == 4) {
             return response()->json([
-                'message' => 'Veuillez supprimer d\'abord les éléments du paiement avant de supprimer le paiement.',
+                'message' => 'Impossible de supprimer : paiement déjà effectué.',
                 'PAI_CODE' => $code
             ], 400);
         }
 
-        // Suppression autorisée
-        $paiement->delete();
+        //  Vérifier s’il existe des détails de paiement
+        // $detailsExist = DetailsPaiement::where('PAI_CODE', $code)->exists();
 
-        return response()->json([
-            'message' => 'Paiement supprimé avec succès.'
-        ]);
+        // if ($detailsExist) {
+        //     return response()->json([
+        //         'message' => 'Veuillez supprimer d\'abord les éléments du paiement avant de supprimer le paiement.',
+        //         'PAI_CODE' => $code
+        //     ], 400);
+        // }
+
+        DB::beginTransaction();
+
+        try {
+            DB::table('t_details_paiement')
+                ->where('PAI_CODE', $code)
+                ->delete();
+
+            // récupérer les mouvements de type BÉNÉFICIAIRE
+            $mvtCodes = DB::table('t_mouvements')
+                ->where('MVT_PAI_CODE', $code)
+                ->where('TYP_CODE', '20250002') // type mouvement bénéficiaire
+                ->pluck('MVT_CODE');
+
+            if ($mvtCodes->isNotEmpty()) {
+
+                // supprimer les historiques liés aux mouvements bénéficiaire
+                DB::table('t_historiques_validations')
+                    ->whereIn('MVT_CODE', $mvtCodes)
+                    ->delete();
+
+                // supprimer les mouvements bénéficiaire
+                DB::table('t_mouvements')
+                    ->whereIn('MVT_CODE', $mvtCodes)
+                    ->delete();
+            }
+
+            // supprimer
+            $paiement->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Paiement supprimé avec succès'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'message' => 'Erreur lors de la suppression',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -537,57 +623,57 @@ class PaiementController extends Controller
      *     @OA\Response(response=401, description="Non authentifié")
      * )
      */
-    public function deletePaiement(Request $request)
-    {
-        // Suppression multiple uniquement
-        $ids = $request->input('ids', []);
+    // public function deletePaiement(Request $request)
+    // {
+    //     // Suppression multiple uniquement
+    //     $ids = $request->input('ids', []);
 
-        if (!is_array($ids) || count($ids) === 0) {
-            return response()->json(['message' => 'Aucun ID fourni.'], 400);
-        }
+    //     if (!is_array($ids) || count($ids) === 0) {
+    //         return response()->json(['message' => 'Aucun ID fourni.'], 400);
+    //     }
 
-        $results = ['success' => [], 'failed' => []];
+    //     $results = ['success' => [], 'failed' => []];
 
-        DB::beginTransaction();
-        try {
-            $paiements = Paiement::whereIn('PAI_CODE', $ids)->get()->keyBy('PAI_CODE');
+    //     DB::beginTransaction();
+    //     try {
+    //         $paiements = Paiement::whereIn('PAI_CODE', $ids)->get()->keyBy('PAI_CODE');
 
-            foreach ($ids as $code) {
-                $paiement = $paiements->get($code);
+    //         foreach ($ids as $code) {
+    //             $paiement = $paiements->get($code);
 
-                if (!$paiement) {
-                    $results['failed'][] = [
-                        'PAI_CODE' => $code,
-                        'reason' => 'Paiement introuvable.'
-                    ];
-                    continue;
-                }
+    //             if (!$paiement) {
+    //                 $results['failed'][] = [
+    //                     'PAI_CODE' => $code,
+    //                     'reason' => 'Paiement introuvable.'
+    //                 ];
+    //                 continue;
+    //             }
 
-                if ($paiement->PAI_STATUT != 0) {
-                    $results['failed'][] = [
-                        'PAI_CODE' => $code,
-                        'reason' => 'Impossible de supprimer : paiements déjà traités.'
-                    ];
-                    continue;
-                }
+    //             if ($paiement->PAI_STATUT != 0) {
+    //                 $results['failed'][] = [
+    //                     'PAI_CODE' => $code,
+    //                     'reason' => 'Impossible de supprimer : paiements déjà traités.'
+    //                 ];
+    //                 continue;
+    //             }
 
-                $paiement->delete();
-                $results['success'][] = ['PAI_CODE' => $code];
-            }
+    //             $paiement->delete();
+    //             $results['success'][] = ['PAI_CODE' => $code];
+    //         }
 
-            DB::commit();
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+    //         DB::commit();
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         throw $e;
+    //     }
 
-        return response()->json([
-            'message' => 'Suppression terminée.',
-            'deleted' => count($results['success']),
-            'failed' => $results['failed'],
-            'success' => $results['success']
-        ]);
-    }
+    //     return response()->json([
+    //         'message' => 'Suppression terminée.',
+    //         'deleted' => count($results['success']),
+    //         'failed' => $results['failed'],
+    //         'success' => $results['success']
+    //     ]);
+    // }
 
     private function generateMvtCode($regCode)
     {
@@ -628,6 +714,28 @@ class PaiementController extends Controller
         return $beneficiaire->domiciliations->first();
     }
 
+    private function generateValCode($regCode)
+    {
+        $echeance = DB::table('t_echeances')
+            ->where('ECH_STATUT', 1)
+            ->first();
+
+        if (!$echeance) {
+            throw new \Exception('Aucune échéance active.');
+        }
+
+        $echCode = $echeance->ECH_CODE;
+
+        $lastNumber = DB::table('t_historiques_validations')
+            ->where('VAL_CODE', 'like', $echCode . $regCode . '%')
+            ->select(DB::raw("MAX(RIGHT(VAL_CODE,5)) as max_num"))
+            ->value('max_num');
+
+        $nextNumber = str_pad(((int)$lastNumber + 1), 6, '0', STR_PAD_LEFT);
+
+        return $echCode . $regCode . $nextNumber;
+    }
+
     public function validerPaiement(Request $request, $id = null)
     {
         $user = Auth::user();
@@ -647,62 +755,46 @@ class PaiementController extends Controller
                 return response()->json(['message' => 'Paiement introuvable.'], 404);
             }
 
-            if ($paiement->PAI_STATUT == 1) {
+            if ($paiement->PAI_STATUT == 2) {
                 return response()->json(['message' => 'Ce paiement est déjà en cours d\'approbation.'], 400);
             }
 
-            if ($paiement->PAI_STATUT == 2) {
+            if ($paiement->PAI_STATUT == 3) {
                 return response()->json(['message' => 'Ce paiement a déjà été approuvé.'], 400);
+            }
+
+            if ($paiement->PAI_STATUT == 4) {
+                return response()->json(['message' => 'Ce paiement a déjà été fait.'], 400);
             }
 
             DB::transaction(function () use ($paiement, $user, $nivValeur, $now) {
 
-                $domiciliation = $this->getDomiciliationBeneficiaire($paiement->BEN_CODE);
-
-                if (!$domiciliation) {
-                    throw new \Exception("Aucune domiciliation trouvée pour le bénéficiaire {$paiement->BEN_CODE}");
-                }
-
-                $paiement->PAI_STATUT = 1;
+                $paiement->PAI_STATUT = 2;
                 $paiement->save();
 
-                $mvtCode = $this->generateMvtCode($user->REG_CODE);
+                // Mise à jour du dernier Mouvement de niveau 1 seulement
+                $dernierMvt = Mouvement::where('MVT_PAI_CODE', $paiement->PAI_CODE)
+                    ->where('MVT_NIV', 1)
+                    ->orderByDesc('MVT_DATE')
+                    ->orderByDesc('MVT_HEURE')
+                    ->first();
 
-                Mouvement::create([
-                    'MVT_CODE'        => $mvtCode,
-                    'MVT_PAI_CODE'    => $paiement->PAI_CODE,
-                    'MVT_BEN_CODE'    => $paiement->BEN_CODE,
-                    'MVT_BEN_NOM_PRE' => $paiement->PAI_BENEFICIAIRE,
+                if ($dernierMvt) {
+                    $dernierMvt->MVT_NIV += 1;
+                    $dernierMvt->MVT_DATE = $now->toDateString();
+                    $dernierMvt->save();
+                }
 
-                    'MVT_BNQ_CODE'    => $domiciliation->BNQ_CODE,
-                    'MVT_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                    'MVT_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
-                    'MVT_NUMCPT'      => $domiciliation->DOM_NUMCPT,
-                    'MVT_CLE_RIB'     => $domiciliation->DOM_RIB,
-                    'MVT_DATE'        => $now->toDateString(),
-                    'MVT_HEURE'       => $now->toTimeString(),
-                    'MVT_NIV'         => $nivValeur,
-                    'MVT_UTI_CODE'      => $user->UTI_CODE,
-                    'MVT_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
-                    'TYP_CODE'        => '20250002',
-                ]);
+                $valCode = $this->generateValCode($user->REG_CODE);
 
+                // Création historique
                 HistoriquesValidation::create([
-                    'VAL_CODE'        => $mvtCode,
-                    'VAL_PAI_CODE'    => $paiement->PAI_CODE,
-                    'VAL_BEN_CODE'    => $paiement->BEN_CODE,
-                    'VAL_BEN_NOM_PRE' => $paiement->PAI_BENEFICIAIRE,
-                    'VAL_BNQ_CODE'    => $domiciliation->BNQ_CODE,
-                    'VAL_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                    'VAL_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
-                    'VAL_NUMCPT'      => $domiciliation->DOM_NUMCPT,
-                    'VAL_CLE_RIB'     => $domiciliation->DOM_RIB,
-                    'VAL_DATE'        => $now->toDateString(),
-                    'VAL_HEURE'       => $now->toTimeString(),
-                    'VAL_NIV'         => $nivValeur,
-                    'VAL_UTI_CODE'    => $user->UTI_CODE,
-                    'VAL_CREER_PAR'   => $user->UTI_NOM . ' ' . $user->UTI_PRENOM,
-                    'MVT_CODE'        => $mvtCode,
+                    'VAL_CODE'      => $valCode,
+                    'VAL_DATE'      => $now->toDateString(),
+                    'VAL_HEURE'     => $now->toTimeString(),
+                    'VAL_UTI_CODE'  => $user->UTI_CODE,
+                    'VAL_CREER_PAR' => $user->UTI_NOM . " " . $user->UTI_PRENOM,
+                    'MVT_CODE'      => $dernierMvt ? $dernierMvt->MVT_CODE : null,
                 ]);
             });
             return response()->json(['message' => "Transmission à l'approbation réussie."]);
@@ -730,7 +822,7 @@ class PaiementController extends Controller
                     continue;
                 }
 
-                if (in_array($paiementItem->PAI_STATUT, [1, 2])) {
+                if (in_array($paiementItem->PAI_STATUT, [2, 3, 4])) {
                     $results['failed'][] = [
                         'PAI_CODE' => $code,
                         'reason' => 'Paiement déjà traité'
@@ -748,45 +840,32 @@ class PaiementController extends Controller
                     continue;
                 }
 
-                $paiementItem->PAI_STATUT = 1;
+                $paiementItem->PAI_STATUT = 2;
                 $paiementItem->save();
 
-                $mvtCode = $this->generateMvtCode($user->REG_CODE);
+                // Mise à jour du dernier Mouvement de niveau 1 seulement
+                $dernierMvt = Mouvement::where('MVT_PAI_CODE', $paiement->PAI_CODE)
+                    ->where('MVT_NIV', 1)
+                    ->orderByDesc('MVT_DATE')
+                    ->orderByDesc('MVT_HEURE')
+                    ->first();
 
-                Mouvement::create([
-                    'MVT_CODE'        => $mvtCode,
-                    'MVT_PAI_CODE'    => $paiementItem->PAI_CODE,
-                    'MVT_BEN_CODE'    => $paiementItem->BEN_CODE,
-                    'MVT_BEN_NOM_PRE' => $paiementItem->PAI_BENEFICIAIRE,
-                    'MVT_BNQ_CODE'    => $domiciliation->BNQ_CODE,
-                    'MVT_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                    'MVT_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
-                    'MVT_NUMCPT'      => $domiciliation->DOM_NUMCPT,
-                    'MVT_CLE_RIB'     => $domiciliation->DOM_RIB,
-                    'MVT_DATE'        => $now->toDateString(),
-                    'MVT_HEURE'       => $now->toTimeString(),
-                    'MVT_NIV'         => $nivValeur,
-                    'MVT_UTI_CODE'      => $user->UTI_CODE,
-                    'MVT_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
-                    'TYP_CODE'        => '20250002',
-                ]);
+                if ($dernierMvt) {
+                    $dernierMvt->MVT_NIV += 1;
+                    $dernierMvt->MVT_DATE = $now->toDateString();
+                    $dernierMvt->save();
+                }
 
+                $valCode = $this->generateValCode($user->REG_CODE);
+
+                // Création historique
                 HistoriquesValidation::create([
-                    'VAL_CODE'        => $mvtCode,
-                    'VAL_PAI_CODE'    => $paiementItem->PAI_CODE,
-                    'VAL_BEN_CODE'    => $paiementItem->BEN_CODE,
-                    'VAL_BEN_NOM_PRE' => $paiementItem->PAI_BENEFICIAIRE,
-                    'VAL_BNQ_CODE'    => $domiciliation->BNQ_CODE,
-                    'VAL_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                    'VAL_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
-                    'VAL_NUMCPT'      => $domiciliation->DOM_NUMCPT,
-                    'VAL_CLE_RIB'     => $domiciliation->DOM_RIB,
-                    'VAL_DATE'        => $now->toDateString(),
-                    'VAL_HEURE'       => $now->toTimeString(),
-                    'VAL_NIV'         => $nivValeur,
-                    'VAL_UTI_CODE'    => $user->UTI_CODE,
-                    'VAL_CREER_PAR'   => $user->UTI_NOM . ' ' . $user->UTI_PRENOM,
-                    'MVT_CODE'        => $mvtCode,
+                    'VAL_CODE'      => $valCode,
+                    'VAL_DATE'      => $now->toDateString(),
+                    'VAL_HEURE'     => $now->toTimeString(),
+                    'VAL_UTI_CODE'  => $user->UTI_CODE,
+                    'VAL_CREER_PAR' => $user->UTI_NOM . " " . $user->UTI_PRENOM,
+                    'MVT_CODE'      => $dernierMvt ? $dernierMvt->MVT_CODE : null,
                 ]);
 
                 $results['success'][] = ['PAI_CODE' => $code];
@@ -826,7 +905,7 @@ class PaiementController extends Controller
         }
 
         // Vérification des statuts
-        $paiementNonTransmis = $paiement->PAI_STATUT != 1 && $paiement->PAI_STATUT != 2 && $paiement->PAI_STATUT != 3;
+        $paiementNonTransmis = $paiement->PAI_STATUT != 0 && $paiement->PAI_STATUT != 2 && $paiement->PAI_STATUT != 3 && $paiement->PAI_STATUT != 4;
 
         $confirmed = $request->input('confirm', false);
 
@@ -851,50 +930,230 @@ class PaiementController extends Controller
                     throw new \Exception("Aucune domiciliation trouvée pour le bénéficiaire {$paiement->BEN_CODE}");
                 }
 
-                $paiement->PAI_STATUT = 1;
-                $paiement->save();
+                if ($paiement->PAI_STATUT != 0 && $paiement->PAI_STATUT != 2 && $paiement->PAI_STATUT != 3 && $paiement->PAI_STATUT !=4){
 
-                $mvtCode = $this->generateMvtCode($user->REG_CODE);
+                    $paiement->PAI_STATUT = 2;
+                    $paiement->save();
+    
+                     // Dernier mouvement du paiement
+                    $dernierMvt = Mouvement::where('MVT_PAI_CODE', $paiement->PAI_CODE)
+                        ->where('MVT_NIV', 1)
+                        ->first();
 
-                Mouvement::create([
-                    'MVT_CODE'        => $mvtCode,
-                    'MVT_PAI_CODE'    => $paiement->PAI_CODE,
-                    'MVT_BEN_CODE'    => $paiement->BEN_CODE,
-                    'MVT_BEN_NOM_PRE' => $paiement->PAI_BENEFICIAIRE,
+                    if ($dernierMvt) {
+                        $dernierMvt->MVT_NIV += 1;
+                        $dernierMvt->MVT_DATE = $now->toDateString();
+                        $dernierMvt->MVT_HEURE = $now->toTimeString();
+                        $dernierMvt->save();
 
-                    'MVT_BNQ_CODE'    => $domiciliation->BNQ_CODE,
-                    'MVT_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                    'MVT_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
-                    'MVT_NUMCPT'      => $domiciliation->DOM_NUMCPT,
-                    'MVT_CLE_RIB'     => $domiciliation->DOM_RIB,
-                    'MVT_DATE'        => $now->toDateString(),
-                    'MVT_HEURE'       => $now->toTimeString(),
-                    'MVT_NIV'         => $nivValeur,
-                    'MVT_UTI_CODE'      => $user->UTI_CODE,
-                    'MVT_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
-                    'TYP_CODE'        => '20250002',
-                ]);
+                        // Historique
+                        $valCode = $this->generateValCode($user->REG_CODE);
+                        HistoriquesValidation::create([
+                            'VAL_CODE'      => $valCode,
+                            'VAL_DATE'      => $now->toDateString(),
+                            'VAL_HEURE'     => $now->toTimeString(),
+                            'VAL_UTI_CODE'  => $user->UTI_CODE,
+                            'VAL_CREER_PAR' => $user->UTI_NOM . " " . $user->UTI_PRENOM,
+                            'MVT_CODE'      => $dernierMvt->MVT_CODE,
+                        ]);
+                    }
+                }
 
-                HistoriquesValidation::create([
-                    'VAL_CODE'        => $mvtCode,
-                    'VAL_PAI_CODE'    => $paiement->PAI_CODE,
-                    'VAL_BEN_CODE'    => $paiement->BEN_CODE,
-                    'VAL_BEN_NOM_PRE' => $paiement->PAI_BENEFICIAIRE,
-                    'VAL_BNQ_CODE'    => $domiciliation->BNQ_CODE,
-                    'VAL_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                    'VAL_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
-                    'VAL_NUMCPT'      => $domiciliation->DOM_NUMCPT,
-                    'VAL_CLE_RIB'     => $domiciliation->DOM_RIB,
-                    'VAL_DATE'        => $now->toDateString(),
-                    'VAL_HEURE'       => $now->toTimeString(),
-                    'VAL_NIV'         => $nivValeur,
-                    'VAL_UTI_CODE'    => $user->UTI_CODE,
-                    'VAL_CREER_PAR'   => $user->UTI_NOM . ' ' . $user->UTI_PRENOM,
-                    'MVT_CODE'        => $mvtCode,
-                ]);
             });
 
         return response()->json(['message' => "Transmission à l'approbation réussie."]);
     }
 
+    public function generatePaiementsFromOldEcheance(Request $request)
+    {
+        $request->validate([
+            'ECH_CODE_OLD' => 'required|string|exists:t_echeances,ECH_CODE',
+        ]);
+
+        $user = auth()->user()->load('regie');
+
+        if (!$user->regie) {
+            return response()->json(['message' => 'L’utilisateur n’a pas de régie associée.'], 403);
+        }
+
+        $nouvelleEcheance = Echeance::where('ECH_STATUT', 1)->first();
+        if (!$nouvelleEcheance) {
+            return response()->json(['message' => 'Aucune nouvelle échéance active trouvée.'], 404);
+        }
+
+        $ancienneEcheance = Echeance::where('ECH_STATUT', 0)
+            ->where('ECH_CODE', $request->ECH_CODE_OLD)
+            ->first();
+        if (!$ancienneEcheance) {
+            return response()->json(['message' => 'Ancienne échéance introuvable.'], 404);
+        }
+
+        $paiementsAncienne = Paiement::with('details')
+            ->where('ECH_CODE', $ancienneEcheance->ECH_CODE)
+            ->where('REG_CODE', $user->regie->REG_CODE)
+            ->get();
+
+        $copieResult = ['copies' => [], 'ignores' => []];
+
+        $totalPaiements = $paiementsAncienne->count();
+        $traites = 0;
+
+        DB::transaction(function () use ($paiementsAncienne, $nouvelleEcheance, $user, &$copieResult, &$traites) {
+
+            foreach ($paiementsAncienne as $paiementAncien) {
+
+                // Récupérer le bénéficiaire avec sa position
+                $beneficiaire = Beneficiaire::where('BEN_CODE', $paiementAncien->BEN_CODE)->first();
+
+                if (!$beneficiaire) {
+                    $copieResult['ignores'][] = "Bénéficiaire introuvable: " . $paiementAncien->PAI_BENEFICIAIRE;
+                    continue;
+                }
+
+                // Vérifier si le bénéficiaire est actif (POS_CODE = '01')
+                if ($beneficiaire->POS_CODE !== '01') {
+                    $copieResult['ignores'][] = $paiementAncien->PAI_BENEFICIAIRE . " (Inactif)";
+                    continue; // on ignore ce bénéficiaire
+                }
+
+                // Contrôle doublon
+                $exist = Paiement::where('BEN_CODE', $paiementAncien->BEN_CODE)
+                    ->where('ECH_CODE', $nouvelleEcheance->ECH_CODE)
+                    ->exists();
+
+                if ($exist) {
+                    $copieResult['ignores'][] = $paiementAncien->PAI_BENEFICIAIRE;
+                    continue;
+                }
+
+                // Générer PAI_CODE
+                $dernierPaiement = Paiement::where('ECH_CODE', $nouvelleEcheance->ECH_CODE)
+                    ->orderBy('PAI_CODE', 'desc')
+                    ->first();
+
+                $ordre = 1;
+                if ($dernierPaiement && preg_match('/(\d{4})$/', $dernierPaiement->PAI_CODE, $matches)) {
+                    $ordre = intval($matches[1]) + 1;
+                }
+                $paiementCode = $nouvelleEcheance->ECH_CODE . str_pad($ordre, 4, '0', STR_PAD_LEFT);
+
+                // Copier paiement
+                // Récupérer le bénéficiaire avec sa domiciliation active
+                $beneficiaire = Beneficiaire::with([
+                    'domiciliations' => function ($query) {
+                        $query->where('DOM_STATUT', 3)
+                            ->with(['banque', 'guichet']);
+                    },
+                    'typeBeneficiaire'
+                ])->where('BEN_CODE', $paiementAncien->BEN_CODE)->first();
+
+                $nouveauPaiement = new Paiement();
+                $nouveauPaiement->PAI_CODE = $paiementCode;
+                $nouveauPaiement->ECH_CODE = $nouvelleEcheance->ECH_CODE;
+                $nouveauPaiement->BEN_CODE = $paiementAncien->BEN_CODE;
+                $nouveauPaiement->REG_CODE = $user->REG_CODE;
+
+                // Infos bénéficiaire
+                if ($beneficiaire) {
+                    $nouveauPaiement->TYP_BENEFICIAIRE = $beneficiaire->typeBeneficiaire?->TYP_LIBELLE;
+                    $nouveauPaiement->PAI_BENEFICIAIRE = trim(
+                        $beneficiaire->BEN_NOM . ' ' . $beneficiaire->BEN_PRENOM
+                    );
+
+                    $domiciliation = $beneficiaire->domiciliations->first();
+                    if ($domiciliation) {
+                        $nouveauPaiement->PAI_NUMCPT   = $domiciliation->DOM_NUMCPT;
+                        $nouveauPaiement->PAI_RIB      = $domiciliation->DOM_RIB;
+                        $nouveauPaiement->PAI_REG_LIB  = $user->regie?->REG_LIBELLE;
+                        $nouveauPaiement->PAI_BNQ_LIB  = $domiciliation->banque?->BNQ_LIBELLE;
+                        $nouveauPaiement->PAI_BNQ_CODE = $domiciliation->banque?->BNQ_CODE;
+                        $nouveauPaiement->PAI_GUI_CODE = $domiciliation->guichet?->GUI_CODE;
+                    }
+                }
+
+                // Statuts et métadonnées
+                $nouveauPaiement->PAI_STATUT = 2; // Copié / en attente
+                $nouveauPaiement->PAI_VIREMENT = 0;
+                $nouveauPaiement->PAI_DATE_CREER = now();
+                $nouveauPaiement->PAI_CREER_PAR = $user->UTI_NOM . ' ' . $user->UTI_PRENOM;
+                $nouveauPaiement->PAI_DATE_MODIFIER = null;
+                $nouveauPaiement->PAI_MODIFIER_PAR = null;
+
+                $nouveauPaiement->save();
+
+                $copieResult['copies'][] = $paiementAncien->PAI_BENEFICIAIRE;
+
+                // Copier détails
+                foreach ($paiementAncien->details as $detailAncien) {
+                    $lastDetail = DetailsPaiement::join('t_paiements', 't_paiements.PAI_CODE', '=', 't_details_paiement.PAI_CODE')
+                        ->where('t_paiements.ECH_CODE', $nouvelleEcheance->ECH_CODE)
+                        ->orderByRaw('CAST(t_details_paiement.DET_CODE AS UNSIGNED) DESC')
+                        ->value('t_details_paiement.DET_CODE');
+
+                    $numeroOrdre = $lastDetail ? str_pad(intval(substr($lastDetail, -6)) + 1, 6, '0', STR_PAD_LEFT) : '000001';
+                    $detCode = $nouvelleEcheance->ECH_CODE . $numeroOrdre;
+
+                    $nouveauDetail = $detailAncien->replicate();
+                    $nouveauDetail->DET_CODE = $detCode;
+                    $nouveauDetail->PAI_CODE = $paiementCode;
+                    $nouveauDetail->save();
+                }
+
+                // Créer Mouvement et Historique
+                $domiciliation = $this->getDomiciliationBeneficiaire($paiementAncien->BEN_CODE);
+                if ($domiciliation) {
+                    $nivValeur = DB::table('t_niveau_validations')
+                        ->join('t_groupes', 't_groupes.NIV_CODE', '=', 't_niveau_validations.NIV_CODE')
+                        ->where('t_groupes.GRP_CODE', $user->GRP_CODE)
+                        ->value('NIV_VALEUR');
+
+                    $mvtCode = $this->generateMvtCode($user->REG_CODE);
+
+                    $valCode = $this->generateValCode($user->REG_CODE);
+
+                    Mouvement::create([
+                        'MVT_CODE' => $mvtCode,
+                        'MVT_PAI_CODE' => $paiementCode,
+                        'MVT_BEN_CODE' => $paiementAncien->BEN_CODE,
+                        'MVT_BEN_NOM_PRE' => $paiementAncien->PAI_BENEFICIAIRE,
+                        'MVT_BNQ_CODE' => $domiciliation->BNQ_CODE,
+                        'MVT_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
+                        'MVT_GUI_CODE' => $domiciliation->guichet?->GUI_CODE,
+                        'MVT_NUMCPT' => $domiciliation->DOM_NUMCPT,
+                        'MVT_CLE_RIB' => $domiciliation->DOM_RIB,
+                        'MVT_DATE' => now()->toDateString(),
+                        'MVT_HEURE' => now()->toTimeString(),
+                        'MVT_NIV' => $nivValeur +1,
+                        'MVT_UTI_CODE' => $user->UTI_CODE,
+                        'MVT_CREER_PAR' => $user->UTI_NOM." ".$user->UTI_PRENOM,
+                        'MVT_UTI_REG'     => $user->REG_CODE,
+                        'TYP_CODE' => '20250002',
+                    ]);
+
+                    HistoriquesValidation::create([
+                        'VAL_CODE' => $valCode,
+                        'VAL_DATE' => now()->toDateString(),
+                        'VAL_HEURE' => now()->toTimeString(),
+                        'VAL_UTI_CODE' => $user->UTI_CODE,
+                        'VAL_CREER_PAR' => $user->UTI_NOM." ".$user->UTI_PRENOM,
+                        'MVT_CODE' => $mvtCode,
+                    ]);
+                }
+
+                $traites++;
+            }
+        });
+
+        $progress = $totalPaiements > 0
+        ? round(($traites / $totalPaiements) * 100)
+        : 100;
+
+        return response()->json([
+            'message' => 'Paiements générés avec succès.',
+            'paiements_copies' => $copieResult['copies'],
+            'paiements_ignores' => $copieResult['ignores'],
+            'progress' => $progress,
+            'total' => $totalPaiements,
+        ]);
+    }
 }

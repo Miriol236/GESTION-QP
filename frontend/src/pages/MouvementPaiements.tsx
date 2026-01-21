@@ -10,6 +10,7 @@ import PaiementPreviewModal2 from "./PaiementPreviewModal2";
 import ConfirmValidateDialog from "@/components/common/ConfirmValidateDialog";
 import ConfirmRejetDialog from "@/components/common/ConfirmRejetDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function MouvementPaiements() {
   const [paiements, setPaiements] = useState<any[]>([]);
@@ -22,15 +23,39 @@ export default function MouvementPaiements() {
   const [selectedRowsForStatus, setSelectedRowsForStatus] = useState<any[]>([]);
   const [isValidateStatusDialogOpen, setIsValidateStatusDialogOpen] = useState(false);
   const [isRejetStatusDialogOpen, setIsRejetStatusDialogOpen] = useState(false);
+  const [types, setTypes] = useState<any[]>([]);
+  const [echeances, setEcheances] = useState<any[]>([]);
+  const [regies, setRegies] = useState<any[]>([]);
+  // const [selectedEcheance, setSelectedEcheance] = useState<any | null>(null);
+  const [selectedRegie, setSelectedRegie] = useState<any | null>(null);
+  const [selectedTypeBen, setSelectedTypeBen] = useState<any | null>(null);
   const { toast } = useToast();
 
-  const fetchPaiements = async () => {
-    setIsLoading(true);
+  // Récupérer l'utilisateur courant pour déterminer les permissions
+  const { user } = useAuth();
+  const regCodeUser = user?.REG_CODE || null; // null si l'utilisateur n'est pas rattaché à une régie
+
+  const showRegieFilter = regCodeUser === null;
+
+  // Récupérer NIV_CODE du groupe
+  const nivCode = user?.groupe?.NIV_CODE || null;
+
+  const fetchPaiements = async (ech_code: string | null = null) => {
+    // setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const { data } = await axios.get(`${API_URL}/mouvements/paiements`, {
+
+      // Ajoute le paramètre ech_code si une échéance est sélectionnée
+      const url = ech_code
+        ? `${API_URL}/mouvements/paiements?ech_code=${ech_code}`
+        : `${API_URL}/mouvements/paiements`;
+
+        // console.log("Fetching paiements from URL:", url);
+
+      const { data } = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       setPaiements(data.data ?? []);
     } catch (err: any) {
       toast({
@@ -46,6 +71,44 @@ export default function MouvementPaiements() {
   useEffect(() => {
     fetchPaiements();
   }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const headers = { Authorization: `Bearer ${token}` };
+    Promise.all([
+      axios.get(`${API_URL}/echeances-publique`, { headers }),
+      axios.get(`${API_URL}/regies-publiques`, { headers }),
+      axios.get(`${API_URL}/typeBeneficiaires-public`, { headers }),
+    ])
+      .then(([e, r, t]) => {
+        setEcheances(e.data);
+        setRegies(r.data);
+        setTypes(t.data);
+      })
+      .catch(() => toast({
+        title: "Erreur",
+        description: "Erreur lors du chargement des listes.",
+        variant: "destructive",
+      }));
+  }, []);
+
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const displayedPaiements = paiements.filter((p) => {
+    // Recherche
+    const matchesSearch =
+      !searchTerm ||
+      String(p.PAI_CODE).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(p.MVT_BEN_NOM_PRE).toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Filtre régie
+    const matchesRegie = !selectedRegie || p.REG_CODE === selectedRegie.REG_CODE;
+
+    // Filtre Type bénéficiaire
+    const matchesTypeBen = !selectedTypeBen || p.TYP_CODE === selectedTypeBen.TYP_CODE;
+
+    return matchesSearch && matchesRegie && matchesTypeBen;
+  });
 
   // Mettre à jour le statut pour les lignes sélectionnées (appelée depuis DataTable)
 const handleStatusUpdate = (rows: any[]) => {
@@ -287,18 +350,34 @@ const handleConfirmRejetStatus = async () => {
     {/* Liste des bénéficiaires */}
     <Card > 
       <DataTable
-        title={`Effectif (${paiements.length})`}
+        title={`Effectif (${displayedPaiements.length ?? []})`}
         columns={columns}
-        data={paiements ?? []}
+        data={displayedPaiements ?? []}
         onView={(row) => {
         setSelectedPaiement({
             beneficiaire: row,
             paiement: [row], 
         });
         }}
-        onValidate2={handleStatusUpdate}
-        onRejet={handleRejetStatusUpdate}
-        searchPlaceholder="Rechercher un bénéficiaire (Nom et Prénom...)"
+        onValidate2={nivCode === '02' ? handleStatusUpdate : undefined} 
+
+        rowKey2="PAI_CODE"
+          filterItems2={showRegieFilter ? regies.map((e) => ({
+          ...e,
+          label: `${e.REG_SIGLE}`
+        })) : undefined}
+        filterItems4={types.map((e) => ({
+          ...e,
+          label: e.TYP_LIBELLE  // <-- ici, utiliser TYP_LIBELLE
+        }))}
+        filterDisplay2={showRegieFilter ? ((it) => it.label || it.REG_SIGLE) : undefined}
+        filterDisplay4={(it: any) => it.label || it.TYP_LIBELLE}
+        onFilterSelect2={showRegieFilter ? (it) => setSelectedRegie(it) : undefined}
+        onFilterSelect4={(it) => setSelectedTypeBen(it)}
+        filterPlaceholder2={showRegieFilter ? "Toutes les régies" : undefined}
+        filterPlaceholder4="Tous les types"
+        onRejet={nivCode === '02' ? handleRejetStatusUpdate : undefined}
+        searchPlaceholder="Rechercher (Nom et Prénom...)"
       />
     </Card>
    {selectedPaiement && (

@@ -19,11 +19,12 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Check, ChevronDown, Edit, Trash2, ArrowRight, ArrowLeft, Power, Plus, X, Save } from "lucide-react";
+import { Check, ChevronDown, Edit, Trash2, ArrowRight, ArrowLeft, Power, Plus, X, Save, Loader2, PlusCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { API_URL } from "@/config/api";
 import { TableSkeleton } from "@/components/loaders/TableSkeleton";
 import { TableSkeletonWizard } from "@/components/loaders/TableSkeletonWizard";
+import BeneficiaireWizard from "@/pages/BeneficiaireWizard";
 import { useToast } from "@/hooks/use-toast";
 
 export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { onSuccess?: () => void; paiementData?: any; onFinish?: () => void; }): JSX.Element {
@@ -45,6 +46,9 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   const [openValidateDialog, setOpenValidateDialog] = useState(false);
   const [validateMessage, setValidateMessage] = useState("");
   const [loadingValidation, setLoadingValidation] = useState(false);
+  const [eltSens, setEltSens] = useState<number | null>(null);
+  const [openWizard, setOpenWizard] = useState(false);
+  const [selectedBenefCode, setSelectedBenefCode] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [paiement, setPaiement] = useState({
@@ -180,7 +184,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
       );
 
       // Prendre le premier RIB actif (DOM_STATUT = 2)
-      const rib = foundBenef?.domiciliations?.find(d => d.DOM_STATUT === 2) || null;
+      const rib = foundBenef?.domiciliations?.find(d => d.DOM_STATUT) || null;
 
       setSelectedBenef(foundBenef || null);
       setSelectedRib(rib);
@@ -197,7 +201,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     if (!paiement.BEN_CODE) {
       toast({
         title: "Avertissement",
-        description: "Veuillez choisir un bénéficiaire obligatoire.",
+        description: "Veuillez choisir un bénéficiaire.",
         variant: "warning",
       });
       return;
@@ -323,6 +327,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         ELT_CODE: "",
         PAI_MONTANT: "",
       });
+      setEltSens(null);
 
       toast({
         title: "Succès",
@@ -355,6 +360,12 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         ELT_CODE: d.ELT_CODE,
         PAI_MONTANT: d.PAI_MONTANT,
     });
+
+    const elt = elements.find(
+      (e) => String(e.ELT_CODE) === String(d.ELT_CODE)
+    );
+
+    setEltSens(elt ? Number(elt.ELT_SENS) : null);
 
     setIsEditing(true);
     setEditId(d.DET_CODE);
@@ -621,6 +632,10 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     return <TableSkeletonWizard />;
   }
 
+  function Skeleton({ height = 12 }: { height?: number }) {
+    return <div className={`h-${height} w-full bg-gray-200 animate-pulse rounded-md`}></div>;
+  }
+
   return (
     // Structure principale moderne et responsive
     <div className="w-full max-w-4xl lg:max-w-6xl mx-auto p-0 sm:p-8 bg-white rounded-xl shadow-lg ring-1 ring-gray-100">
@@ -701,13 +716,20 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
               {/* Top: selectors (Bénéficiaire) */}
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <ComboBox
-                    label="Bénéficiaire *"
-                    items={beneficiaires}
-                    value={paiement.BEN_CODE}
-                    onSelect={(v: any) => setPaiement({ ...paiement, BEN_CODE: v })}
-                    display={(t: any) => `${t.BEN_NOM} ${t.BEN_PRENOM || " "}`}
-                  />
+                  {listsLoaded ? (
+                    <ComboBox
+                      label="Bénéficiaire *"
+                      items={beneficiaires}
+                      value={paiement.BEN_CODE}
+                      onSelect={(v: any) => setPaiement({ ...paiement, BEN_CODE: v })}
+                      display={(t: any) => `${t.BEN_NOM} ${t.BEN_PRENOM || " "}`}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-12 w-full space-x-2">
+                      <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+                      <span className="text-gray-500 font-medium">Veuillez patienter...</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Info inputs: hidden until a beneficiary is selected */}
@@ -753,45 +775,71 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                       />
                     </div>
                   </div>
-                    {selectedBenef && selectedRib && (
+                    {selectedBenef && (
                       <div className="mt-4 rounded-lg border bg-gray-50 p-4">
                         <div className="flex flex-wrap items-start justify-start gap-10 text-sm">
+
                           {/* Banque */}
                           <div className="flex flex-col items-start min-w-[100px]">
                             <span className="font-semibold text-gray-500">Banque</span>
-                            <span className="mt-2 font-medium">{`${selectedRib.BNQ_LIBELLE}`}</span>
+                            <span className="mt-2 font-medium">
+                              {selectedRib?.BNQ_LIBELLE || "_"}
+                            </span>
                           </div>
 
                           {/* Guichet */}
                           <div className="flex flex-col items-start min-w-[100px]">
                             <span className="font-semibold text-gray-500">Guichet</span>
-                            <span className="mt-2 font-medium">{`${selectedRib.GUI_CODE}`}</span>
+                            <span className="mt-2 font-medium">
+                              {selectedRib?.GUI_CODE || "_"}
+                            </span>
                           </div>
 
                           {/* N° Compte */}
                           <div className="flex flex-col items-start min-w-[120px]">
                             <span className="font-semibold text-gray-500">N° Compte</span>
-                            <span className="mt-2 font-medium">{selectedRib.DOM_NUMCPT}</span>
+                            <span className="mt-2 font-medium">
+                              {selectedRib?.DOM_NUMCPT || "_"}
+                            </span>
                           </div>
 
                           {/* Clé RIB */}
                           <div className="flex flex-col items-start min-w-[80px]">
                             <span className="font-semibold text-gray-500">Clé RIB</span>
-                            <span className="mt-2 font-medium">{selectedRib.DOM_RIB}</span>
+                            <span className="mt-2 font-medium">
+                              {selectedRib?.DOM_RIB || "_"}
+                            </span>
                           </div>
 
-                          {/* Bouton d'édition */}
-                          {/* <div className="ml-auto mt-2">
+                          {/* Bouton ajouter / modifier RIB (TOUJOURS visible) */}
+                          <div className="ml-auto mt-2">
                             <Button
                               variant="ghost"
-                              size="sm"
-                              className="text-blue-600 hover:text-blue-700"
-                              onClick={() => { setEditableRib({ ...selectedRib }); setRibModalOpen(true); }}
+                              size="icon"
+                              className="
+                                rounded-full
+                                text-blue-600
+                                hover:bg-blue-100 hover:text-blue-700
+                                transition
+                              "
+                              onClick={() => {
+                                setSelectedBenefCode(selectedBenef.BEN_CODE);
+                                setOpenWizard(true);
+                              }}
+                              title={selectedRib ? "Modifier le RIB" : "Ajouter un RIB"}
                             >
-                              <Edit className="w-5 h-5" />
+                              <PlusCircle className="w-5 h-5" />
                             </Button>
-                          </div> */}
+                          </div>
+
                         </div>
+
+                        {/* Message informatif si aucun RIB */}
+                        {!selectedRib && (
+                          <div className="mt-3 text-xs text-orange-600 italic">
+                            Aucun RIB enregistré pour ce bénéficiaire.
+                          </div>
+                        )}
                       </div>
                     )}
                 </div>
@@ -844,7 +892,18 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                   label="Elément *"
                   items={elements}
                   value={currentDetailsPaiements.ELT_CODE}
-                  onSelect={(v: any) => setCurrentDetailsPaiements({ ...currentDetailsPaiements, ELT_CODE: v})}
+                  onSelect={(v: any) => {
+                    const selectedElt = elements.find(
+                      (e) => String(e.ELT_CODE) === String(v)
+                    );
+
+                    setCurrentDetailsPaiements({
+                      ...currentDetailsPaiements,
+                      ELT_CODE: v,
+                    });
+
+                    setEltSens(selectedElt ? Number(selectedElt.ELT_SENS) : null);
+                  }}
                   display={(b: any) => `${b.ELT_LIBELLE}`}
                 />
 
@@ -867,6 +926,22 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                     className="h-10 w-full"
                   />
                 </div>
+
+                {eltSens !== null && (
+                  <div className="mt-1">
+                    {eltSens === 1 && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                        + Gain
+                      </span>
+                    )}
+
+                    {eltSens === 2 && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                        − Retenue
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {/* actions */}
                 <div className="md:col-span-3 mt-1 flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -910,6 +985,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                             PAI_MONTANT: "",
                             ELT_CODE: "",
                           });
+                          setEltSens(null);
                         }}
                       >
                         <X className="w-4 h-4 mr-2" />
@@ -1000,6 +1076,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                         <tr>
                           <th className="px-3 py-2 text-left">Elémet</th>
                           <th className="px-3 py-2 text-left">Montant en F CFA</th>
+                          <th className="px-3 py-2 text-left">Sens</th>
                           <th className="px-3 py-2 text-right">Actions</th>
                         </tr>
                       </thead>
@@ -1016,6 +1093,19 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                               <tr key={i} className="hover:bg-gray-50 transition-colors">
                                 <td className="px-3 py-2 align-top">{getElementInfo(d.ELT_CODE)}</td>
                                 <td className="px-3 py-2 font-medium align-top">{Number(d.PAI_MONTANT).toLocaleString("fr-FR")}</td>
+                                <td className="px-3 py-2 align-top">
+                                  {d.ELT_SENS === 1 && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                                      + Gain
+                                    </span>
+                                  )}
+
+                                  {d.ELT_SENS === 2 && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                                      − Retenue
+                                    </span>
+                                  )}
+                                </td>
                                 <td className="px-3 py-2 text-right align-top space-x-1">
                                   <Button variant="ghost" size="sm" onClick={() => handleEdit(d)}>
                                     <Edit className="w-4 h-4 text-blue-500" />
@@ -1089,6 +1179,14 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
           onConfirm={handleConfirmFinishValidation}
           itemName={validateMessage}
         />
+
+        {/* {openWizard && (
+          <BeneficiaireWizard
+            startStep={2}
+            forcedBenefCode={selectedBenefCode}
+            onFinish={() => setOpenWizard(false)}
+          />
+        )} */}
 
       </div>
     </div>

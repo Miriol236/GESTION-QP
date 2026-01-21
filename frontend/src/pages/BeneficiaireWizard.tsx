@@ -19,14 +19,27 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Check, ChevronDown, Edit, Trash2, ArrowRight, ArrowLeft, Power, Plus, X, Save, Send, Paperclip, Download } from "lucide-react";
+import { Check, ChevronDown, Edit, Trash2, ArrowRight, ArrowLeft, Power, Plus, X, Save, Send, Paperclip, Download, FileUp, FileDown, Upload } from "lucide-react";
 import { motion } from "framer-motion";
 import { API_URL } from "@/config/api";
 import { TableSkeletonWizard } from "@/components/loaders/TableSkeletonWizard";
 import { useToast } from "@/hooks/use-toast";
 import { Item } from "@radix-ui/react-dropdown-menu";
 
-export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFinish }: { onSuccess?: () => void; beneficiaireData?: any; onFinish?: () => void; }) {
+export default function BeneficiaireWizard({ 
+    onSuccess,
+    beneficiaireData,
+    onFinish,
+    startStep = 1,
+    forcedBenefCode,
+  }: {
+    onSuccess?: () => void;
+    beneficiaireData?: any;
+    onFinish?: () => void;
+    startStep?: number;
+    forcedBenefCode?: string;
+  })
+{
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -58,6 +71,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
     BEN_NOM: "",
     BEN_PRENOM: "",
     BEN_SEXE: "",
+    BEN_DATE_NAISSANCE: "",
     TYP_CODE: "",
     FON_CODE: "",
     GRD_CODE: "",
@@ -74,6 +88,8 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
     DOM_FICHIER: null,
   });
 
+  const today = new Date().toISOString().split("T")[0];
+
   const [benefCode, setBenefCode] = useState<string | null>(null);
 
   const toggleRowSelection = (row: any) => {
@@ -83,6 +99,13 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
   };
 
   const isSelected = (row: any) => selectedRows.some(r => r.DOM_CODE === row.DOM_CODE);
+
+  useEffect(() => {
+    if (startStep === 2 && forcedBenefCode) {
+      setStep(2);
+      setBenefCode(forcedBenefCode);
+    }
+  }, [startStep, forcedBenefCode]);
 
   useEffect(() => {
     const loadBeneficiaireData = async () => {
@@ -97,6 +120,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
           BEN_NOM: beneficiaireData.BEN_NOM || "",
           BEN_PRENOM: beneficiaireData.BEN_PRENOM || "",
           BEN_SEXE: beneficiaireData.BEN_SEXE || "",
+          BEN_DATE_NAISSANCE: beneficiaireData.BEN_DATE_NAISSANCE || "",
           TYP_CODE: beneficiaireData.TYP_CODE || "",
           FON_CODE: beneficiaireData.FON_CODE || "",
           GRD_CODE: beneficiaireData.GRD_CODE || "",
@@ -159,6 +183,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
             BEN_NOM: beneficiaireData.BEN_NOM || "",
             BEN_PRENOM: beneficiaireData.BEN_PRENOM || "",
             BEN_SEXE: beneficiaireData.BEN_SEXE || "",
+            BEN_DATE_NAISSANCE: beneficiaireData.BEN_DATE_NAISSANCE || "",
             TYP_CODE: beneficiaireData.TYP_CODE || "",
             FON_CODE: beneficiaireData.FON_CODE || "",
             GRD_CODE: beneficiaireData.GRD_CODE || "",
@@ -245,7 +270,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
 
   // Enregistrement bénéficiaire (étape 1)
   const handleNext = async () => {
-    if (!beneficiaire.BEN_NOM || !beneficiaire.BEN_PRENOM || !beneficiaire.BEN_SEXE || !beneficiaire.TYP_CODE || !beneficiaire.POS_CODE) {
+    if (!beneficiaire.BEN_NOM || !beneficiaire.BEN_PRENOM || !beneficiaire.BEN_SEXE || !beneficiaire.BEN_DATE_NAISSANCE || !beneficiaire.TYP_CODE || !beneficiaire.POS_CODE) {
       toast({
           title: "Avertissement",
           description: "Veuillez remplir tous les champs obligatoires.",
@@ -529,6 +554,38 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
       });
     }
   };
+
+  const handlePreviewRib = async (DOM_CODE: string) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await axios.get(`${API_URL}/rib/preview/${DOM_CODE}`, {
+        responseType: "blob", // important pour récupérer le fichier
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // Détecte automatiquement le type de fichier
+      const contentType = response.headers["content-type"];
+      const file = new Blob([response.data], { type: contentType });
+
+      const fileURL = window.URL.createObjectURL(file);
+
+      // Ouvre dans un nouvel onglet
+      window.open(fileURL, "_blank");
+
+      // Optionnel : libère l'objet après ouverture
+      setTimeout(() => window.URL.revokeObjectURL(fileURL), 1000);
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        title: "Erreur",
+        description: error?.response?.data?.message || "Impossible d’ouvrir le fichier",
+        variant: "destructive",
+      });
+    }
+  };   
 
   const handleDownloadRib = async (domCode: string) => {
     try {
@@ -995,6 +1052,22 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                     </div>
                   </div>
 
+                  <div>
+                    <Label>Date de naissance <span className="text-red-500">*</span></Label>
+                    <Input
+                      type="date"
+                      max={today} //  bloque les dates futures
+                      value={beneficiaire.BEN_DATE_NAISSANCE}
+                      onChange={(e) =>
+                        setBeneficiaire({
+                          ...beneficiaire,
+                          BEN_DATE_NAISSANCE: e.target.value,
+                        })
+                      }
+                      className="h-10 text-sm text-gray-900 w-full bg-white"
+                    />
+                  </div>
+
                   <ComboBox
                     label="Type de bénéficiaire *"
                     items={types}
@@ -1139,7 +1212,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                     </div>
 
                     {/* Upload fichier RIB */}
-                    <label className="flex items-center gap-2 px-2 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-md cursor-pointer max-w-[220px]">
+                    <label className="flex items-center gap-2 px-2 py-1 text-sm bg-blue-100 hover:bg-blue-200 rounded-md cursor-pointer max-w-[220px]">
                       <input
                         type="file"
                         className="hidden"
@@ -1152,7 +1225,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                         }}
                       />
 
-                      <Paperclip className="w-4 h-4 text-gray-600 shrink-0" />
+                      <Upload className="w-4 h-4 text-gray-600 shrink-0" />
 
                       <span
                         title={
@@ -1170,7 +1243,7 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                           ? currentDomiciliation.DOM_FICHIER.name
                           : currentDomiciliation.DOM_FICHIER
                             ? currentDomiciliation.DOM_FICHIER.split("/").pop()
-                            : "Joindre RIB *"}
+                            : "Joindre le fichier du RIB *"}
                       </span>
                     </label>
 
@@ -1179,10 +1252,10 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDownloadRib(currentDomiciliation.DOM_CODE)}
+                        onClick={() => handlePreviewRib(currentDomiciliation.DOM_CODE)}
                         title="Télécharger le fichier"
                       >
-                        <Download className="w-4 h-4 text-green-500" />
+                        <FileDown className="w-4 h-4 text-green-500" />
                       </Button>
                     )}
                   </div>
@@ -1272,24 +1345,24 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                       let label = "";
                       switch (d.DOM_STATUT) {
                         case 0:
+                          bgColor = "bg-red-100";
+                          textColor = "text-red-700";
+                          label = "Rejeté";
+                          break;
+                        case 1:
                           bgColor = "bg-gray-100";
                           textColor = "text-gray-600";
                           label = "Non approuvé";
                           break;
-                        case 1:
+                        case 2:
                           bgColor = "bg-orange-100";
                           textColor = "text-orange-700";
                           label = "En cours d'approbation...";
                           break;
-                        case 2:
+                        case 3:
                           bgColor = "bg-green-100";
                           textColor = "text-green-700";
                           label = "Approuvé";
-                          break;
-                        case 3:
-                          bgColor = "bg-red-100";
-                          textColor = "text-red-700";
-                          label = "Rejeté";
                           break;
                         default:
                           bgColor = "bg-gray-100";
@@ -1344,10 +1417,13 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleDownloadRib(d.DOM_CODE)}
-                                title="Télécharger le fichier"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePreviewRib(d.DOM_CODE);
+                                }}
+                                title="Afficher le fichier"
                               >
-                                <Download className="w-4 h-4 text-green-500" />
+                                <FileDown className="w-4 h-4 text-green-500" />
                               </Button>
                             )}
 
@@ -1430,24 +1506,24 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
 
                                 switch (d.DOM_STATUT) {
                                   case 0:
+                                    bgColor = "bg-red-100";
+                                    textColor = "text-red-700";
+                                    label = "Rejeté";
+                                    break;
+                                  case 1:
                                     bgColor = "bg-gray-100";
                                     textColor = "text-gray-600";
                                     label = "Non approuvé";
                                     break;
-                                  case 1:
+                                  case 2:
                                     bgColor = "bg-orange-100";
                                     textColor = "text-orange-700";
                                     label = "En cours d'approbation...";
                                     break;
-                                  case 2:
+                                  case 3:
                                     bgColor = "bg-green-100";
                                     textColor = "text-green-700";
                                     label = "Approuvé";
-                                    break;
-                                  case 3:
-                                    bgColor = "bg-red-100";
-                                    textColor = "text-red-700";
-                                    label = "Rejeté";
                                     break;
                                   default:
                                     bgColor = "bg-gray-100";
@@ -1469,13 +1545,26 @@ export default function BeneficiaireWizard({ onSuccess, beneficiaireData, onFini
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    handlePreviewRib(d.DOM_CODE);
+                                  }}
+                                  title="Afficher le fichier"
+                                >
+                                  <FileDown className="w-4 h-4 text-green-500" />
+                                </Button>
+                              )}
+                              {/* {d.DOM_FICHIER && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     handleDownloadRib(d.DOM_CODE);
                                   }}
                                   title="Télécharger le fichier"
                                 >
-                                  <Download className="w-4 h-4 text-green-500" />
+                                  <FileDown className="w-4 h-4 text-green-500" />
                                 </Button>
-                              )}
+                              )} */}
                               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleEdit(d)}} title="Modifier le RIB">
                                 <Edit className="w-4 h-4 text-blue-500" />
                               </Button>

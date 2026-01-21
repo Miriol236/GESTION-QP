@@ -37,6 +37,17 @@ class EcheanceController extends Controller
         );
     }
 
+    public function getAnciennesEcheances()
+    {
+        return response()->json(
+            \App\Models\Echeance::select('ECH_CODE', 'ECH_LIBELLE')
+                ->where('ECH_STATUT', 0)
+                ->orderByDesc('ECH_CODE')
+                ->take(3) // afficher seulement les 3 dernières échéances
+                ->get()
+        );
+    }
+
     /**
      * @OA\Get(
      *     path="/api/echeances/{code}",

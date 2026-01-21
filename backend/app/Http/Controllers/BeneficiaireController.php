@@ -78,7 +78,7 @@ class BeneficiaireController extends Controller
         $query = Beneficiaire::query()
             ->join('t_domiciliers', function ($join) {
                 $join->on('t_domiciliers.BEN_CODE', '=', 't_beneficiaires.BEN_CODE')
-                    ->where('t_domiciliers.DOM_STATUT', true); // RIB actif uniquement
+                    ->where('t_domiciliers.DOM_STATUT', 3); // RIB actif uniquement
             })
             ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
             ->leftJoin('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
@@ -90,6 +90,7 @@ class BeneficiaireController extends Controller
                 't_beneficiaires.BEN_MATRICULE as MATRICULE',
                 DB::raw("CONCAT(t_beneficiaires.BEN_NOM, ' ', t_beneficiaires.BEN_PRENOM) as BENEFICIAIRE"),
                 't_beneficiaires.BEN_SEXE as SEXE',
+                't_beneficiaires.BEN_DATE_NAISSANCE as DATE_NAISSANCE',
                 't_banques.BNQ_CODE',
                 't_banques.BNQ_LIBELLE',
                 't_guichets.GUI_CODE as GUICHET',
@@ -175,9 +176,8 @@ class BeneficiaireController extends Controller
                 'nullable',
                 'string',
                 'max:10',
-                // n’applique la règle unique que si une valeur est fournie
                 function ($attribute, $value, $fail) {
-                    if ($value && \App\Models\Beneficiaire::where('BEN_MATRICULE', $value)->exists()) {
+                    if ($value && Beneficiaire::where('BEN_MATRICULE', $value)->exists()) {
                         $fail('Ce matricule existe déjà.');
                     }
                 },
@@ -191,33 +191,67 @@ class BeneficiaireController extends Controller
 
         $exists = Beneficiaire::where('BEN_NOM', $request->BEN_NOM)
             ->where('BEN_PRENOM', $request->BEN_PRENOM)
+            ->where('BEN_DATE_NAISSANCE', $request->BEN_DATE_NAISSANCE)
             ->exists();
 
         if ($exists) {
             return response()->json([
-                'message' => 'Un bénéficiaire avec ce nom et prénom existe déjà.'
+                'message' => 'Un bénéficiaire avec ce nom, prénom et cette date de naissance existe déjà.'
             ], 409);
         }
 
-        $beneficiaire = new Beneficiaire();
-        $beneficiaire->BEN_MATRICULE = $request->BEN_MATRICULE ?: null;
-        $beneficiaire->BEN_NOM = $request->BEN_NOM;
-        $beneficiaire->BEN_PRENOM = $request->BEN_PRENOM;
-        $beneficiaire->BEN_SEXE = $request->BEN_SEXE;
-        $beneficiaire->BEN_STATUT = 0;
-        $beneficiaire->BEN_DATE_CREER = now();
-        $beneficiaire->BEN_CREER_PAR = auth()->check() ? auth()->user()->UTI_NOM." ".auth()->user()->UTI_PRENOM : 'SYSTEM';
-        $beneficiaire->TYP_CODE = $request->TYP_CODE;
-        $beneficiaire->FON_CODE = $request->FON_CODE;
-        $beneficiaire->GRD_CODE = $request->GRD_CODE;
-        $beneficiaire->POS_CODE = $request->POS_CODE;
-        $beneficiaire->save();
+        $user = Auth::user();
+        $now = Carbon::now();
+
+        // Niveau de validation
+        $nivValeur = DB::table('t_niveau_validations')
+            ->join('t_groupes', 't_groupes.NIV_CODE', '=', 't_niveau_validations.NIV_CODE')
+            ->where('t_groupes.GRP_CODE', $user->GRP_CODE)
+            ->value('NIV_VALEUR');
+
+        DB::transaction(function () use ($request, $user, $now, $nivValeur, &$beneficiaire) {
+
+            /* =======================
+            Création bénéficiaire
+            ======================== */
+            $beneficiaire = Beneficiaire::create([
+                'BEN_MATRICULE'     => $request->BEN_MATRICULE,
+                'BEN_NOM'           => $request->BEN_NOM,
+                'BEN_PRENOM'        => $request->BEN_PRENOM,
+                'BEN_SEXE'          => $request->BEN_SEXE,
+                'BEN_DATE_NAISSANCE'=> $request->BEN_DATE_NAISSANCE,
+                'BEN_STATUT'        => 1,
+                'BEN_DATE_CREER'    => $now,
+                'BEN_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
+                'TYP_CODE'          => $request->TYP_CODE,
+                'FON_CODE'          => $request->FON_CODE,
+                'GRD_CODE'          => $request->GRD_CODE,
+                'POS_CODE'          => $request->POS_CODE,
+            ]);
+
+            /* =======================
+                Mouvement
+            ======================== */
+            $mvtCode = $this->generateMvtCode($user->REG_CODE);
+
+            Mouvement::create([
+                'MVT_CODE'        => $mvtCode,
+                'MVT_BEN_CODE'    => $beneficiaire->BEN_CODE,
+                'MVT_BEN_NOM_PRE' => $beneficiaire->BEN_NOM." ".$beneficiaire->BEN_PRENOM,
+                'MVT_DATE'        => $now->toDateString(),
+                'MVT_HEURE'       => $now->toTimeString(),
+                'MVT_NIV'         => $nivValeur,
+                'MVT_UTI_CODE'    => $user->UTI_CODE,
+                'MVT_CREER_PAR'   => $user->UTI_NOM." ".$user->UTI_PRENOM,
+                'MVT_UTI_REG'     => $user->REG_CODE,
+                'TYP_CODE'        => '20250001', // Création bénéficiaire
+            ]);
+        });
 
         return response()->json([
-                'message' => 'Bénéficiaire créé avec succès',
-                'BEN_CODE' => $beneficiaire->BEN_CODE, //  on retourne le code créé
-            ], 201);
-
+            'message' => "Bénéficiaire créé avec succès.",
+            'BEN_CODE' => $beneficiaire->BEN_CODE,
+        ], 201);
     }
 
     /**
@@ -268,6 +302,7 @@ class BeneficiaireController extends Controller
             'BEN_NOM' => $request->BEN_NOM ?? $beneficiaire->BEN_NOM,
             'BEN_PRENOM' => $request->BEN_PRENOM ?? $beneficiaire->BEN_PRENOM,
             'BEN_SEXE' => $request->BEN_SEXE ?? $beneficiaire->BEN_SEXE,
+            'BEN_DATE_NAISSANCE' => $request->BEN_DATE_NAISSANCE ?? $beneficiaire->BEN_DATE_NAISSANCE,
             'BEN_MODIFIER_PAR' => auth()->check() ? auth()->user()->UTI_NOM." ".auth()->user()->UTI_PRENOM : 'SYSTEM',
             'BEN_DATE_MODIFIER' => now(),
             'BEN_VERSION' => $nouvelleVersion,
@@ -301,21 +336,80 @@ class BeneficiaireController extends Controller
      */
     public function destroy($code)
     {
-        $beneficiaire = Beneficiaire::find($code);
+        $beneficiaire = Beneficiaire::where('BEN_CODE', $code)->first();
 
         if (!$beneficiaire) {
             return response()->json(['message' => 'Bénéficiaire non trouvé'], 404);
         }
 
-        if ($beneficiaire->BEN_STATUT == 2) {
+        if ($beneficiaire->BEN_STATUT == 3) {
             return response()->json([
-                'message' => 'Impossible de supprimer : bénéficiaire déjà approuvé.',
-                'BEN_CODE' => $code
+                'message' => 'Impossible de supprimer : bénéficiaire déjà approuvé.'
             ], 400);
         }
 
-        $beneficiaire->delete();
-        return response()->json(['message' => 'Bénéficiaire supprimé avec succès']);
+        DB::beginTransaction();
+
+        try {
+            DB::table('t_domiciliers')
+                ->where('BEN_CODE', $code)
+                ->delete();
+
+            // récupérer les mouvements de type BÉNÉFICIAIRE
+            $mvtCodes = DB::table('t_mouvements')
+                ->where('MVT_BEN_CODE', $code)
+                ->where('TYP_CODE', '20250001') // type mouvement bénéficiaire
+                ->pluck('MVT_CODE');
+
+            // récupérer les mouvements de type Domiciliation
+            $mvtDomCodes = DB::table('t_mouvements')
+                ->where('MVT_BEN_CODE', $code)
+                ->where('TYP_CODE', '20250003') // type mouvement domiciliation
+                ->pluck('MVT_CODE');
+
+            if ($mvtCodes->isNotEmpty()) {
+
+                // supprimer les historiques liés aux mouvements bénéficiaire
+                DB::table('t_historiques_validations')
+                    ->whereIn('MVT_CODE', $mvtCodes)
+                    ->delete();
+
+                // supprimer les mouvements bénéficiaire
+                DB::table('t_mouvements')
+                    ->whereIn('MVT_CODE', $mvtCodes)
+                    ->delete();
+            }
+
+            if ($mvtDomCodes->isNotEmpty()) {
+
+                // supprimer les historiques liés aux mouvements domiciliations
+                DB::table('t_historiques_validations')
+                    ->whereIn('MVT_CODE', $mvtDomCodes)
+                    ->delete();
+
+                // supprimer les mouvements domiciliations
+                DB::table('t_mouvements')
+                    ->whereIn('MVT_CODE', $mvtDomCodes)
+                    ->delete();
+            }
+
+            // supprimer le bénéficiaire
+            $beneficiaire->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Bénéficiaire supprimé avec succès.'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'message' => 'Erreur lors de la suppression',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     private function generateMvtCode($regCode)
@@ -340,67 +434,86 @@ class BeneficiaireController extends Controller
         return $echCode . $regCode . $nextNumber;
     }
 
+    private function generateValCode($regCode)
+    {
+        $echeance = DB::table('t_echeances')
+            ->where('ECH_STATUT', 1)
+            ->first();
+
+        if (!$echeance) {
+            throw new \Exception('Aucune échéance active.');
+        }
+
+        $echCode = $echeance->ECH_CODE;
+
+        $lastNumber = DB::table('t_historiques_validations')
+            ->where('VAL_CODE', 'like', $echCode . $regCode . '%')
+            ->select(DB::raw("MAX(RIGHT(VAL_CODE,5)) as max_num"))
+            ->value('max_num');
+
+        $nextNumber = str_pad(((int)$lastNumber + 1), 6, '0', STR_PAD_LEFT);
+
+        return $echCode . $regCode . $nextNumber;
+    }
 
     public function validerBeneficiaire(Request $request, $id = null)
     {
         $user = Auth::user();
         $now = Carbon::now();
 
-        // récupération du niveau de validation
+        // Récupération du niveau de validation
         $nivValeur = DB::table('t_niveau_validations')
             ->join('t_groupes', 't_groupes.NIV_CODE', '=', 't_niveau_validations.NIV_CODE')
             ->where('t_groupes.GRP_CODE', $user->GRP_CODE)
             ->value('NIV_VALEUR');
 
+        // ===== VALIDATION UNIQUE =====
         if ($id) {
-            // ===== VALIDATION UNIQUE =====
             $beneficiaire = Beneficiaire::where('BEN_CODE', $id)->first();
 
             if (!$beneficiaire) {
                 return response()->json(['message' => 'Bénéficiaire introuvable.'], 404);
             }
 
-            if ($beneficiaire->BEN_STATUT == 1) {
+            if ($beneficiaire->BEN_STATUT == 2) {
                 return response()->json(['message' => 'Ce bénéficiaire est déjà en cours d\'approbation.'], 400);
             }
 
-            if ($beneficiaire->BEN_STATUT == 2) {
+            if ($beneficiaire->BEN_STATUT == 3) {
                 return response()->json(['message' => 'Ce bénéficiaire a déjà été approuvé.'], 400);
             }
 
             DB::transaction(function () use ($beneficiaire, $user, $nivValeur, $now) {
-
-                $beneficiaire->BEN_STATUT = 1;
+                $beneficiaire->BEN_STATUT = 2;
                 $beneficiaire->save();
 
-                $mvtCode = $this->generateMvtCode($user->REG_CODE);
+                // Mise à jour du dernier Mouvement de niveau 1 seulement
+                $dernierMvt = Mouvement::where('MVT_BEN_CODE', $beneficiaire->BEN_CODE)
+                    ->where('MVT_NIV', 1)
+                    ->orderByDesc('MVT_DATE')
+                    ->orderByDesc('MVT_HEURE')
+                    ->first();
 
-                Mouvement::create([
-                    'MVT_CODE'          => $mvtCode,
-                    'MVT_BEN_CODE'      => $beneficiaire->BEN_CODE,
-                    'MVT_BEN_NOM_PRE'   => $beneficiaire->BEN_NOM. " " .$beneficiaire->BEN_PRENOM,
-                    'MVT_DATE'          => $now->toDateString(),
-                    'MVT_HEURE'         => $now->toTimeString(),
-                    'MVT_NIV'           => $nivValeur,
-                    'MVT_UTI_CODE'      => $user->UTI_CODE,
-                    'MVT_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
-                    'TYP_CODE'          => '20250001', // en dur
-                ]);
+                if ($dernierMvt) {
+                    $dernierMvt->MVT_NIV += 1;
+                    $dernierMvt->MVT_DATE = $now->toDateString();
+                    $dernierMvt->save();
+                }
 
+                $valCode = $this->generateValCode($user->REG_CODE);
+
+                // Création historique
                 HistoriquesValidation::create([
-                    'VAL_CODE'          => $mvtCode,
-                    'VAL_BEN_CODE'      => $beneficiaire->BEN_CODE,
-                    'VAL_BEN_NOM_PRE'   => $beneficiaire->BEN_NOM. " " .$beneficiaire->BEN_PRENOM,
-                    'VAL_UTI_CODE'      => $user->UTI_CODE,
-                    'VAL_DATE'          => $now->toDateString(),
-                    'VAL_HEURE'         => $now->toTimeString(),
-                    'VAL_NIV'           => $nivValeur,
-                    'VAL_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
-                    'MVT_CODE'          => $mvtCode,
+                    'VAL_CODE'      => $valCode,
+                    'VAL_DATE'      => $now->toDateString(),
+                    'VAL_HEURE'     => $now->toTimeString(),
+                    'VAL_UTI_CODE'  => $user->UTI_CODE,
+                    'VAL_CREER_PAR' => $user->UTI_NOM . " " . $user->UTI_PRENOM,
+                    'MVT_CODE'      => $dernierMvt ? $dernierMvt->MVT_CODE : null,
                 ]);
             });
 
-            return response()->json(['message' => "Transmission à l'approbation réussie."]);
+            return response()->json(['message' => "Soumission à l'approbation réussie."]);
         }
 
         // ===== VALIDATION MULTIPLE =====
@@ -424,43 +537,42 @@ class BeneficiaireController extends Controller
                     continue;
                 }
 
-                if ($beneficiaire->BEN_STATUT == 1) {
+                if ($beneficiaire->BEN_STATUT == 2) {
                     $results['failed'][] = ['BEN_CODE' => $code, 'reason' => 'Déjà en cours d\'approbation.'];
                     continue;
                 }
 
-                if ($beneficiaire->BEN_STATUT == 2) {
+                if ($beneficiaire->BEN_STATUT == 3) {
                     $results['failed'][] = ['BEN_CODE' => $code, 'reason' => 'Déjà approuvé.'];
                     continue;
                 }
 
-                $beneficiaire->BEN_STATUT = 1;
+                $beneficiaire->BEN_STATUT = 2;
                 $beneficiaire->save();
 
-                $mvtCode = $this->generateMvtCode($user->REG_CODE);
+                // Mise à jour du dernier Mouvement de niveau 1 seulement
+                $dernierMvt = Mouvement::where('MVT_BEN_CODE', $beneficiaire->BEN_CODE)
+                    ->where('MVT_NIV', 1)
+                    ->orderByDesc('MVT_DATE')
+                    ->orderByDesc('MVT_HEURE')
+                    ->first();
 
-                Mouvement::create([
-                    'MVT_CODE'          => $mvtCode,
-                    'MVT_BEN_CODE'      => $beneficiaire->BEN_CODE,
-                    'MVT_BEN_NOM_PRE'   => $beneficiaire->BEN_NOM. " " .$beneficiaire->BEN_PRENOM,
-                    'MVT_DATE'          => $now->toDateString(),
-                    'MVT_HEURE'         => $now->toTimeString(),
-                    'MVT_NIV'           => $nivValeur,
-                    'MVT_UTI_CODE'      => $user->UTI_CODE,
-                    'MVT_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
-                    'TYP_CODE'          => '20250001', // en dur
-                ]);
+                if ($dernierMvt) {
+                    $dernierMvt->MVT_NIV += 1;
+                    $dernierMvt->MVT_DATE = $now->toDateString();
+                    $dernierMvt->save();
+                }
 
+                $valCode = $this->generateValCode($user->REG_CODE);
+
+                // Création historique
                 HistoriquesValidation::create([
-                    'VAL_CODE'          => $mvtCode,
-                    'VAL_BEN_CODE'      => $beneficiaire->BEN_CODE,
-                    'VAL_BEN_NOM_PRE'   => $beneficiaire->BEN_NOM. " " .$beneficiaire->BEN_PRENOM,
-                    'VAL_UTI_CODE'      => $user->UTI_CODE,
-                    'VAL_DATE'          => $now->toDateString(),
-                    'VAL_HEURE'         => $now->toTimeString(),
-                    'VAL_NIV'           => $nivValeur,
-                    'VAL_CREER_PAR'     => $user->UTI_NOM." ".$user->UTI_PRENOM,
-                    'MVT_CODE'          => $mvtCode,
+                    'VAL_CODE'      => $valCode,
+                    'VAL_DATE'      => $now->toDateString(),
+                    'VAL_HEURE'     => $now->toTimeString(),
+                    'VAL_UTI_CODE'  => $user->UTI_CODE,
+                    'VAL_CREER_PAR' => $user->UTI_NOM . " " . $user->UTI_PRENOM,
+                    'MVT_CODE'      => $dernierMvt ? $dernierMvt->MVT_CODE : null,
                 ]);
 
                 $results['success'][] = ['BEN_CODE' => $code];
@@ -475,7 +587,7 @@ class BeneficiaireController extends Controller
         }
 
         return response()->json([
-            'message' => 'Transmission à l\'approbation réussie.',
+            'message' => 'Soumission à l\'approbation réussie.',
             'updated' => count($results['success']),
             'failed'  => $results['failed'],
             'success' => $results['success']

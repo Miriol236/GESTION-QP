@@ -30,10 +30,40 @@ export default function BeneficiairePreviewModal2({ open, onClose, beneficiaire 
 
   const getStatutBadge = (statut: number) => {
     switch (statut) {
+       case 0:
+        return (
+          <Badge className="bg-red-500/20 text-red-700">
+            Rejeté
+          </Badge>
+        );
+
       case 1:
-        return <Badge className="bg-orange-100 text-orange-700">En attente d’approbation...</Badge>;
+        return (
+          <Badge className="bg-blue-500/20 text-blue-700">
+            Non approuvé
+          </Badge>
+        );
+
+      case 2:
+        return (
+          <Badge className="bg-orange-500/20 text-orange-700">
+            En cours d’approbation…
+          </Badge>
+        );
+
+      case 3:
+        return (
+          <Badge className="bg-green-500/20 text-green-700">
+            Approuvé
+          </Badge>
+        );          
+
       default:
-        return <Badge className="bg-gray-100 text-gray-600">Inconnu</Badge>;
+        return (
+          <Badge className="bg-gray-500/20 text-gray-700">
+            Statut inconnu
+          </Badge>
+        );
     }
   };
 

@@ -44,6 +44,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::put('/utilisateurs/{id}', [UtilisateurController::class, 'update'])
         ->middleware('fonctionnalite:0001');
+    
+    Route::put('/profile-password', [UtilisateurController::class, 'updatePassword']);
 
     Route::delete('/utilisateurs/{id}', [UtilisateurController::class, 'destroy'])
         ->middleware('fonctionnalite:0001');
@@ -98,6 +100,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/echeances/{code}/activer', [EcheanceController::class, 'activer']);
     Route::get('/echeance/active', [EcheanceController::class, 'active']);
     Route::get('/echeances-publique', [EcheanceController::class, 'indexPublic']);
+    Route::get('/echeances-anciennes', [EcheanceController::class, 'getAnciennesEcheances']);
 
     // Routes régies
     Route::get('/regies', [RegieController::class, 'index'])->middleware('fonctionnalite:0008');
@@ -139,6 +142,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/domiciliations/valider/{id?}', [DomicilierController::class, 'validerDomicilier']);
     Route::put('/domiciliers/approuver/{id?}', [MouvementController::class, 'approuverDomicilier']);
     Route::put('/domiciliers/rejeter/{id?}', [MouvementController::class, 'rejeterDomicilier']);
+    Route::get('/rib/preview/{DOM_CODE}', [DomicilierController::class, 'previewRib']);
     Route::get('/domiciliations/{DOM_CODE}/telecharger-rib', [DomicilierController::class, 'telechargerRib']);
     
     // Routes éléments
@@ -155,6 +159,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/info-beneficiaires', [PaiementController::class, 'getAll']);
     Route::get('/paiements/{id}', [PaiementController::class, 'show'])->middleware('fonctionnalite:0014');
     Route::post('/paiements', [PaiementController::class, 'store'])->middleware('fonctionnalite:0014');
+    Route::post('/paiements/generate', [PaiementController::class, 'generatePaiementsFromOldEcheance']);
     Route::put('/paiements/valider-virement/{id?}', [PaiementController::class, 'validerVirement']);
     Route::put('/paiements/approuver/{id?}', [MouvementController::class, 'approuverPaiement']);
     Route::put('/paiements/rejeter/{id?}', [MouvementController::class, 'rejeterPaiement']);

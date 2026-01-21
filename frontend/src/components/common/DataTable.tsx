@@ -7,7 +7,8 @@ import {
   Search, Plus, Power, Edit, Trash2, Eye, Tags, Check,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   ChevronUp, ChevronDown, ArrowUpDown, Printer, Filter, PowerOff, Send, // Ajouté ArrowUpDown pour l'icône de tri
-  CheckCheck, X
+  CheckCheck, X,
+  ZapIcon
 } from "lucide-react"; // Import mis à jour
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -30,6 +31,7 @@ export interface DataTableProps {
   searchable?: boolean;
   searchPlaceholder?: string;
   onAdd?: () => void;
+  onGenerate?: () => void;
   onDeleteAll?: (rows: any[]) => void;
   onEdit?: (row: any) => void;
   onDelete?: (row: any) => void;
@@ -52,26 +54,32 @@ export interface DataTableProps {
   onViews?: (rows: any[]) => void;
   loading?: boolean;
   addButtonText?: string;
+  addButtonTextGenerate?: string;
   // Optional filter items to show a small combo next to title
   filterItems?: any[];
   filterItems2?: any[];
   filterItems3?: any[];
+  filterItems4?: any[];
   // Optional function to get a display string for an item
   filterDisplay?: (item: any) => string;
   filterDisplay2?: (item: any) => string;
   filterDisplay3?: (item: any) => string;
+  filterDisplay4?: (item: any) => string;
   // Called when an item is selected (or null when cleared)
   onFilterSelect?: (item: any | null) => void;
   onFilterSelect2?: (item: any | null) => void;
   onFilterSelect3?: (item: any | null) => void;
+  onFilterSelect4?: (item: any | null) => void;
   // placeholder label for the filter combo
   filterPlaceholder?: string;
   filterPlaceholder2?: string;
   filterPlaceholder3?: string;
+  filterPlaceholder4?: string;
   // Key to use as stable row id for selection (defaults to first column key)
   rowKey?: string;
   rowKey2?: string;
   rowKey3?: string;
+  rowKey4?: string;
 }
 
 export function DataTable({
@@ -81,6 +89,7 @@ export function DataTable({
   searchable = true,
   searchPlaceholder = "Rechercher...",
   onAdd,
+  onGenerate,
   onDeleteAll,
   onEdit,
   onDelete,
@@ -90,8 +99,6 @@ export function DataTable({
   onManageRoles,
   onPrint,
   onSearchChange,
-  onSearchChange2,
-  onSearchChange3,
   onValidateVirement,
   onValidate,
   onValidate2,
@@ -100,26 +107,33 @@ export function DataTable({
   onViews,
   loading = false,
   addButtonText = "Ajouter",
+  addButtonTextGenerate = "Générer",
   filterItems = [],
   filterItems2 = [],
   filterItems3 = [],
+  filterItems4 = [],
   filterDisplay,
   filterDisplay2,
   filterDisplay3,
+  filterDisplay4,
   onFilterSelect,
   onFilterSelect2,
   onFilterSelect3,
+  onFilterSelect4,
   filterPlaceholder = "Filtrer...",
   filterPlaceholder2 = "Filtrer...",
   filterPlaceholder3 = "Filtrer...",
+  filterPlaceholder4 = "Filtrer...",
   rowKey,
   rowKey2,
   rowKey3,
+  rowKey4,
 }: DataTableProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedFilter, setSelectedFilter] = React.useState<any | null>(null);
   const [selectedFilter2, setSelectedFilter2] = React.useState<any | null>(null);
   const [selectedFilter3, setSelectedFilter3] = React.useState<any | null>(null);
+  const [selectedFilter4, setSelectedFilter4] = React.useState<any | null>(null);
 
   // stable key used to identify rows
   const stableRowKey = React.useMemo(() => rowKey ?? (columns && columns.length > 0 ? columns[0].key : "id"), [rowKey, columns]);
@@ -243,6 +257,7 @@ export function DataTable({
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [filterOpen2, setFilterOpen2] = React.useState(false);
   const [filterOpen3, setFilterOpen3] = React.useState(false);
+  const [filterOpen4, setFilterOpen4] = React.useState(false);
 
   return (
     <Card className="shadow-card hover-lift">
@@ -251,9 +266,7 @@ export function DataTable({
         <div className="flex items-center justify-between">
           {title && (
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-              <CardTitle className="text-lg font-semibold text-foreground">
                 {title}
-              </CardTitle>
 
               {/* Pour Échéances */}
               {filterItems && filterItems.length > 0 && (
@@ -451,9 +464,77 @@ export function DataTable({
                   </PopoverContent>
                 </Popover>
               )}
+
+              {/* Pour Type bénéficiaire */}
+              {filterItems4 && filterItems4.length > 0 && (
+                <Popover open={filterOpen4} onOpenChange={setFilterOpen4}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="px-2 py-1 w-full sm:w-auto flex justify-between"
+                    >
+                      <Filter className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600 text-xs font-medium">
+                        Filtre :
+                      </span>
+                      {selectedFilter4
+                        ? filterDisplay4
+                          ? filterDisplay4(selectedFilter4)
+                          : String(selectedFilter4)
+                        : filterPlaceholder4}
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+
+                  <PopoverContent className="p-0 w-[220px] sm:w-[250px]">
+                    <Command className="min-w-[230px] sm:min-w-[260px] max-w-[380px]">
+                      <CommandInput placeholder="Rechercher..." />
+                      <CommandList>
+                        <CommandGroup>
+                          <CommandItem
+                            onSelect={() => {
+                              setSelectedFilter4(null);
+                              onFilterSelect4?.(null);
+                              setFilterOpen4(false);
+                            }}
+                            className="whitespace-nowrap"
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${selectedFilter4 === null ? "opacity-100 text-blue-600" : "opacity-0"}`}
+                            />
+                            Par défaut
+                          </CommandItem>
+
+                          {filterItems4.map((it: any, idx: number) => {
+                            const isSelected = JSON.stringify(selectedFilter4) === JSON.stringify(it);
+                            return (
+                              <CommandItem
+                                key={idx}
+                                onSelect={() => {
+                                  setSelectedFilter4(it);
+                                  onFilterSelect4?.(it);
+                                  setFilterOpen4(false);
+                                }}
+                                className="whitespace-nowrap"
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${isSelected ? "opacity-100 text-blue-600" : "opacity-0"}`}
+                                />
+                                {filterDisplay4 ? filterDisplay4(it) : String(it)}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              )}
+
               {searchable && (
-                <div className="relative ml-auto w-full sm:w-[25rem]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="relative ml-auto w-full sm:w-[18rem]">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
                     placeholder={searchPlaceholder}
                     value={searchTerm}
@@ -462,7 +543,7 @@ export function DataTable({
                       setSearchTerm(value);
                       onSearchChange?.(value);
                     }}
-                    className="pl-10 w-full"
+                    className="h-8 pl-8 text-sm"
                   />
                 </div>
               )}
@@ -497,10 +578,10 @@ export function DataTable({
             {onValidate && selectedRows.length >= 1 && (
               <Button
                 onClick={() => onValidate(selectedRows)}
-                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white sm:w-auto sm:px-3 sm:gap-1"
               >
                 <Send className="h-4 w-4" />
-                <span className="hidden sm:inline">Transmettre ({selectedRows.length})</span>
+                <span className="hidden sm:inline text-xs">Soumettre ({selectedRows.length})</span>
               </Button>
             )}
 
@@ -560,9 +641,29 @@ export function DataTable({
             )}
 
             {onAdd && (
-              <Button onClick={onAdd} variant="default" className="gap-2">
+              <Button
+                onClick={onAdd}
+                size="icon"
+                variant="default"
+                className="sm:w-auto sm:px-3 sm:gap-1"
+              >
                 <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">{addButtonText}</span>
+                <span className="hidden sm:inline text-xs">
+                  {addButtonText}
+                </span>
+              </Button>
+            )}
+
+            {onGenerate && (
+              <Button
+                onClick={onGenerate}
+                size="icon"
+                className="bg-sky-600 hover:bg-sky-700 text-white sm:w-auto sm:px-3 sm:gap-1"
+              >
+                <ZapIcon className="h-4 w-4" />
+                <span className="hidden sm:inline text-xs">
+                  {addButtonTextGenerate}
+                </span>
               </Button>
             )}
           </div>
@@ -605,17 +706,17 @@ export function DataTable({
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         {onView && (
-                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onView(row); }}>
+                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onView(row); }} title="Détails">
                             <Eye className="h-4 w-4" />
                           </Button>
                         )}
                         {onEdit && (
-                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onEdit(row); }}>
+                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onEdit(row); }} title="Modifier">
                             <Edit className="h-4 w-4" />
                           </Button>
                         )}
                         {onDelete && (
-                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDelete(row); }}>
+                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDelete(row); }} title="Supprimer">
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         )}
@@ -718,6 +819,7 @@ export function DataTable({
                                 size="sm"
                                 onClick={(e) => { e.stopPropagation(); onView(row) }}
                                 className="h-8 w-8 p-0"
+                                title="Détails"
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -728,6 +830,7 @@ export function DataTable({
                                 size="sm"
                                 onClick={(e) => { e.stopPropagation(); onEdit(row) }}
                                 className="h-8 w-8 p-0"
+                                title="Modifier"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -738,6 +841,7 @@ export function DataTable({
                                 size="sm"
                                 onClick={(e) => { e.stopPropagation(); onDelete(row) }}
                                 className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                title="Supprimer"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
