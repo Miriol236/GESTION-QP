@@ -16,15 +16,7 @@ return new class extends Migration
             $table->string('MVT_BEN_CODE', 12)->nullable();
             $table->string('MVT_DOM_CODE', 8)->nullable();
             $table->string('MVT_PAI_CODE', 12)->nullable();
-            $table->string('MVT_BEN_NOM_PRE')->nullable();
-            $table->string('MVT_BNQ_CODE', 10)->nullable();
-            $table->string('MVT_BNQ_LIBELLE')->nullable();
-            $table->string('MVT_GUI_CODE', 10)->nullable();
-            $table->string('MVT_GUI_NOM')->nullable();
-            $table->string('MVT_NUMCPT')->nullable();
-            $table->string('MVT_CLE_RIB', 2)->nullable();
             $table->date('MVT_DATE');
-            $table->time('MVT_HEURE');
             $table->integer('MVT_NIV');
             $table->string('MVT_UTI_CODE', 4);
             $table->string('MVT_CREER_PAR');

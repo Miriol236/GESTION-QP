@@ -138,19 +138,32 @@ const handleRejetStatusUpdate = (rows: any[]) => {
     setIsRejetStatusDialogOpen(true);
 };
 
-const handleConfirmRejetStatus = async () => {
+const handleConfirmRejetStatus = async (motif: string) => {
     if (!selectedRowsForStatus || selectedRowsForStatus.length === 0) return;
+
+    if (!motif || !motif.trim()) {
+        toast({
+            title: "Erreur",
+            description: "Veuillez saisir un motif de rejet.",
+            variant: "destructive",
+        });
+        return;
+    } 
 
     try {
     const token = localStorage.getItem("token");
 
     let url = `${API_URL}/domiciliers/rejeter`;
-    let body = {};
+    let body: any = {};
 
     if (selectedRowsForStatus.length === 1) {
         url += `/${selectedRowsForStatus[0].DOM_CODE}`; // route single
+        body.DOM_MOTIF_REJET = motif; //  ajout du motif pour paiement unique
     } else {
-        body = { ids: selectedRowsForStatus.map(r => r.DOM_CODE) }; // route multiple
+        body = {
+            ids: selectedRowsForStatus.map(r => r.DOM_CODE),
+            DOM_MOTIF_REJET: motif //  ajout du motif pour paiement multiple
+        };
     }
 
     const { data } = await axios.put(url, body, {
@@ -203,7 +216,7 @@ const handleConfirmRejetStatus = async () => {
   // Colonnes du tableau
   const columns: Column[] = [
     {
-      key: "MVT_BEN_NOM_PRE",
+      key: "BENEFICIAIRE",
       title: "BÉNÉFICIAIRE",
       render: (value: string) => (
         <span className="font-medium text-gray-800">{value}</span>
@@ -273,13 +286,6 @@ const handleConfirmRejetStatus = async () => {
       ),
     },
     {
-      key: "MVT_HEURE",
-      title: "HEURE MOUVEMENT",
-      render: (value: string) => (
-        <span className="font-semibold text-gray-700">{value || "—"}</span>
-      ),
-    },
-    {
       key: "MVT_CREER_PAR",
       title: "GESTIONNAIRE",
       render: (value: string) => (
@@ -315,7 +321,7 @@ const handleConfirmRejetStatus = async () => {
         }}
         onValidate2={handleStatusUpdate}
         onRejet={handleRejetStatusUpdate}
-        searchPlaceholder="Rechercher un bénéficiaire (Nom et Prénom...)"
+        searchPlaceholder="Rechercher (Nom et Prénom...)"
       />
     </Card>
    {selectedDomicilier && (

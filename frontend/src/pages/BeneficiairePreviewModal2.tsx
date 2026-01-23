@@ -102,7 +102,7 @@ export default function BeneficiairePreviewModal2({ open, onClose, beneficiaire 
             <div className="grid grid-cols-4 gap-4 text-sm">
               <Info label="Code :" value={beneficiaire.BEN_CODE} />
               <Info label="Matricule solde :" value={beneficiaire.BEN_MATRICULE} />
-              <Info label="Nom(s) et Prénom(s) :" value={`${beneficiaire.MVT_BEN_NOM_PRE}`} />
+              <Info label="Nom(s) et Prénom(s) :" value={`${beneficiaire.BENEFICIAIRE}`} />
               <Info label="Sexe :" value={beneficiaire.BEN_SEXE === "M" ? "Masculin" : beneficiaire.BEN_SEXE === "F" ? "Féminin" : "_"} />
               <Info label="Type bénéficiaire :" value={beneficiaire.TYPE_BENEFICIAIRE} />
               <Info label="Fonction :" value={beneficiaire.FONCTION} />
@@ -115,7 +115,7 @@ export default function BeneficiairePreviewModal2({ open, onClose, beneficiaire 
           <div>
             <h3 className="text-blue-600 font-semibold mb-3 border-b pb-1"></h3>
             <div className="grid grid-cols-4 gap-4 text-sm">
-              <Info label="Date de Transmission :" value={beneficiaire.MVT_DATE ? new Date(beneficiaire.MVT_DATE).toLocaleDateString("fr-FR", {
+              <Info label="Date de soumission :" value={beneficiaire.MVT_DATE ? new Date(beneficiaire.MVT_DATE).toLocaleDateString("fr-FR", {
                   year: "numeric",
                   month: "numeric",
                   day: "numeric",
@@ -123,7 +123,6 @@ export default function BeneficiairePreviewModal2({ open, onClose, beneficiaire 
                 : "_"
               }
               />
-              <Info label="Heure de Transmission :" value={beneficiaire.MVT_HEURE} />
               <Info label="Gestionnaire :" value={beneficiaire.MVT_CREER_PAR} />
             </div>
           </div>

@@ -41,7 +41,7 @@ export default function MouvementPaiements() {
   const nivCode = user?.groupe?.NIV_CODE || null;
 
   const fetchPaiements = async (ech_code: string | null = null) => {
-    // setIsLoading(true);
+    setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
 
@@ -201,72 +201,85 @@ const handleRejetStatusUpdate = (rows: any[]) => {
     setIsRejetStatusDialogOpen(true);
 };
 
-const handleConfirmRejetStatus = async () => {
-    if (!selectedRowsForStatus || selectedRowsForStatus.length === 0) return;
+const handleConfirmRejetStatus = async (motif: string) => {
+      if (!selectedRowsForStatus || selectedRowsForStatus.length === 0) return;
 
-    try {
-    const token = localStorage.getItem("token");
+      if (!motif || !motif.trim()) {
+          toast({
+             title: "Erreur",
+              description: "Veuillez saisir un motif de rejet.",
+              variant: "destructive",
+          });
+          return;
+      } 
 
-    let url = `${API_URL}/paiements/rejeter`;
-    let body = {};
+      try {
+          const token = localStorage.getItem("token");
 
-    if (selectedRowsForStatus.length === 1) {
-        url += `/${selectedRowsForStatus[0].PAI_CODE}`; // route single
-    } else {
-        body = { ids: selectedRowsForStatus.map(r => r.PAI_CODE) }; // route multiple
-    }
+          let url = `${API_URL}/paiements/rejeter`;
+          let body: any = {};
 
-    const { data } = await axios.put(url, body, {
-        headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-        }
-    });
+          if (selectedRowsForStatus.length === 1) {
+              url += `/${selectedRowsForStatus[0].PAI_CODE}`; // route single
+              body.PAI_MOTIF_REJET = motif; //  ajout du motif pour paiement unique
+          } else {
+              body = {
+                  ids: selectedRowsForStatus.map(r => r.PAI_CODE),
+                  PAI_MOTIF_REJET: motif //  ajout du motif pour paiement multiple
+              };
+          }
 
-    // Afficher un toast success pour chaque scénario
-    if (selectedRowsForStatus.length === 1) {
-        toast({
-        title: "Succès",
-        description: (`Rejet effectué avec succès.`),
-        variant: "success",
-        });
-    } else if (data.updated > 0) {
-        toast({
-        title: "Succès",
-        description: (`${data.updated} Rejet(s) effectué(s) avec succès.`),
-        variant: "success",
-        });
-    }
+          const { data } = await axios.put(url, body, {
+              headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json"
+              }
+          });
 
-    // Gestion des échecs
-    if (data.failed && data.failed.length > 0) {
-        const failedMessages = data.failed.map((f: any) => `${f.PAI_CODE}: ${f.reason}`).join(', ');
-        toast({
-        title: "Erreur",
-        description: (`Échecs du rejet: ${failedMessages}`),
-        variant: "destructive",
-        });
-    }
+          // Afficher un toast success pour chaque scénario
+          if (selectedRowsForStatus.length === 1) {
+              toast({
+                  title: "Succès",
+                  description: "Rejet effectué avec succès.",
+                  variant: "success",
+              });
+          } else if (data.updated > 0) {
+              toast({
+                  title: "Succès",
+                  description: `${data.updated} Rejet(s) effectué(s) avec succès.`,
+                  variant: "success",
+              });
+          }
 
-    fetchPaiements();
-    window.dispatchEvent(new Event("totalUpdated"));
-    } catch (err: any) {
-    console.error(err);
-    toast({
-        title: "Erreur",
-        description: err?.response?.data?.message || "Erreur lors du rejet.",
-        variant: "destructive",
-    });
-    } finally {
-    setIsRejetStatusDialogOpen(false);
-    setSelectedRowsForStatus([]);
-    }
-};
+          // Gestion des échecs
+          if (data.failed && data.failed.length > 0) {
+              const failedMessages = data.failed.map((f: any) => `${f.PAI_CODE}: ${f.reason}`).join(', ');
+              toast({
+                  title: "Erreur",
+                  description: `Échecs du rejet: ${failedMessages}`,
+                  variant: "destructive",
+              });
+          }
+
+          fetchPaiements();
+          window.dispatchEvent(new Event("totalUpdated"));
+      } catch (err: any) {
+          console.error(err);
+          toast({
+              title: "Erreur",
+              description: err?.response?.data?.message || "Erreur lors du rejet.",
+              variant: "destructive",
+          });
+      } finally {
+          setIsRejetStatusDialogOpen(false);
+          setSelectedRowsForStatus([]);
+      }
+  };
 
   // Colonnes du tableau
   const columns: Column[] = [
     {
-      key: "MVT_BEN_NOM_PRE",
+      key: "BENEFICIAIRE",
       title: "BÉNÉFICIAIRE",
       render: (value: string) => (
         <span className="font-medium text-gray-800">{value}</span>
@@ -316,13 +329,6 @@ const handleConfirmRejetStatus = async () => {
       title: "DATE MOUVEMENT",
       render: (value: string) => (
         <span className="font-medium text-gray-800">{value || "_"}</span>
-      ),
-    },
-    {
-      key: "MVT_HEURE",
-      title: "HEURE MOUVEMENT",
-      render: (value: string) => (
-        <span className="font-semibold text-gray-700">{value || "—"}</span>
       ),
     },
     {

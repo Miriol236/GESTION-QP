@@ -21,6 +21,7 @@ class Paiement extends Model
         'PAI_GUI_CODE',
         'PAI_RIB',
         'PAI_STATUT',
+        'PAI_MOTIF_REJET',
         'PAI_VIREMENT',
         'PAI_DATE_VIREMENT',
         'PAI_DATE_CREER',

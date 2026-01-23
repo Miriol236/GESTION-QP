@@ -148,7 +148,19 @@ useEffect(() => {
               <Info label="Fonction :" value={getFonctionsInfo(beneficiaire.FON_CODE || "—")} />
               <Info label="Grade :" value={getGradesInfo(beneficiaire.GRD_CODE || "—")} />
               <Info label="Position :" value={getPositionsInfo(beneficiaire.POS_CODE || "—")} />
-              <Info label="Statut :" value={getStatutBadge(beneficiaire.BEN_STATUT)} />
+              <Info 
+                label="Statut :" 
+                value={
+                  <div className="flex flex-col gap-1">
+                    {getStatutBadge(beneficiaire.BEN_STATUT)}
+                    {beneficiaire.BEN_STATUT === 0 && beneficiaire.BEN_MOTIF_REJET && (
+                      <span className="text-xs text-red-600 italic">
+                        Motif : {beneficiaire.BEN_MOTIF_REJET}
+                      </span>
+                    )}
+                  </div>
+                } 
+              />
             </div>
           </div>
 
@@ -180,45 +192,46 @@ useEffect(() => {
                         <td className="font-semibold px-4 py-2">{d.DOM_NUMCPT || "_"}</td>
                         <td className="px-4 py-2 font-semibold text-blue-600">{d.DOM_RIB || "—"}</td>
                         <td className="px-3 py-2 align-top">
-                            {(() => {
-                              let bgColor = "";
-                              let textColor = "";
-                              let label = "";
+                          {(() => {
+                            let bgColor = "";
+                            let textColor = "";
+                            let label = "";
 
-                              switch (d.DOM_STATUT) {
-                                case 0:
-                                  bgColor = "bg-red-100";
-                                  textColor = "text-red-700";
-                                  label = "Rejeté";
-                                  break;
-                                case 1:
-                                  bgColor = "bg-gray-100";
-                                  textColor = "text-gray-600";
-                                  label = "Non approuvé";
-                                  break;
-                                case 2:
-                                  bgColor = "bg-orange-100";
-                                  textColor = "text-orange-700";
-                                  label = "En cours d'approbation...";
-                                  break;
-                                case 3:
-                                  bgColor = "bg-green-100";
-                                  textColor = "text-green-700";
-                                  label = "Approuvé";
-                                  break;
-                                default:
-                                  bgColor = "bg-gray-100";
-                                  textColor = "text-gray-600";
-                                  label = "Inconnu";
-                              }
+                            switch (d.DOM_STATUT) {
+                              case 0: // Rejeté
+                                bgColor = "bg-red-100";
+                                textColor = "text-red-700";
+                                // Si un motif existe, on l'affiche après "Rejeté"
+                                label = `Rejeté${d.DOM_MOTIF_REJET ? `: ${d.DOM_MOTIF_REJET}` : ""}`;
+                                break;
+                              case 1:
+                                bgColor = "bg-gray-100";
+                                textColor = "text-gray-600";
+                                label = "Non approuvé";
+                                break;
+                              case 2:
+                                bgColor = "bg-orange-100";
+                                textColor = "text-orange-700";
+                                label = "En cours d'approbation...";
+                                break;
+                              case 3:
+                                bgColor = "bg-green-100";
+                                textColor = "text-green-700";
+                                label = "Approuvé";
+                                break;
+                              default:
+                                bgColor = "bg-gray-100";
+                                textColor = "text-gray-600";
+                                label = "Inconnu";
+                            }
 
-                              return (
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${bgColor} ${textColor}`}>
-                                  {label}
-                                </span>
-                              );
-                            })()}
-                          </td>
+                            return (
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${bgColor} ${textColor}`}>
+                                {label}
+                              </span>
+                            );
+                          })()}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

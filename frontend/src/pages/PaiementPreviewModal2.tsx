@@ -55,14 +55,44 @@ export default function PaiementPreviewModal({
 
   if (!open) return null;
 
-  const statutBadge = (statut: number) =>
-    statut === 2 ? (
-      <Badge className="bg-orange-100 text-orange-700">
-        En attente d’approbation
-      </Badge>
-    ) : (
-      <Badge className="bg-gray-100 text-gray-600">Inconnu</Badge>
-    );
+  const getStatutBadge = (statut: number) => {
+    switch (statut) {
+       case 0:
+        return (
+          <Badge className="bg-red-500/20 text-red-700">
+            Rejeté
+          </Badge>
+        );
+
+      case 1:
+        return (
+          <Badge className="bg-blue-500/20 text-blue-700">
+            Non approuvé
+          </Badge>
+        );
+
+      case 2:
+        return (
+          <Badge className="bg-orange-500/20 text-orange-700">
+            En cours d’approbation…
+          </Badge>
+        );
+
+      case 3:
+        return (
+          <Badge className="bg-green-500/20 text-green-700">
+            Approuvé
+          </Badge>
+        );          
+
+      default:
+        return (
+          <Badge className="bg-gray-500/20 text-gray-700">
+            Statut inconnu
+          </Badge>
+        );
+    }
+  };
 
   return (
     <div
@@ -100,7 +130,7 @@ export default function PaiementPreviewModal({
             </h3>
           <div className="grid grid-cols-4 gap-4 text-sm">
             <Info label="Matricule solde :" value={beneficiaire.BEN_MATRICULE} />
-            <Info label="Nom & Prénom :" value={beneficiaire.MVT_BEN_NOM_PRE} />
+            <Info label="Nom & Prénom :" value={beneficiaire.BENEFICIAIRE} />
             <Info
               label="Sexe :"
               value={
@@ -118,6 +148,10 @@ export default function PaiementPreviewModal({
             <Info label="Fonction :" value={beneficiaire.FONCTION} />
             <Info label="Grade :" value={beneficiaire.GRADE} />
             <Info label="Position :" value={beneficiaire.POSITION} />
+            <Info
+              label="Statut :"
+              value={getStatutBadge(beneficiaire.BEN_STATUT)}
+            />
           </div>
 
           <div>
@@ -125,18 +159,22 @@ export default function PaiementPreviewModal({
               Informations du RIB
             </h3>
 
-            <div className="grid grid-cols-4 gap-4 text-sm">
+            <div className="grid grid-cols-5 gap-5 text-sm">
               {/* Titres */}
               <div className="font-semibold text-gray-600">Banque :</div>
               <div className="font-semibold text-gray-600">Guichet :</div>
               <div className="font-semibold text-gray-600">N° Compte :</div>
               <div className="font-semibold text-gray-600">Clé RIB :</div>
+              <div className="font-semibold text-gray-600">Statut :</div>
 
               {/* Valeurs */}
               <div className="font-semibold">{beneficiaire.BANQUE || "—"}</div>
               <div className="font-semibold">{beneficiaire.GUICHET || "—"}</div>
               <div className="font-semibold">{beneficiaire.NUMCPT || "—"}</div>
               <div className="font-semibold">{beneficiaire.RIB || "—"}</div>
+              <td className="px-3 py-2">
+                {getStatutBadge(beneficiaire.DOM_STATUT)}
+              </td>
             </div>
           </div>   
 
@@ -203,19 +241,19 @@ export default function PaiementPreviewModal({
 
           {/* Totaux */}
           <div className="mt-4 space-y-1 text-sm text-right">
-            <div>
+            <div className="text-sm font-medium text-right">
               <span className="font-semibold text-gray-600">Total gain :</span>{" "}
               {beneficiaire.TOTAL_GAIN != null
                 ? Number(beneficiaire.TOTAL_GAIN).toLocaleString("fr-FR") + " FCFA"
                 : "—"}
             </div>
-            <div>
+            <div className="text-sm font-medium text-right">
               <span className="font-semibold text-gray-600">Total retenu :</span>{" "}
               {beneficiaire.TOTAL_RETENU != null
                 ? Number(beneficiaire.TOTAL_RETENU).toLocaleString("fr-FR") + " FCFA"
                 : "—"}
             </div>
-            <div>
+            <div className="text-sm font-medium text-right">
               <span className="font-semibold text-gray-600">Total Net à payer :</span>{" "}
               {beneficiaire.MONTANT_NET != null
                 ? Number(beneficiaire.MONTANT_NET).toLocaleString("fr-FR") + " FCFA"
@@ -223,7 +261,7 @@ export default function PaiementPreviewModal({
             </div>
             <div>
               <span className="font-semibold text-gray-600">Statut :</span>{" "}
-              {statutBadge(beneficiaire.PAI_STATUT)}
+              {getStatutBadge(beneficiaire.PAI_STATUT)}
             </div>
           </div>
 
@@ -231,7 +269,7 @@ export default function PaiementPreviewModal({
           <div>
             <h3 className="text-blue-600 font-semibold mb-3 border-b pb-1"></h3>
             <div className="grid grid-cols-4 gap-4 text-sm">
-              <Info label="Date de Transmission :" value={beneficiaire.MVT_DATE ? new Date(beneficiaire.MVT_DATE).toLocaleDateString("fr-FR", {
+              <Info label="Date de soumission :" value={beneficiaire.MVT_DATE ? new Date(beneficiaire.MVT_DATE).toLocaleDateString("fr-FR", {
                   year: "numeric",
                   month: "numeric",
                   day: "numeric",
@@ -239,7 +277,6 @@ export default function PaiementPreviewModal({
                 : "_"
               }
               />
-              <Info label="Heure de Transmission :" value={beneficiaire.MVT_HEURE} />
               <Info label="Gestionnaire :" value={beneficiaire.MVT_CREER_PAR} />
             </div>
           </div>

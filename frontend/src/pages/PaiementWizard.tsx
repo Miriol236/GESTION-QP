@@ -24,7 +24,6 @@ import { motion } from "framer-motion";
 import { API_URL } from "@/config/api";
 import { TableSkeleton } from "@/components/loaders/TableSkeleton";
 import { TableSkeletonWizard } from "@/components/loaders/TableSkeletonWizard";
-import BeneficiaireWizard from "@/pages/BeneficiaireWizard";
 import { useToast } from "@/hooks/use-toast";
 
 export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { onSuccess?: () => void; paiementData?: any; onFinish?: () => void; }): JSX.Element {
@@ -47,8 +46,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   const [validateMessage, setValidateMessage] = useState("");
   const [loadingValidation, setLoadingValidation] = useState(false);
   const [eltSens, setEltSens] = useState<number | null>(null);
-  const [openWizard, setOpenWizard] = useState(false);
-  const [selectedBenefCode, setSelectedBenefCode] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [paiement, setPaiement] = useState({
@@ -811,8 +808,29 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                             </span>
                           </div>
 
+                         {/* RIB statut */}
+                          <div className="flex flex-col items-start min-w-[80px]">
+                            <span className="font-semibold text-gray-500">Statut</span>
+                            <span
+                              className={`mt-2 font-medium px-2 py-0.5 rounded-full text-xs
+                                ${
+                                  selectedRib?.DOM_STATUT === 2
+                                    ? "bg-orange-100 text-orange-700"   // en cours d'approbation
+                                    : selectedRib?.DOM_STATUT === 3
+                                    ? "bg-green-100 text-green-700"    // approuvé
+                                    : "bg-gray-100 text-gray-500"      // aucun ou autre
+                                }`}
+                            >
+                              {selectedRib?.DOM_STATUT === 2
+                                ? "En cours d'approbation"
+                                : selectedRib?.DOM_STATUT === 3
+                                ? "Approuvé"
+                                : "_"}
+                            </span>
+                          </div>
+
                           {/* Bouton ajouter / modifier RIB (TOUJOURS visible) */}
-                          <div className="ml-auto mt-2">
+                          {/* <div className="ml-auto mt-2">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -822,15 +840,12 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                                 hover:bg-blue-100 hover:text-blue-700
                                 transition
                               "
-                              onClick={() => {
-                                setSelectedBenefCode(selectedBenef.BEN_CODE);
-                                setOpenWizard(true);
-                              }}
+                              onClick={() => {   }}
                               title={selectedRib ? "Modifier le RIB" : "Ajouter un RIB"}
                             >
                               <PlusCircle className="w-5 h-5" />
                             </Button>
-                          </div>
+                          </div> */}
 
                         </div>
 
@@ -1179,14 +1194,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
           onConfirm={handleConfirmFinishValidation}
           itemName={validateMessage}
         />
-
-        {/* {openWizard && (
-          <BeneficiaireWizard
-            startStep={2}
-            forcedBenefCode={selectedBenefCode}
-            onFinish={() => setOpenWizard(false)}
-          />
-        )} */}
 
       </div>
     </div>

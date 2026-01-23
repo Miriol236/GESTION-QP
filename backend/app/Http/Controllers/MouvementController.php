@@ -63,14 +63,11 @@ class MouvementController extends Controller
             ->where('t_mouvements.MVT_UTI_REG', $user->REG_CODE) // même régie
 
             ->orderBy('t_mouvements.MVT_DATE', 'desc')
-            ->orderBy('t_mouvements.MVT_HEURE', 'desc')
             ->select([
                 // ===== Mouvement =====
                 't_mouvements.MVT_CODE',
                 't_mouvements.MVT_BEN_CODE as BEN_CODE',
-                't_mouvements.MVT_BEN_NOM_PRE',
                 't_mouvements.MVT_DATE',
-                't_mouvements.MVT_HEURE',
                 't_mouvements.MVT_NIV',
                 't_mouvements.MVT_UTI_CODE',
                 't_mouvements.MVT_CREER_PAR',
@@ -78,6 +75,7 @@ class MouvementController extends Controller
 
                 // ===== Bénéficiaire =====
                 't_beneficiaires.BEN_MATRICULE',
+                DB::raw("CONCAT(t_beneficiaires.BEN_NOM, ' ', t_beneficiaires.BEN_PRENOM) as BENEFICIAIRE"),
                 't_beneficiaires.BEN_SEXE',
                 't_beneficiaires.BEN_STATUT',
 
@@ -250,6 +248,10 @@ class MouvementController extends Controller
         $user = Auth::user();
         $now = Carbon::now();
 
+        $request->validate([
+            'BEN_MOTIF_REJET' => 'required|string|max:1000',
+        ]);
+
         DB::beginTransaction();
 
         try {
@@ -281,14 +283,14 @@ class MouvementController extends Controller
                         ->whereIn('MVT_CODE', $mvtCodes)
                         ->delete();
 
-                    // supprimer mouvements
                     DB::table('t_mouvements')
                         ->whereIn('MVT_CODE', $mvtCodes)
-                        ->delete();
+                        ->update(['MVT_NIV' => 1]);
                 }
 
                 // mise à jour bénéficiaire
                 $beneficiaire->BEN_STATUT = 0; // rejeté
+                $beneficiaire->BEN_MOTIF_REJET = $request->BEN_MOTIF_REJET;
                 $beneficiaire->save();
 
                 DB::commit();
@@ -341,10 +343,11 @@ class MouvementController extends Controller
 
                     DB::table('t_mouvements')
                         ->whereIn('MVT_CODE', $mvtCodes)
-                        ->delete();
+                        ->update(['MVT_NIV' => 1]);
                 }
 
                 $beneficiaire->BEN_STATUT = 0;
+                $beneficiaire->BEN_MOTIF_REJET = $request->BEN_MOTIF_REJET;
                 $beneficiaire->save();
 
                 $results['success'][] = ['BEN_CODE' => $code];
@@ -389,12 +392,13 @@ class MouvementController extends Controller
                 '=',
                 't_mouvements.MVT_BEN_CODE'
             )
-            ->join(
-                't_domiciliers',
-                't_domiciliers.DOM_CODE',
-                '=',
-                't_mouvements.MVT_DOM_CODE'
-            )
+            ->leftJoin('t_domiciliers', function($join){
+                $join->on('t_domiciliers.DOM_CODE', '=', 't_mouvements.MVT_DOM_CODE')
+                    ->whereIn('t_domiciliers.DOM_STATUT', [2, 3])
+                    ->orderByDesc('t_domiciliers.DOM_STATUT'); // 3 avant 2
+            })
+            ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
+            ->leftJoin('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
             ->leftJoin(
                 't_type_beneficiaires',
                 't_type_beneficiaires.TYP_CODE',
@@ -425,27 +429,25 @@ class MouvementController extends Controller
             ->where('t_mouvements.MVT_UTI_REG', $user->REG_CODE) // même régie
 
             ->orderBy('t_mouvements.MVT_DATE', 'desc')
-            ->orderBy('t_mouvements.MVT_HEURE', 'desc')
             ->select([
                 // ===== Mouvement =====
                 't_mouvements.MVT_CODE',
                 't_mouvements.MVT_DOM_CODE as DOM_CODE',
-                't_mouvements.MVT_BEN_NOM_PRE',
-                't_mouvements.MVT_BNQ_LIBELLE as BANQUE',
-                't_mouvements.MVT_GUI_CODE as GUICHET',
-                't_mouvements.MVT_NUMCPT as NUMCPT',
-                't_mouvements.MVT_CLE_RIB as RIB',
                 't_mouvements.MVT_DATE',
-                't_mouvements.MVT_HEURE',
                 't_mouvements.MVT_NIV',
                 't_mouvements.MVT_UTI_CODE',
                 't_mouvements.MVT_CREER_PAR',
                 't_mouvements.TYP_CODE',
 
+                't_banques.BNQ_LIBELLE as BANQUE',
+                't_guichets.GUI_CODE as GUICHET',
+                't_domiciliers.DOM_NUMCPT as NUMCPT',
+                't_domiciliers.DOM_RIB as RIB',
                 't_domiciliers.DOM_STATUT',
 
                 // ===== Bénéficiaire =====
                 't_beneficiaires.BEN_MATRICULE',
+                DB::raw("CONCAT(t_beneficiaires.BEN_NOM, ' ', t_beneficiaires.BEN_PRENOM) as BENEFICIAIRE"),
                 't_beneficiaires.BEN_SEXE',
                 't_beneficiaires.BEN_STATUT',
 
@@ -507,7 +509,6 @@ class MouvementController extends Controller
                 $dernierMvt = Mouvement::where('MVT_DOM_CODE', $domiciliation->DOM_CODE)
                     ->where('MVT_NIV', 2)
                     ->orderByDesc('MVT_DATE')
-                    ->orderByDesc('MVT_HEURE')
                     ->first();
 
                 if ($dernierMvt) {
@@ -580,7 +581,6 @@ class MouvementController extends Controller
                 $dernierMvt = Mouvement::where('MVT_DOM_CODE', $domiciliation->DOM_CODE)
                     ->where('MVT_NIV', 2)
                     ->orderByDesc('MVT_DATE')
-                    ->orderByDesc('MVT_HEURE')
                     ->first();
 
                 if ($dernierMvt) {
@@ -626,6 +626,10 @@ class MouvementController extends Controller
         $user = Auth::user();
         $now = Carbon::now();
 
+        $request->validate([
+            'DOM_MOTIF_REJET' => 'required|string|max:1000',
+        ]);
+
         DB::beginTransaction();
 
         try {
@@ -661,14 +665,14 @@ class MouvementController extends Controller
                         ->whereIn('MVT_CODE', $mvtCodes)
                         ->delete();
 
-                    // supprimer mouvements
                     DB::table('t_mouvements')
                         ->whereIn('MVT_CODE', $mvtCodes)
-                        ->delete();
+                        ->update(['MVT_NIV' => 1]);
                 }
 
                 // mise à jour domiciliation
                 $domiciliation->DOM_STATUT = 0; // rejeté
+                $domiciliation->DOM_MOTIF_REJET = $request->DOM_MOTIF_REJET;
                 $domiciliation->save();
 
                 DB::commit();
@@ -729,10 +733,11 @@ class MouvementController extends Controller
 
                     DB::table('t_mouvements')
                         ->whereIn('MVT_CODE', $mvtCodes)
-                        ->delete();
+                        ->update(['MVT_NIV' => 1]);
                 }
 
                 $domiciliation->DOM_STATUT = 0;
+                $domiciliation->DOM_MOTIF_REJET = $request->DOM_MOTIF_REJET;
                 $domiciliation->save();
 
                 $results['success'][] = ['DOM_CODE' => $domCode];
@@ -757,137 +762,6 @@ class MouvementController extends Controller
             ], 500);
         }
     }
-
-    // public function getMouvementsPaiementsEnCours(Request $request)
-    // {
-    //     // Utilisateur connecté
-    //     $user = Auth::user();
-
-    //     // Récupérer le niveau de validation
-    //     $nivValeur = DB::table('t_niveau_validations')
-    //         ->join('t_groupes', 't_groupes.NIV_CODE', '=', 't_niveau_validations.NIV_CODE')
-    //         ->where('t_groupes.GRP_CODE', $user->GRP_CODE)
-    //         ->value('NIV_VALEUR');
-
-    //     // ===== Filtre échéance : si non envoyé, prendre la dernière active =====
-    //     $echCodeFilter = $request->input('ech_code');
-    //     if (empty($echCodeFilter)) {
-    //         $currentEcheance = DB::table('t_echeances')
-    //             ->where('ECH_STATUT', true)
-    //             ->orderBy('ECH_CODE', 'desc')
-    //             ->first();
-    //         $echCodeFilter = $currentEcheance?->ECH_CODE;
-    //     }
-
-    //     // ===== Requête mouvements =====
-    //     $query = Mouvement::query()
-    //         ->join('t_beneficiaires', 't_beneficiaires.BEN_CODE', '=', 't_mouvements.MVT_BEN_CODE')
-    //         ->join('t_paiements', 't_paiements.PAI_CODE', '=', 't_mouvements.MVT_PAI_CODE')
-    //         ->leftJoin('t_type_beneficiaires', 't_type_beneficiaires.TYP_CODE', '=', 't_beneficiaires.TYP_CODE')
-    //         ->leftJoin('t_fonctions', 't_fonctions.FON_CODE', '=', 't_beneficiaires.FON_CODE')
-    //         ->leftJoin('t_grades', 't_grades.GRD_CODE', '=', 't_beneficiaires.GRD_CODE')
-    //         ->leftJoin('t_positions', 't_positions.POS_CODE', '=', 't_beneficiaires.POS_CODE')
-    //         ->where('t_paiements.PAI_STATUT', 2)
-    //         ->where('t_mouvements.TYP_CODE', '20250002')
-    //         ->where('t_mouvements.MVT_NIV', $nivValeur)
-    //         ->when($echCodeFilter, fn ($q) =>
-    //             $q->where('t_paiements.ECH_CODE', $echCodeFilter)
-    //         );
-
-    //     // ===== Filtre régie (LOGIQUE CONSULTANT) =====
-    //     if ($user->REG_CODE !== null) {
-    //         $query->where('t_mouvements.MVT_UTI_REG', $user->REG_CODE);
-    //     }
-
-    //     $mouvements = $query
-    //         ->orderBy('t_mouvements.MVT_DATE', 'desc')
-    //         ->orderBy('t_mouvements.MVT_HEURE', 'desc')
-    //         ->orderByDesc('t_paiements.PAI_CODE')
-    //         ->select([
-    //             // ===== Mouvement =====
-    //             't_mouvements.MVT_CODE',
-    //             't_mouvements.MVT_DOM_CODE as DOM_CODE',
-    //             't_mouvements.MVT_BEN_NOM_PRE',
-    //             't_mouvements.MVT_BNQ_LIBELLE as BANQUE',
-    //             't_mouvements.MVT_GUI_CODE as GUICHET',
-    //             't_mouvements.MVT_NUMCPT as NUMCPT',
-    //             't_mouvements.MVT_CLE_RIB as RIB',
-    //             't_mouvements.MVT_DATE',
-    //             't_mouvements.MVT_HEURE',
-    //             't_mouvements.MVT_NIV',
-    //             't_mouvements.MVT_UTI_CODE',
-    //             't_mouvements.MVT_CREER_PAR',
-    //             't_mouvements.TYP_CODE',
-
-    //             // ===== Paiement =====
-    //             't_paiements.PAI_CODE',
-    //             't_paiements.PAI_STATUT',
-    //             't_paiements.ECH_CODE',
-
-    //             // ===== Bénéficiaire =====
-    //             't_beneficiaires.BEN_MATRICULE',
-    //             't_beneficiaires.BEN_SEXE',
-    //             't_beneficiaires.BEN_STATUT',
-
-    //             // ===== Infos complémentaires =====
-    //             't_type_beneficiaires.TYP_LIBELLE as TYPE_BENEFICIAIRE',
-    //             't_fonctions.FON_LIBELLE as FONCTION',
-    //             't_grades.GRD_LIBELLE as GRADE',
-    //             't_positions.POS_LIBELLE as POSITION',
-    //         ])
-    //         ->get();
-
-    //     // ===== Détails paiements =====
-    //     $detailsPaiements = DB::table('t_details_paiement')
-    //         ->join('t_elements', 't_elements.ELT_CODE', '=', 't_details_paiement.ELT_CODE')
-    //         ->select(
-    //             't_details_paiement.PAI_CODE',
-    //             't_elements.ELT_LIBELLE',
-    //             't_elements.ELT_SENS',
-    //             DB::raw('t_details_paiement.PAI_MONTANT as ELT_MONTANT')
-    //         )
-    //         ->orderBy('t_details_paiement.DET_CODE')
-    //         ->get()
-    //         ->groupBy('PAI_CODE');
-
-    //     // ===== Totaux =====
-    //     $totauxPaiements = DB::table('t_details_paiement')
-    //         ->join('t_elements', 't_elements.ELT_CODE', '=', 't_details_paiement.ELT_CODE')
-    //         ->select(
-    //             't_details_paiement.PAI_CODE',
-    //             DB::raw('SUM(CASE WHEN t_elements.ELT_SENS = 1 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) AS TOTAL_GAIN'),
-    //             DB::raw('SUM(CASE WHEN t_elements.ELT_SENS = 2 THEN t_details_paiement.PAI_MONTANT ELSE 0 END) AS TOTAL_RETENU'),
-    //             DB::raw('(SUM(CASE WHEN t_elements.ELT_SENS = 1 THEN t_details_paiement.PAI_MONTANT ELSE 0 END)
-    //                     - SUM(CASE WHEN t_elements.ELT_SENS = 2 THEN t_details_paiement.PAI_MONTANT ELSE 0 END)) AS MONTANT_NET')
-    //         )
-    //         ->groupBy('t_details_paiement.PAI_CODE')
-    //         ->get()
-    //         ->keyBy('PAI_CODE');
-
-    //     // ===== Mapping =====
-    //     $mouvements = $mouvements->map(function ($mvt) use ($detailsPaiements, $totauxPaiements) {
-    //         $paiCode = $mvt->PAI_CODE;
-
-    //         $mvt->details = $detailsPaiements[$paiCode] ?? [];
-
-    //         $totaux = $totauxPaiements[$paiCode] ?? (object)[
-    //             'TOTAL_GAIN' => 0,
-    //             'TOTAL_RETENU' => 0,
-    //             'MONTANT_NET' => 0
-    //         ];
-
-    //         $mvt->TOTAL_GAIN   = $totaux->TOTAL_GAIN;
-    //         $mvt->TOTAL_RETENU = $totaux->TOTAL_RETENU;
-    //         $mvt->MONTANT_NET  = $totaux->MONTANT_NET;
-
-    //         return $mvt;
-    //     });
-
-    //     return response()->json([
-    //         'count' => $mouvements->count(),
-    //         'data'  => $mouvements
-    //     ]);
-    // }
 
     public function getMouvementsPaiementsEnCours(Request $request)
     {
@@ -914,6 +788,13 @@ class MouvementController extends Controller
         $mouvements = Mouvement::query()
             ->join('t_beneficiaires', 't_beneficiaires.BEN_CODE', '=', 't_mouvements.MVT_BEN_CODE')
             ->join('t_paiements', 't_paiements.PAI_CODE', '=', 't_mouvements.MVT_PAI_CODE')
+            ->leftJoin('t_domiciliers', function($join){
+                $join->on('t_domiciliers.DOM_CODE', '=', 't_mouvements.MVT_DOM_CODE')
+                    ->whereIn('t_domiciliers.DOM_STATUT', [2, 3])
+                    ->orderByDesc('t_domiciliers.DOM_STATUT'); // 3 avant 2
+            })
+            ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
+            ->leftJoin('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
             ->leftJoin('t_type_beneficiaires', 't_type_beneficiaires.TYP_CODE', '=', 't_beneficiaires.TYP_CODE')
             ->leftJoin('t_fonctions', 't_fonctions.FON_CODE', '=', 't_beneficiaires.FON_CODE')
             ->leftJoin('t_grades', 't_grades.GRD_CODE', '=', 't_beneficiaires.GRD_CODE')
@@ -923,18 +804,11 @@ class MouvementController extends Controller
             ->where('t_mouvements.MVT_NIV', $nivValeur)
             ->where('t_mouvements.MVT_UTI_REG', $user->REG_CODE)
             ->orderBy('t_mouvements.MVT_DATE', 'desc')
-            ->orderBy('t_mouvements.MVT_HEURE', 'desc')
             ->select([
                 // ===== Mouvement =====
                 't_mouvements.MVT_CODE',
                 't_mouvements.MVT_DOM_CODE as DOM_CODE',
-                't_mouvements.MVT_BEN_NOM_PRE',
-                't_mouvements.MVT_BNQ_LIBELLE as BANQUE',
-                't_mouvements.MVT_GUI_CODE as GUICHET',
-                't_mouvements.MVT_NUMCPT as NUMCPT',
-                't_mouvements.MVT_CLE_RIB as RIB',
                 't_mouvements.MVT_DATE',
-                't_mouvements.MVT_HEURE',
                 't_mouvements.MVT_NIV',
                 't_mouvements.MVT_UTI_CODE',
                 't_mouvements.MVT_CREER_PAR',
@@ -947,8 +821,16 @@ class MouvementController extends Controller
 
                 // ===== Bénéficiaire =====
                 't_beneficiaires.BEN_MATRICULE',
+                DB::raw("CONCAT(t_beneficiaires.BEN_NOM, ' ', t_beneficiaires.BEN_PRENOM) as BENEFICIAIRE"),
                 't_beneficiaires.BEN_SEXE',
                 't_beneficiaires.BEN_STATUT',
+
+                // ===== RIB =======
+                't_banques.BNQ_LIBELLE as BANQUE',
+                't_guichets.GUI_CODE as GUICHET',
+                't_domiciliers.DOM_NUMCPT as NUMCPT',
+                't_domiciliers.DOM_RIB as RIB',
+                't_domiciliers.DOM_STATUT',
 
                 // ===== Infos complémentaires =====
                 't_type_beneficiaires.TYP_CODE',
@@ -1055,13 +937,13 @@ class MouvementController extends Controller
                 }
 
                 $paiement->PAI_STATUT = 3;
+                $paiement->PAI_MOTIF_REJET = null;
                 $paiement->save();
 
                 // Mise à jour du dernier Mouvement de niveau 1 seulement
                 $dernierMvt = Mouvement::where('MVT_PAI_CODE', $paiement->PAI_CODE)
                     ->where('MVT_NIV', 2)
                     ->orderByDesc('MVT_DATE')
-                    ->orderByDesc('MVT_HEURE')
                     ->first();
 
                 if ($dernierMvt) {
@@ -1126,13 +1008,13 @@ class MouvementController extends Controller
                 }
 
                 $paiementItem->PAI_STATUT = 3;
+                $paiementItem->PAI_MOTIF_REJET = null;
                 $paiementItem->save();
 
                 // Mise à jour du dernier Mouvement de niveau 1 seulement
                 $dernierMvt = Mouvement::where('MVT_PAI_CODE', $paiementItem->PAI_CODE)
                     ->where('MVT_NIV', 2)
                     ->orderByDesc('MVT_DATE')
-                    ->orderByDesc('MVT_HEURE')
                     ->first();
 
                 if ($dernierMvt) {
@@ -1177,6 +1059,10 @@ class MouvementController extends Controller
         $user = Auth::user();
         $now = Carbon::now();
 
+        $request->validate([
+            'PAI_MOTIF_REJET' => 'required|string|max:1000',
+        ]);
+
         DB::beginTransaction();
 
         try {
@@ -1212,14 +1098,14 @@ class MouvementController extends Controller
                         ->whereIn('MVT_CODE', $mvtCodes)
                         ->delete();
 
-                    // supprimer mouvements
                     DB::table('t_mouvements')
                         ->whereIn('MVT_CODE', $mvtCodes)
-                        ->delete();
+                        ->update(['MVT_NIV' => 1]);
                 }
 
                 // mise à jour paiement
                 $paiement->PAI_STATUT = 0; // rejeté
+                $paiement->PAI_MOTIF_REJET = $request->PAI_MOTIF_REJET;
                 $paiement->save();
 
                 DB::commit();
@@ -1280,10 +1166,11 @@ class MouvementController extends Controller
 
                     DB::table('t_mouvements')
                         ->whereIn('MVT_CODE', $mvtCodes)
-                        ->delete();
+                        ->update(['MVT_NIV' => 1]);
                 }
 
                 $paiementItem->PAI_STATUT = 0;
+                $paiementItem->PAI_MOTIF_REJET = $request->PAI_MOTIF_REJET;
                 $paiementItem->save();
 
                 $results['success'][] = ['PAI_CODE' => $code];
@@ -1354,8 +1241,8 @@ class MouvementController extends Controller
             ->first();
 
         // Vérification des statuts
-        $beneficiaireNonTransmis = $beneficiaire->BEN_STATUT != 0 && $beneficiaire->BEN_STATUT != 2 && $beneficiaire->BEN_STATUT != 3;
-        $domicilierNonTransmis = $dernierDomicilier && $dernierDomicilier->DOM_STATUT != 0 && $dernierDomicilier->DOM_STATUT != 2 && $dernierDomicilier->DOM_STATUT != 3;
+        $beneficiaireNonTransmis = $beneficiaire->BEN_STATUT != 2 && $beneficiaire->BEN_STATUT != 3;
+        $domicilierNonTransmis = $dernierDomicilier && $dernierDomicilier->DOM_STATUT != 2 && $dernierDomicilier->DOM_STATUT != 3;
 
         $confirmed = $request->input('confirm', false);
 
@@ -1394,8 +1281,9 @@ class MouvementController extends Controller
         DB::transaction(function () use ($beneficiaire, $dernierDomicilier, $user, $nivValeur, $now) {
 
             // -------- Bénéficiaire --------
-            if ($beneficiaire->BEN_STATUT != 0 && $beneficiaire->BEN_STATUT != 2 && $beneficiaire->BEN_STATUT != 3) {
+            if ($beneficiaire->BEN_STATUT != 2 && $beneficiaire->BEN_STATUT != 3) {
                 $beneficiaire->BEN_STATUT = 2;
+                $beneficiaire->BEN_MOTIF_REJET = null;
                 $beneficiaire->save();
 
                 // Dernier mouvement du bénéficiaire
@@ -1406,7 +1294,6 @@ class MouvementController extends Controller
                 if ($dernierMvt) {
                     $dernierMvt->MVT_NIV += 1;
                     $dernierMvt->MVT_DATE = $now->toDateString();
-                    $dernierMvt->MVT_HEURE = $now->toTimeString();
                     $dernierMvt->save();
 
                     // Historique
@@ -1423,20 +1310,19 @@ class MouvementController extends Controller
             }
 
             // -------- Dernier RIB --------
-            if ($dernierDomicilier && $dernierDomicilier->DOM_STATUT != 0 && $dernierDomicilier->DOM_STATUT != 2 && $dernierDomicilier->DOM_STATUT != 3) {
+            if ($dernierDomicilier && $dernierDomicilier->DOM_STATUT != 2 && $dernierDomicilier->DOM_STATUT != 3) {
                 $dernierDomicilier->DOM_STATUT = 2;
+                $dernierDomicilier->DOM_MOTIF_REJET = null;
                 $dernierDomicilier->save();
 
                 $dernierMvt = Mouvement::where('MVT_DOM_CODE', $dernierDomicilier->DOM_CODE)
                     ->where('MVT_NIV', 1) 
                     ->orderByDesc('MVT_DATE')
-                    ->orderByDesc('MVT_HEURE')
                     ->first();
 
                 if ($dernierMvt) {
                     $dernierMvt->MVT_NIV += 1;
                     $dernierMvt->MVT_DATE = $now->toDateString();
-                    $dernierMvt->MVT_HEURE = $now->toTimeString();
                     $dernierMvt->save();
 
                     $valCode = $this->generateValCode($user->REG_CODE);

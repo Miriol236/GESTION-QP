@@ -21,6 +21,7 @@ export default function PaiementPreviewModal({ open, onClose, paiement }: any) {
       matricule: b.MATRICULE,
       nomComplet: b.BENEFICIAIRE,
       sexe: b.SEXE === "M" ? "Masculin" : "Féminin",
+      benefStatut: b.BEN_STATUT,
       type: b.TYPE_BENEFICIAIRE,
       fonction: b.FONCTION,
       grade: b.GRADE,
@@ -29,6 +30,7 @@ export default function PaiementPreviewModal({ open, onClose, paiement }: any) {
       guichet: b.GUICHET,
       numeroCompte: b.NUMERO_DE_COMPTE,
       rib: b.CLE_RIB,
+      domStatut: b.DOM_STATUT,
       total_gain : b.TOTAL_GAIN,
       total_retenu: b.TOTAL_RETENU,
       montant_net: b.MONTANT_NET,
@@ -170,6 +172,28 @@ useEffect(() => {
               <Info label="Fonction :" value={getBeneficiairesInfo(paiement.BEN_CODE)?.fonction} />
               <Info label="Grade :" value={getBeneficiairesInfo(paiement.BEN_CODE)?.grade} />
               <Info label="Régie :" value={getBeneficiairesInfo(paiement.BEN_CODE)?.regie} />
+              <Info
+                label="Statut :"
+                value={
+                  <span
+                    className={
+                      (() => {
+                        const stat = getBeneficiairesInfo(paiement.BEN_CODE)?.benefStatut;
+                        if (stat === 2) return "text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full";
+                        if (stat === 3) return "text-green-700 bg-green-100 px-2 py-0.5 rounded-full";
+                        return "text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full";
+                      })()
+                    }
+                  >
+                    {(() => {
+                      const stat = getBeneficiairesInfo(paiement.BEN_CODE)?.benefStatut;
+                      if (stat === 2) return "En cours d'approbation";
+                      if (stat === 3) return "Approuvé";
+                      return "_";
+                    })()}
+                  </span>
+                }
+              />
             </div>
           </div>
           <div>
@@ -177,18 +201,38 @@ useEffect(() => {
               Informations du RIB
             </h3>
 
-            <div className="grid grid-cols-4 gap-4 text-sm">
+            <div className="grid grid-cols-5 gap-5 text-sm">
               {/* Titres */}
               <div className="font-semibold text-gray-600">Banque :</div>
               <div className="font-semibold text-gray-600">Guichet :</div>
               <div className="font-semibold text-gray-600">N° Compte :</div>
               <div className="font-semibold text-gray-600">Clé RIB :</div>
+              <div className="font-semibold text-gray-600">Statut :</div>
 
               {/* Valeurs */}
               <div className="font-semibold">{getBeneficiairesInfo(paiement.BEN_CODE)?.banque || "—"}</div>
               <div className="font-semibold">{getBeneficiairesInfo(paiement.BEN_CODE)?.guichet || "—"}</div>
               <div className="font-semibold">{getBeneficiairesInfo(paiement.BEN_CODE)?.numeroCompte || "—"}</div>
               <div className="font-semibold">{getBeneficiairesInfo(paiement.BEN_CODE)?.rib || "—"}</div>
+              <div className="font-semibold">
+                <span
+                  className={
+                    (() => {
+                      const stat = getBeneficiairesInfo(paiement.BEN_CODE)?.domStatut;
+                      if (stat === 2) return "text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full";
+                      if (stat === 3) return "text-green-700 bg-green-100 px-2 py-0.5 rounded-full";
+                      return "text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full";
+                    })()
+                  }
+                >
+                  {(() => {
+                    const stat = getBeneficiairesInfo(paiement.BEN_CODE)?.domStatut;
+                    if (stat === 2) return "En cours...";
+                    if (stat === 3) return "Approuvé";
+                    return "—";
+                  })()}
+                </span>
+              </div>
             </div>
           </div>         
 
@@ -265,6 +309,12 @@ useEffect(() => {
                 <span className="font-semibold text-gray-600">Statut :</span>{" "}
                 {getPaiementBadge(paiement.PAI_STATUT)}
               </div>
+              {/* Affichage du motif si rejeté */}
+              {paiement.PAI_STATUT === 0 && paiement.PAI_MOTIF_REJET && (
+                <div className="text-sm font-medium text-red-600">
+                  <span className="font-semibold">Motif du rejet :</span> {paiement.PAI_MOTIF_REJET}
+                </div>
+              )}
             </div>
           )}
           <div>

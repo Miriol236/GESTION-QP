@@ -85,7 +85,8 @@ class PaiementController extends Controller
             ->join('t_virements', 't_virements.VIR_CODE', '=', 't_paiements.PAI_VIREMENT')
             ->leftJoin('t_domiciliers', function($join){
                 $join->on('t_domiciliers.BEN_CODE', '=', 't_beneficiaires.BEN_CODE')
-                    ->where('t_domiciliers.DOM_STATUT', 3); // RIB approuvé
+                    ->whereIn('t_domiciliers.DOM_STATUT', [2, 3])
+                    ->orderByDesc('t_domiciliers.DOM_STATUT'); // 3 avant 2
             })
             ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
             ->leftJoin('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
@@ -124,7 +125,7 @@ class PaiementController extends Controller
 
         $beneficiaires = Beneficiaire::with([
             'domiciliations' => function ($query) {
-                $query->where('DOM_STATUT', 3) // RIB approuvé
+                $query->whereIn('DOM_STATUT', [2, 3])
                     ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
                     ->leftJoin('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
                     ->select(
@@ -192,7 +193,7 @@ class PaiementController extends Controller
         $query = Beneficiaire::query()
             ->join('t_domiciliers', function ($join) {
                 $join->on('t_domiciliers.BEN_CODE', '=', 't_beneficiaires.BEN_CODE')
-                    ->where('t_domiciliers.DOM_STATUT', 3); // RIB approuvé uniquement
+                    ->whereIn('t_domiciliers.DOM_STATUT', [2,3]); // RIB approuvé uniquement
             })
             ->leftJoin('t_paiements', 't_paiements.BEN_CODE', '=', 't_beneficiaires.BEN_CODE')
             ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
@@ -208,10 +209,12 @@ class PaiementController extends Controller
                 't_beneficiaires.BEN_SEXE as SEXE',
                 't_banques.BNQ_CODE',
                 't_banques.BNQ_LIBELLE as BANQUE',
+                't_beneficiaires.BEN_STATUT',
                 't_guichets.GUI_CODE',
                 't_guichets.GUI_NOM',
                 't_domiciliers.DOM_NUMCPT as NUMERO_DE_COMPTE',
                 't_domiciliers.DOM_RIB as CLE_RIB',
+                't_domiciliers.DOM_STATUT',
                 't_type_beneficiaires.TYP_LIBELLE as TYPE_BENEFICIAIRE',
                 't_fonctions.FON_LIBELLE as FONCTION',
                 't_grades.GRD_LIBELLE as GRADE',
@@ -309,7 +312,8 @@ class PaiementController extends Controller
 
         // Récupération du bénéficiaire
         $beneficiaire = Beneficiaire::with(['domiciliations' => function ($query) {
-                $query->where('DOM_STATUT', 3)
+                $query->whereIn('DOM_STATUT', [2, 3])
+                    ->orderByDesc('DOM_STATUT') // 3 avant 2
                     ->with(['banque', 'guichet']);
             }, 'typeBeneficiaire'])
             ->where('BEN_CODE', $request->BEN_CODE)
@@ -368,15 +372,8 @@ class PaiementController extends Controller
                 'MVT_CODE'        => $mvtCode,
                 'MVT_PAI_CODE'    => $paiement->PAI_CODE,
                 'MVT_BEN_CODE'    => $paiement->BEN_CODE,
-                'MVT_BEN_NOM_PRE' => $paiement->PAI_BENEFICIAIRE,
-
-                'MVT_BNQ_CODE'    => $domiciliation->BNQ_CODE,
-                'MVT_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                'MVT_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
-                'MVT_NUMCPT'      => $domiciliation->DOM_NUMCPT,
-                'MVT_CLE_RIB'     => $domiciliation->DOM_RIB,
+                'MVT_DOM_CODE'    => $domiciliation->DOM_CODE,
                 'MVT_DATE'        => $now->toDateString(),
-                'MVT_HEURE'       => $now->toTimeString(),
                 'MVT_NIV'         => $nivValeur,
                 'MVT_UTI_CODE'    => $user->UTI_CODE,
                 'MVT_CREER_PAR'   => $user->UTI_NOM." ".$user->UTI_PRENOM,
@@ -444,7 +441,8 @@ class PaiementController extends Controller
 
         // Récupération du bénéficiaire avec la domiciliation active
         $beneficiaire = Beneficiaire::with(['domiciliations' => function ($query) {
-                $query->where('DOM_STATUT', 3)
+                $query->whereIn('DOM_STATUT', [2, 3])
+                    ->orderByDesc('DOM_STATUT') // 3 avant 2
                     ->with(['banque', 'guichet']);
             }])
             ->where('BEN_CODE', $request->BEN_CODE)
@@ -604,77 +602,6 @@ class PaiementController extends Controller
         }
     }
 
-    /**
-     * @OA\Delete(
-     *     path="/api/paiements/delete",
-     *     tags={"Paiements"},
-     *     summary="Supprimer plusieurs paiements",
-     *     description="Supprime plusieurs paiements en fournissant un tableau d'identifiants. Ne supprime que les paiements non traités.",
-     *     security={{"sanctum": {}}},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         description="Tableau d'identifiants de paiements à supprimer",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="ids", type="array", @OA\Items(type="string"))
-     *         )
-     *     ),
-     *     @OA\Response(response=200, description="Suppression terminée avec succès"),
-     *     @OA\Response(response=400, description="Erreur de suppression"),
-     *     @OA\Response(response=401, description="Non authentifié")
-     * )
-     */
-    // public function deletePaiement(Request $request)
-    // {
-    //     // Suppression multiple uniquement
-    //     $ids = $request->input('ids', []);
-
-    //     if (!is_array($ids) || count($ids) === 0) {
-    //         return response()->json(['message' => 'Aucun ID fourni.'], 400);
-    //     }
-
-    //     $results = ['success' => [], 'failed' => []];
-
-    //     DB::beginTransaction();
-    //     try {
-    //         $paiements = Paiement::whereIn('PAI_CODE', $ids)->get()->keyBy('PAI_CODE');
-
-    //         foreach ($ids as $code) {
-    //             $paiement = $paiements->get($code);
-
-    //             if (!$paiement) {
-    //                 $results['failed'][] = [
-    //                     'PAI_CODE' => $code,
-    //                     'reason' => 'Paiement introuvable.'
-    //                 ];
-    //                 continue;
-    //             }
-
-    //             if ($paiement->PAI_STATUT != 0) {
-    //                 $results['failed'][] = [
-    //                     'PAI_CODE' => $code,
-    //                     'reason' => 'Impossible de supprimer : paiements déjà traités.'
-    //                 ];
-    //                 continue;
-    //             }
-
-    //             $paiement->delete();
-    //             $results['success'][] = ['PAI_CODE' => $code];
-    //         }
-
-    //         DB::commit();
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         throw $e;
-    //     }
-
-    //     return response()->json([
-    //         'message' => 'Suppression terminée.',
-    //         'deleted' => count($results['success']),
-    //         'failed' => $results['failed'],
-    //         'success' => $results['success']
-    //     ]);
-    // }
-
     private function generateMvtCode($regCode)
     {
         $echeance = DB::table('t_echeances')
@@ -701,7 +628,10 @@ class PaiementController extends Controller
     {
         $beneficiaire = Beneficiaire::with([
             'domiciliations' => function ($query) {
-                $query->with(['banque', 'guichet']);
+                $query
+                    ->whereIn('DOM_STATUT', [2, 3])
+                    ->orderByDesc('DOM_STATUT') // 3 avant 2
+                    ->with(['banque', 'guichet']);
             }
         ])
         ->where('BEN_CODE', $benCode)
@@ -711,6 +641,7 @@ class PaiementController extends Controller
             return null;
         }
 
+        //  prend automatiquement le 3 s'il existe, sinon le 2
         return $beneficiaire->domiciliations->first();
     }
 
@@ -770,13 +701,13 @@ class PaiementController extends Controller
             DB::transaction(function () use ($paiement, $user, $nivValeur, $now) {
 
                 $paiement->PAI_STATUT = 2;
+                $paiement->PAI_MOTIF_REJET = null;
                 $paiement->save();
 
                 // Mise à jour du dernier Mouvement de niveau 1 seulement
                 $dernierMvt = Mouvement::where('MVT_PAI_CODE', $paiement->PAI_CODE)
                     ->where('MVT_NIV', 1)
                     ->orderByDesc('MVT_DATE')
-                    ->orderByDesc('MVT_HEURE')
                     ->first();
 
                 if ($dernierMvt) {
@@ -841,13 +772,13 @@ class PaiementController extends Controller
                 }
 
                 $paiementItem->PAI_STATUT = 2;
+                $paiementItem->PAI_MOTIF_REJET = null;
                 $paiementItem->save();
 
                 // Mise à jour du dernier Mouvement de niveau 1 seulement
-                $dernierMvt = Mouvement::where('MVT_PAI_CODE', $paiement->PAI_CODE)
+                $dernierMvt = Mouvement::where('MVT_PAI_CODE', $paiementItem->PAI_CODE)
                     ->where('MVT_NIV', 1)
                     ->orderByDesc('MVT_DATE')
-                    ->orderByDesc('MVT_HEURE')
                     ->first();
 
                 if ($dernierMvt) {
@@ -905,7 +836,7 @@ class PaiementController extends Controller
         }
 
         // Vérification des statuts
-        $paiementNonTransmis = $paiement->PAI_STATUT != 0 && $paiement->PAI_STATUT != 2 && $paiement->PAI_STATUT != 3 && $paiement->PAI_STATUT != 4;
+        $paiementNonTransmis = $paiement->PAI_STATUT != 2 && $paiement->PAI_STATUT != 3 && $paiement->PAI_STATUT != 4;
 
         $confirmed = $request->input('confirm', false);
 
@@ -930,9 +861,10 @@ class PaiementController extends Controller
                     throw new \Exception("Aucune domiciliation trouvée pour le bénéficiaire {$paiement->BEN_CODE}");
                 }
 
-                if ($paiement->PAI_STATUT != 0 && $paiement->PAI_STATUT != 2 && $paiement->PAI_STATUT != 3 && $paiement->PAI_STATUT !=4){
+                if ($paiement->PAI_STATUT != 2 && $paiement->PAI_STATUT != 3 && $paiement->PAI_STATUT !=4){
 
                     $paiement->PAI_STATUT = 2;
+                    $paiement->PAI_MOTIF_REJET = null;
                     $paiement->save();
     
                      // Dernier mouvement du paiement
@@ -943,7 +875,6 @@ class PaiementController extends Controller
                     if ($dernierMvt) {
                         $dernierMvt->MVT_NIV += 1;
                         $dernierMvt->MVT_DATE = $now->toDateString();
-                        $dernierMvt->MVT_HEURE = $now->toTimeString();
                         $dernierMvt->save();
 
                         // Historique
@@ -1115,14 +1046,8 @@ class PaiementController extends Controller
                         'MVT_CODE' => $mvtCode,
                         'MVT_PAI_CODE' => $paiementCode,
                         'MVT_BEN_CODE' => $paiementAncien->BEN_CODE,
-                        'MVT_BEN_NOM_PRE' => $paiementAncien->PAI_BENEFICIAIRE,
-                        'MVT_BNQ_CODE' => $domiciliation->BNQ_CODE,
-                        'MVT_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                        'MVT_GUI_CODE' => $domiciliation->guichet?->GUI_CODE,
-                        'MVT_NUMCPT' => $domiciliation->DOM_NUMCPT,
-                        'MVT_CLE_RIB' => $domiciliation->DOM_RIB,
+                        'MVT_DOM_CODE' => $domiciliation->DOM_CODE,
                         'MVT_DATE' => now()->toDateString(),
-                        'MVT_HEURE' => now()->toTimeString(),
                         'MVT_NIV' => $nivValeur +1,
                         'MVT_UTI_CODE' => $user->UTI_CODE,
                         'MVT_CREER_PAR' => $user->UTI_NOM." ".$user->UTI_PRENOM,

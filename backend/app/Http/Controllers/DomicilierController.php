@@ -127,15 +127,7 @@ class DomicilierController extends Controller
                 'MVT_CODE'        => $mvtCode,
                 'MVT_DOM_CODE'    => $domiciliation->DOM_CODE,
                 'MVT_BEN_CODE'    => $beneficiaire->BEN_CODE,
-                'MVT_BEN_NOM_PRE' => $beneficiaire->BEN_NOM." ".$beneficiaire->BEN_PRENOM,
-                'MVT_BNQ_CODE'    => $domiciliation->BNQ_CODE,
-                'MVT_BNQ_LIBELLE' => $domiciliation->banque?->BNQ_LIBELLE,
-                'MVT_GUI_CODE'    => $domiciliation->guichet?->GUI_CODE,
-                'MVT_GUI_NOM'     => $domiciliation->guichet?->GUI_NOM,
-                'MVT_NUMCPT'      => $domiciliation->DOM_NUMCPT,
-                'MVT_CLE_RIB'     => $domiciliation->DOM_RIB,
                 'MVT_DATE'        => $now->toDateString(),
-                'MVT_HEURE'       => $now->toTimeString(),
                 'MVT_NIV'         => $nivValeur,
                 'MVT_UTI_CODE'    => $user->UTI_CODE,
                 'MVT_CREER_PAR'   => $user->UTI_NOM." ".$user->UTI_PRENOM,
@@ -487,13 +479,13 @@ class DomicilierController extends Controller
             DB::transaction(function () use ($domiciliation, $beneficiaire, $user, $nivValeur, $now) {
 
                 $domiciliation->DOM_STATUT = 2;
+                $domiciliation->DOM_MOTIF_REJET = null;
                 $domiciliation->save();
 
                  // Mise à jour du dernier Mouvement de niveau 1 seulement
                 $dernierMvt = Mouvement::where('MVT_DOM_CODE', $domiciliation->DOM_CODE)
                     ->where('MVT_NIV', 1)
                     ->orderByDesc('MVT_DATE')
-                    ->orderByDesc('MVT_HEURE')
                     ->first();
 
                 if ($dernierMvt) {

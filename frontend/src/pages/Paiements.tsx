@@ -905,13 +905,13 @@ export default function Paiements() {
 
           {/* Contenu scrollable */}
           <div className="flex-1 overflow-y-auto px-4 py-2">
-            <div className="grid grid-cols-2 gap-6">
+            <div className={`grid gap-6 ${ignoredDetails.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
               {ignoredDetails.map((group, idx) => (
                 <div key={idx}>
                   <div className="font-bold text-gray-800 mb-2">
                     {group.title} ({group.items.length})
                   </div>
-                  <ul className="list-disc list-inside space-y-0.5 max-h-[60vh] overflow-y-auto pr-2">
+                  <ul className="list-disc list-inside space-y-0.5 max-h-[60vh] pr-2">
                     {group.items.map((name: string, i: number) => (
                       <li key={i} className="text-sm text-gray-700">
                         {name}
@@ -925,6 +925,7 @@ export default function Paiements() {
 
           <DialogFooter className="mt-2 flex justify-end">
             <Button onClick={() => setShowIgnoredModal(false)}>
+              <X/>
               Fermer
             </Button>
           </DialogFooter>

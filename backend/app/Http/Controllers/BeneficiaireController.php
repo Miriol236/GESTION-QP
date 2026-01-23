@@ -237,9 +237,7 @@ class BeneficiaireController extends Controller
             Mouvement::create([
                 'MVT_CODE'        => $mvtCode,
                 'MVT_BEN_CODE'    => $beneficiaire->BEN_CODE,
-                'MVT_BEN_NOM_PRE' => $beneficiaire->BEN_NOM." ".$beneficiaire->BEN_PRENOM,
                 'MVT_DATE'        => $now->toDateString(),
-                'MVT_HEURE'       => $now->toTimeString(),
                 'MVT_NIV'         => $nivValeur,
                 'MVT_UTI_CODE'    => $user->UTI_CODE,
                 'MVT_CREER_PAR'   => $user->UTI_NOM." ".$user->UTI_PRENOM,
@@ -485,13 +483,13 @@ class BeneficiaireController extends Controller
 
             DB::transaction(function () use ($beneficiaire, $user, $nivValeur, $now) {
                 $beneficiaire->BEN_STATUT = 2;
+                $beneficiaire->BEN_MOTIF_REJET = null;
                 $beneficiaire->save();
 
                 // Mise à jour du dernier Mouvement de niveau 1 seulement
                 $dernierMvt = Mouvement::where('MVT_BEN_CODE', $beneficiaire->BEN_CODE)
                     ->where('MVT_NIV', 1)
                     ->orderByDesc('MVT_DATE')
-                    ->orderByDesc('MVT_HEURE')
                     ->first();
 
                 if ($dernierMvt) {
@@ -527,34 +525,50 @@ class BeneficiaireController extends Controller
 
         DB::beginTransaction();
         try {
-            $beneficiaires = Beneficiaire::whereIn('BEN_CODE', $ids)->get()->keyBy('BEN_CODE');
+           $beneficiaires = Beneficiaire::whereIn('BEN_CODE', $ids)
+            ->get()
+            ->keyBy(fn($item) => (string) $item->BEN_CODE);
 
             foreach ($ids as $code) {
-                $beneficiaire = $beneficiaires->get($code);
+                 $beneficiaire = $beneficiaires->get((string)$code);
 
                 if (!$beneficiaire) {
-                    $results['failed'][] = ['BEN_CODE' => $code, 'reason' => 'Bénéficiaire introuvable.'];
+                    $results['failed'][] = [
+                        'BEN_CODE' => $code, // ou null si tu veux
+                        'name' => 'Inconnu',
+                        'reason' => 'Bénéficiaire introuvable.'
+                    ];
                     continue;
                 }
 
+                $fullName = trim($beneficiaire->BEN_NOM . ' ' . $beneficiaire->BEN_PRENOM);
+
                 if ($beneficiaire->BEN_STATUT == 2) {
-                    $results['failed'][] = ['BEN_CODE' => $code, 'reason' => 'Déjà en cours d\'approbation.'];
+                    $results['failed'][] = [
+                        'BEN_CODE' => $beneficiaire->BEN_CODE,
+                        'name' => $fullName,
+                        'reason' => 'Déjà en cours d\'approbation.'
+                    ];
                     continue;
                 }
 
                 if ($beneficiaire->BEN_STATUT == 3) {
-                    $results['failed'][] = ['BEN_CODE' => $code, 'reason' => 'Déjà approuvé.'];
+                    $results['failed'][] = [
+                        'BEN_CODE' => $beneficiaire->BEN_CODE,
+                        'name' => $fullName,
+                        'reason' => 'Déjà approuvé.'
+                    ];
                     continue;
                 }
 
                 $beneficiaire->BEN_STATUT = 2;
+                $beneficiaire->BEN_MOTIF_REJET = null;
                 $beneficiaire->save();
 
                 // Mise à jour du dernier Mouvement de niveau 1 seulement
                 $dernierMvt = Mouvement::where('MVT_BEN_CODE', $beneficiaire->BEN_CODE)
                     ->where('MVT_NIV', 1)
                     ->orderByDesc('MVT_DATE')
-                    ->orderByDesc('MVT_HEURE')
                     ->first();
 
                 if ($dernierMvt) {
@@ -575,7 +589,10 @@ class BeneficiaireController extends Controller
                     'MVT_CODE'      => $dernierMvt ? $dernierMvt->MVT_CODE : null,
                 ]);
 
-                $results['success'][] = ['BEN_CODE' => $code];
+                $results['success'][] = [
+                    'BEN_CODE' => $beneficiaire->BEN_CODE,
+                    'name' => $fullName
+                ];
             }
 
             DB::commit();
