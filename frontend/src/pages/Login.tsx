@@ -81,7 +81,7 @@ export default function Login() {
       {/* Texte défilant */}
       <div className="absolute top-16 w-full overflow-hidden">
         <div className="text-2xl font-bold text-center text-primary">
-          BIENVENUE SUR LA PLATEFORME DIGITALISEE DE GESTION DES QUOTES-PARTS
+          BIENVENUE SUR LA PLATEFORME DE GESTION DIGITALISEE DES QUOTES-PARTS
         </div>
       </div>
 
@@ -92,7 +92,7 @@ export default function Login() {
             <CardTitle className="text-2xl font-semibold">AUTHENTIFICATION</CardTitle>
             <div className="mx-auto w-32 h-32 flex items-center justify-center mb-4">
               <img
-                src={`${import.meta.env.BASE_URL}armoirie.png`}
+                src={`${import.meta.env.BASE_URL}armoirie2.png`}
                 alt="User"
                 className="w-full h-full object-contain"
               />
@@ -155,13 +155,13 @@ export default function Login() {
 
       {/* Footer */}
       <footer className="absolute bottom-4 text-sm text-muted-foreground text-center flex items-center justify-center gap-2">
-        © {new Date().getFullYear()} Développé par l’Office National d’Informatique
+        © 2025 - {new Date().getFullYear()} Développé par l’Office National d’Informatique
         <img
           src={`${import.meta.env.BASE_URL}logo.jpg`}
           alt="ONI"
           className="inline-block w-5 h-5 object-contain"
         /> 
-        - Tous droits réservés.
+          Tous droits réservés.
       </footer>
 
       {/* Animation texte */}

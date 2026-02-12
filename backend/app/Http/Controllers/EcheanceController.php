@@ -6,6 +6,12 @@ use Illuminate\Http\Request;
 use App\Models\Echeance;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @OA\Tag(
+ *     name="Echeances",
+ *     description="Gestion des échéances"
+ * )
+ */
 class EcheanceController extends Controller
 {
     
@@ -28,11 +34,24 @@ class EcheanceController extends Controller
         return response()->json($echeances);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/echeances-publique",
+     *     tags={"Echeances"},
+     *     summary="Lister toutes les échéances (public)",
+     *     description="Retourne la liste des échéances accessibles publiquement.",
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste des échéances récupérée avec succès",
+     *         @OA\JsonContent(type="array", @OA\Items(type="object", @OA\Property(property="ECH_CODE", type="string"), @OA\Property(property="ECH_LIBELLE", type="string")))
+     *     )
+     * )
+     */
     public function indexPublic()
     {
         return response()->json(
             \App\Models\Echeance::select('ECH_CODE', 'ECH_LIBELLE')
-                ->orderByDesc('ECH_STATUT')
+                ->orderByDesc('ECH_CODE')
                 ->get()
         );
     }
@@ -280,6 +299,24 @@ class EcheanceController extends Controller
         return response()->json(['message' => 'Échéance supprimée avec succès !']);
     }
 
+    /**
+     * @OA\Put(
+     *     path="/api/echeances/{code}/activer",
+     *     tags={"Echeances"},
+     *     summary="Activer une échéance",
+     *     description="Active une échéance spécifique et désactive les autres.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="code",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(response=200, description="Échéance activée avec succès"),
+     *     @OA\Response(response=404, description="Échéance non trouvée"),
+     *     @OA\Response(response=401, description="Non authentifié")
+     * )
+     */
     public function activer($code)
     {
         $echeance = Echeance::find($code);

@@ -12,9 +12,19 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 /**
- * @OA\Tag(
- *     name="Beneficiaire",
- *     description="Gestion des bénéficiaires et de leurs informations"
+ * @OA\Schema(
+ *     schema="Beneficiaire",
+ *     type="object",
+ *     title="Beneficiaire",
+ *     description="Représentation d’un bénéficiaire",
+ *
+ *     @OA\Property(property="BEN_CODE", type="string"),
+ *     @OA\Property(property="BEN_NOM", type="string"),
+ *     @OA\Property(property="BEN_PRENOM", type="string"),
+ *     @OA\Property(property="BEN_MATRICULE", type="string"),
+ *     @OA\Property(property="BEN_SEXE", type="string", nullable=true),
+ *     @OA\Property(property="BEN_TELEPHONE", type="string", nullable=true),
+ *     @OA\Property(property="BEN_STATUT", type="boolean")
  * )
  */
 class BeneficiaireController extends Controller
@@ -101,7 +111,7 @@ class BeneficiaireController extends Controller
                 't_grades.GRD_LIBELLE as GRADE', // Grade
             ]);
 
-        // Plus de filtrage par régie : tout le monde peut consulter
+        //  tout le monde peut consulter
         $beneficiaires = $query->orderBy('t_beneficiaires.BEN_CODE', 'asc')->get();
 
         // Formater le nom de la banque

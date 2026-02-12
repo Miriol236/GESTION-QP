@@ -10,21 +10,22 @@ import PaiementWizard from "./PaiementWizard";
 import GenerateFromOldEcheanceModal from "./GenerateFromOldEcheanceModal";
 import { API_URL } from "@/config/api";
 import { TableSkeleton } from "@/components/loaders/TableSkeleton";
-import { User, DollarSign, CheckCheck, Banknote, Search, X } from "lucide-react";
+import { User, DollarSign, CheckCheck, Banknote, Search, X, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import PaiementPreviewModal from "./PaiementPreviewModal";
+import PaiementExportModal from "./PaiementExportModal";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
 import { DialogTitle } from "@radix-ui/react-dialog";
+import PaiementFiltersDialog from "@/components/common/PaiementFiltersDialog";
 
 export default function Paiements() {
   const [paiements, setPaiements] = useState<any[]>([]);
   const [openModal, setOpenModal] = useState(false);
   const [types, setTypes] = useState<any[]>([]);
-  const [beneficiaires, setBeneficiaires] = useState<any[]>([]);
   const [echeances, setEcheances] = useState<any[]>([]);
   const [regies, setRegies] = useState<any[]>([]);
   const [selectedEcheance, setSelectedEcheance] = useState<any | null>(null);
@@ -53,12 +54,13 @@ export default function Paiements() {
   const [activeEcheance, setActiveEcheance] = useState<any | null>(null);
   const [showIgnoredModal, setShowIgnoredModal] = useState(false);
   const [ignoredDetails, setIgnoredDetails] = useState<{ title: string; items: string[] }[]>([]);
+  const [openExportModal, setOpenExportModal] = useState(false);
   const { toast } = useToast();
 
   // Récupérer l'utilisateur courant pour déterminer les permissions
   const { user } = useAuth();
   const regCodeUser = user?.REG_CODE || null; // null si l'utilisateur n'est pas rattaché à une régie
-
+  const showRegie = !regCodeUser;
   // Récupérer NIV_CODE du groupe
   const nivCode = user?.groupe?.NIV_CODE || null;
 
@@ -85,6 +87,15 @@ export default function Paiements() {
     { label: "Payé", value: 4 },
     { label: "Rejeté", value: 0 },
   ];
+
+  const appliedFilterPaiement = [
+    selectedEcheance?.ECH_LIBELLE || null,
+    selectedRegie?.REG_LIBELLE || null,
+    selectedStatut !== null
+      ? statutOptions.find(s => s.value === selectedStatut)?.label
+      : null,
+    selectedTypeBen?.TYP_LIBELLE || null
+  ].filter(Boolean).join(" | ");
 
   // Handlers réutilisables (passés au DataTable seulement si permitted)
   const handleAdd = () => {
@@ -161,24 +172,23 @@ export default function Paiements() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    const headers = { Authorization: `Bearer ${token}` };
-    Promise.all([
-      axios.get(`${API_URL}/info-beneficiaires`, { headers }),
-      axios.get(`${API_URL}/echeances-publique`, { headers }),
-      axios.get(`${API_URL}/regies-publiques`, { headers }),
-      axios.get(`${API_URL}/typeBeneficiaires-public`, { headers }),
-    ])
-      .then(([b, e, r, t]) => {
-        setBeneficiaires(b.data);
-        setEcheances(e.data);
-        setRegies(r.data);
-        setTypes(t.data);
+
+    axios
+      .get(`${API_URL}/paiements-filters`, {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .catch(() => toast({
-        title: "Erreur",
-        description: "Erreur lors du chargement des listes.",
-        variant: "destructive",
-      }));
+      .then((res) => {
+        setEcheances(res.data.echeances);
+        setRegies(res.data.regies);
+        setTypes(res.data.types);
+      })
+      .catch(() =>
+        toast({
+          title: "Erreur",
+          description: "Erreur lors du chargement des filtres.",
+          variant: "destructive",
+        })
+      );
   }, []);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -187,7 +197,8 @@ export default function Paiements() {
     // Recherche
     const matchesSearch =
       !searchTerm ||
-      String(p.PAI_CODE).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(p.BEN_CODE).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(p.BEN_MATRICULE).toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(p.PAI_BENEFICIAIRE).toLowerCase().includes(searchTerm.toLowerCase());
 
     // Filtre échéance
@@ -543,13 +554,13 @@ export default function Paiements() {
   //  Colonnes du tableau
   const columns: Column[] = [
     {
-      key: "PAI_CODE",
+      key: "BEN_CODE",
       title: "CODE",
       render: (value: string) => {
-        const ben = paiements.find(b => b.PAI_CODE === value);
+        const ben = paiements.find(b => b.BEN_CODE === value);
         return (
-          <div  className="bg-primary/10 font-semibold">
-            {ben ? ben.PAI_CODE : "—"}
+          <div  className="bg-primary/10">
+            {ben ? ben.BEN_CODE : "—"}
           </div>
         );
       },
@@ -560,7 +571,7 @@ export default function Paiements() {
         render: (value) => (
         <div className="flex items-center gap-2">
           <User className="h-4 w-4 text-primary" />
-          <span className="font-medium">{value}</span>
+          <span>{value}</span>
         </div>
       ),
     },
@@ -570,7 +581,7 @@ export default function Paiements() {
       render: (value) => (
         <div className="flex items-center gap-2">
           {/* <Banknote className="h-4 w-4 text-primary" /> */}
-          <span className="font-medium">{value}</span>
+          <span>{value}</span>
         </div>
       ),
     },
@@ -579,7 +590,7 @@ export default function Paiements() {
       title: "GUICHET",
       render: (value, record) => (
         <div className="flex items-center gap-2">
-          <span className="font-medium">
+          <span>
             {record.GUI_CODE ? `${record.GUI_CODE}` : ''}
           </span>
         </div>
@@ -590,7 +601,7 @@ export default function Paiements() {
         title: "N° COMPTE",
         render: (value) => (
         <div className="flex items-center gap-2">
-          <span className="font-medium">{value}</span>
+          <span>{value}</span>
         </div>
       ),
     },
@@ -599,18 +610,16 @@ export default function Paiements() {
         title: "CLE RIB",
         render: (value) => (
         <div className="flex items-center gap-2">
-          <span className="font-medium">{value}</span>
+          <span>{value}</span>
         </div>
       ),
     },
     {
-      key: "MONTANT_NET",
-      title: "MONTANT NET",
-      render: (value) => (
-        <div className="text-right">
-          <span className="font-medium">
-            {value != null ? Number(value).toLocaleString("fr-FR") : "—"}
-          </span>
+        key: "VIREMENT",
+        title: "VIREMENT",
+        render: (value) => (
+        <div className="flex items-center gap-2">
+          <span>{value}</span>
         </div>
       ),
     },
@@ -664,11 +673,13 @@ export default function Paiements() {
       },
     },
     {
-        key: "VIREMENT",
-        title: "VIREMENT",
-        render: (value) => (
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{value}</span>
+      key: "MONTANT_NET",
+      title: "MONTANT NET",
+      render: (value) => (
+        <div className="text-right">
+          <span>
+            {value != null ? Number(value).toLocaleString("fr-FR") : "—"}
+          </span>
         </div>
       ),
     },
@@ -684,7 +695,20 @@ export default function Paiements() {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-xl font-bold text-primary">
-            Gestion de paiements des quôtes-parts</h1>
+            Gestion des paiements des quôtes-parts</h1>
+
+            <div className="flex gap-2">
+              <PaiementExportModal
+                open={openExportModal}
+                onOpenChange={setOpenExportModal}
+                selectedType={selectedTypeBen || null}
+                selectedRegie={selectedRegie || null}
+                echeances={echeances || []}
+                regies={regies || []}
+                userSansRegie={showRegie}
+                onRegieChange={setSelectedRegie}
+              />
+            </div>
         </div>        
         <Dialog
           open={openModal}
@@ -735,7 +759,7 @@ export default function Paiements() {
           return (
             <Card
               key={stat.title}
-              className="hover:shadow-sm transition-shadow rounded-xl"
+              className="bg-sky-100 hover:shadow-sm transition-shadow rounded-xl"
             >
               <CardHeader className="p-2 pb-0">
                 <div className="flex flex-row items-start justify-between">
@@ -771,57 +795,86 @@ export default function Paiements() {
       </div>
 
       {/* Barre de recherche */}
-      <div className="flex gap-4 mb-4">
+      <div className="flex gap-4 mb-4 bg-sky-100 p-3 rounded-lg shadow-sm">
+        <PaiementFiltersDialog
+          echeances={echeances}
+          regies={regies}
+          types={types}
+          statuts={statutOptions}
+          showRegie={showRegieFilter}
+
+          selectedEcheance={selectedEcheance}
+          selectedRegie={selectedRegie}
+          selectedStatut={selectedStatut}
+          selectedType={selectedTypeBen}
+
+          onApply={({ echeance, regie, statut, type }) => {
+            setSelectedEcheance(echeance);
+            setSelectedRegie(regie);
+            setSelectedStatut(statut);
+            setSelectedTypeBen(type);
+          }}
+
+          onReset={() => {
+            setSelectedEcheance(null);
+            setSelectedRegie(null);
+            setSelectedStatut(null);
+            setSelectedTypeBen(null);
+          }}
+        />
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
           <Input
-            placeholder="Rechercher (Nom, prénom ou code de paiement...)"
+            placeholder="Rechercher (Code bénéficiaire, Matricule solde, Nom et prénom)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-white border border-gray-300 focus:ring-2 focus:ring-blue-500"
           />
-        </div>
+        </div>        
       </div>
 
       {/* Liste des paiements */}
       {/* Table */}
       <DataTable
         title={`Effectif (${displayedPaiements.length})`}
+        // appliedFilter={appliedFilterPaiement} 
+        appliedFilter={
+          appliedFilterPaiement && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {appliedFilterPaiement.split(" | ").map((label, index) => (
+                <div
+                key={index}
+                className="flex items-center bg-sky-100 text-black px-2 py-1 rounded-full text-xs font-medium"
+                >
+                  {label}
+                  <button
+                    type="button"
+                    className="ml-1 text-red-600 hover:text-red-600"
+                    onClick={() => {
+                      // suppression selon le label
+                      if (label === selectedEcheance?.ECH_LIBELLE) setSelectedEcheance(null);
+                      if (label === selectedRegie?.REG_LIBELLE) setSelectedRegie(null);
+                      if (label === statutOptions.find(s => s.value === selectedStatut)?.label) setSelectedStatut(null);
+                      if (label === selectedTypeBen?.TYP_LIBELLE) setSelectedTypeBen(null);
+                    }}
+                  >
+                    <X className="h-4.5 w-4.5"/>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )
+        }
         columns={columns}
         data={displayedPaiements}
         onAdd={can.onAdd ? handleAdd : undefined}
+        onPrint={() => setOpenExportModal(true)}
         onGenerate={can.onGenerate ? () => setOpenGenerateModal(true) : undefined} 
         onView={(b) => {
           setSelectedPaiement(b);
           setOpenPreview(true);
         }}
-        onValidate={nivCode === '01' ? handleStatusUpdate : undefined} 
-        
-        rowKey="PAI_CODE"
-        filterItems={echeances.map((e) => ({
-          ...e,
-          label: `${e.ECH_LIBELLE}`
-        }))}
-        rowKey2="PAI_CODE"
-          filterItems2={showRegieFilter ? regies.map((e) => ({
-          ...e,
-          label: `${e.REG_SIGLE}`
-        })) : undefined}
-        rowKey3="PAI_CODE"
-        filterItems3={statutOptions}
-        rowKey4="PAI_CODE"
-        filterItems4={types.map((e) => ({
-          ...e,
-          label: e.TYP_LIBELLE  // <-- ici, utiliser TYP_LIBELLE
-        }))}
-        filterDisplay={(it: any) => it.label || it.ECH_LIBELLE}
-        filterDisplay2={showRegieFilter ? ((it) => it.label || it.REG_SIGLE) : undefined}
-        filterDisplay3={(it: any) => it.label || it.PAI_STATUT}
-        filterDisplay4={(it: any) => it.label || it.TYP_LIBELLE}
-        onFilterSelect={(it) => setSelectedEcheance(it)}
-        onFilterSelect2={showRegieFilter ? (it) => setSelectedRegie(it) : undefined}
-        onFilterSelect3={(it) => setSelectedStatut(it.value)}
-        onFilterSelect4={(it) => setSelectedTypeBen(it)}
+        onValidate={nivCode === '01' ? handleStatusUpdate : undefined}
         onEdit={can.onEdit ? handleEdit : undefined}
         onDelete={can.onDelete ? handleDelete : undefined}
         addButtonText="Nouveau"
@@ -829,10 +882,6 @@ export default function Paiements() {
         // searchPlaceholder="Rechercher (Code, Nom et prénom)."
         // onSearchChange={(value: string) => setSearchTerm(value)}
         searchable={false}
-        filterPlaceholder="Échéance en cours..."
-        filterPlaceholder2={showRegieFilter ? "Toutes les régies" : undefined}
-        filterPlaceholder3="Tous les statuts"
-        filterPlaceholder4="Tous les types"
       />
       {/* Confirmation suppression */}
         <ConfirmDeleteDialog

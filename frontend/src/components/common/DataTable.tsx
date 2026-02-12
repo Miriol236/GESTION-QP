@@ -8,9 +8,11 @@ import {
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   ChevronUp, ChevronDown, ArrowUpDown, Printer, Filter, PowerOff, Send, // Ajouté ArrowUpDown pour l'icône de tri
   CheckCheck, X,
-  ZapIcon
+  ZapIcon,
+  Download
 } from "lucide-react"; // Import mis à jour
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MultiFilterSelect } from "@/components/ui/MultiFilterSelect";
 
 
 // Définition du type de direction de tri
@@ -75,6 +77,7 @@ export interface DataTableProps {
   filterPlaceholder2?: string;
   filterPlaceholder3?: string;
   filterPlaceholder4?: string;
+  appliedFilter?: React.ReactNode;
   // Key to use as stable row id for selection (defaults to first column key)
   rowKey?: string;
   rowKey2?: string;
@@ -124,6 +127,7 @@ export function DataTable({
   filterPlaceholder2 = "Filtrer...",
   filterPlaceholder3 = "Filtrer...",
   filterPlaceholder4 = "Filtrer...",
+  appliedFilter,
   rowKey,
   rowKey2,
   rowKey3,
@@ -260,276 +264,20 @@ export function DataTable({
   const [filterOpen4, setFilterOpen4] = React.useState(false);
 
   return (
-    <Card className="shadow-card hover-lift">
+    <Card className="bg-sky-100 shadow-card hover-lift">
       {/* CardHeader (inchangé) */}
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           {title && (
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                {title}
+              <span className="font-semibold">{title}</span>
 
-              {/* Pour Échéances */}
-              {filterItems && filterItems.length > 0 && (
-                <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="px-2 py-1 w-full sm:w-auto flex justify-between"
-                    >
-                      <Filter className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-600 text-xs font-medium">
-                        Filtre :
-                      </span>
-                      {selectedFilter
-                        ? filterDisplay
-                          ? filterDisplay(selectedFilter)
-                          : String(selectedFilter)
-                        : filterPlaceholder}
-                      <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-
-                  <PopoverContent className="p-0 w-[220px] sm:w-[250px]">
-                    <Command className="min-w-[230px] sm:min-w-[260px] max-w-[380px]">
-                      <CommandInput placeholder="Rechercher..." />
-                      <CommandList>
-                        <CommandGroup>
-                          <CommandItem
-                            onSelect={() => {
-                              setSelectedFilter(null);
-                              onFilterSelect?.(null);
-                              setFilterOpen(false);
-                            }}
-                            className="whitespace-nowrap"
-                          >
-                            <Check
-                              className={`mr-2 h-4 w-4 ${selectedFilter === null ? "opacity-100 text-blue-600" : "opacity-0"}`}
-                            />
-                            Par défaut
-                          </CommandItem>
-
-                          {filterItems.map((it: any, idx: number) => {
-                            const isSelected = JSON.stringify(selectedFilter) === JSON.stringify(it);
-                            return (
-                              <CommandItem
-                                key={idx}
-                                onSelect={() => {
-                                  setSelectedFilter(it);
-                                  onFilterSelect?.(it);
-                                  setFilterOpen(false);
-                                }}
-                                className="whitespace-nowrap"
-                              >
-                                <Check
-                                  className={`mr-2 h-4 w-4 ${isSelected ? "opacity-100 text-blue-600" : "opacity-0"}`}
-                                />
-                                {filterDisplay ? filterDisplay(it) : String(it)}
-                              </CommandItem>
-                            );
-                          })}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              )}
-
-              {/* Pour régies */}
-              {filterItems2 && filterItems2.length > 0 && (
-                <Popover open={filterOpen2} onOpenChange={setFilterOpen2}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="px-2 py-1 w-full sm:w-auto flex justify-between"
-                    >
-                      <Filter className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-600 text-xs font-medium">
-                        Filtre :
-                      </span>
-                      {selectedFilter2
-                        ? filterDisplay2
-                          ? filterDisplay2(selectedFilter2)
-                          : String(selectedFilter2)
-                        : filterPlaceholder2}
-                      <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-
-                  <PopoverContent className="p-0 w-[220px] sm:w-[250px]">
-                    <Command className="min-w-[230px] sm:min-w-[260px] max-w-[380px]">
-                      <CommandInput placeholder="Rechercher..." />
-                      <CommandList>
-                        <CommandGroup>
-                          <CommandItem
-                            onSelect={() => {
-                              setSelectedFilter2(null);
-                              onFilterSelect2?.(null);
-                              setFilterOpen2(false);
-                            }}
-                            className="whitespace-nowrap"
-                          >
-                            <Check
-                              className={`mr-2 h-4 w-4 ${selectedFilter2 === null ? "opacity-100 text-blue-600" : "opacity-0"}`}
-                            />
-                            Par défaut
-                          </CommandItem>
-
-                          {filterItems2.map((it: any, idx: number) => {
-                            const isSelected = JSON.stringify(selectedFilter2) === JSON.stringify(it);
-                            return (
-                              <CommandItem
-                                key={idx}
-                                onSelect={() => {
-                                  setSelectedFilter2(it);
-                                  onFilterSelect2?.(it);
-                                  setFilterOpen2(false);
-                                }}
-                                className="whitespace-nowrap"
-                              >
-                                <Check
-                                  className={`mr-2 h-4 w-4 ${isSelected ? "opacity-100 text-blue-600" : "opacity-0"}`}
-                                />
-                                {filterDisplay2 ? filterDisplay2(it) : String(it)}
-                              </CommandItem>
-                            );
-                          })}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              )}
-
-              {/* Pour statut */}
-              {filterItems3 && filterItems3.length > 0 && (
-                <Popover open={filterOpen3} onOpenChange={setFilterOpen3}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="px-2 py-1 w-full sm:w-auto flex justify-between"
-                    >
-                      <Filter className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-600 text-xs font-medium">
-                        Filtre :
-                      </span>
-                      {selectedFilter3
-                        ? filterDisplay3
-                          ? filterDisplay3(selectedFilter3)
-                          : String(selectedFilter3)
-                        : filterPlaceholder3}
-                      <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-
-                  <PopoverContent className="p-0 w-[220px] sm:w-[250px]">
-                    <Command className="min-w-[230px] sm:min-w-[260px] max-w-[380px]">
-                      <CommandInput placeholder="Rechercher..." />
-                      <CommandList>
-                        <CommandGroup>
-                          <CommandItem
-                            onSelect={() => {
-                              setSelectedFilter3(null);
-                              onFilterSelect3?.(null);
-                              setFilterOpen3(false);
-                            }}
-                            className="whitespace-nowrap"
-                          >
-                          </CommandItem>
-
-                          {filterItems3.map((it: any, idx: number) => {
-                            const isSelected = JSON.stringify(selectedFilter3) === JSON.stringify(it);
-                            return (
-                              <CommandItem
-                                key={idx}
-                                onSelect={() => {
-                                  setSelectedFilter3(it);
-                                  onFilterSelect3?.(it);
-                                  setFilterOpen3(false);
-                                }}
-                                className="whitespace-nowrap"
-                              >
-                                <Check
-                                  className={`mr-2 h-4 w-4 ${isSelected ? "opacity-100 text-blue-600" : "opacity-0"}`}
-                                />
-                                {filterDisplay3 ? filterDisplay3(it) : String(it)}
-                              </CommandItem>
-                            );
-                          })}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              )}
-
-              {/* Pour Type bénéficiaire */}
-              {filterItems4 && filterItems4.length > 0 && (
-                <Popover open={filterOpen4} onOpenChange={setFilterOpen4}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="px-2 py-1 w-full sm:w-auto flex justify-between"
-                    >
-                      <Filter className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-600 text-xs font-medium">
-                        Filtre :
-                      </span>
-                      {selectedFilter4
-                        ? filterDisplay4
-                          ? filterDisplay4(selectedFilter4)
-                          : String(selectedFilter4)
-                        : filterPlaceholder4}
-                      <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-
-                  <PopoverContent className="p-0 w-[220px] sm:w-[250px]">
-                    <Command className="min-w-[230px] sm:min-w-[260px] max-w-[380px]">
-                      <CommandInput placeholder="Rechercher..." />
-                      <CommandList>
-                        <CommandGroup>
-                          <CommandItem
-                            onSelect={() => {
-                              setSelectedFilter4(null);
-                              onFilterSelect4?.(null);
-                              setFilterOpen4(false);
-                            }}
-                            className="whitespace-nowrap"
-                          >
-                            <Check
-                              className={`mr-2 h-4 w-4 ${selectedFilter4 === null ? "opacity-100 text-blue-600" : "opacity-0"}`}
-                            />
-                            Par défaut
-                          </CommandItem>
-
-                          {filterItems4.map((it: any, idx: number) => {
-                            const isSelected = JSON.stringify(selectedFilter4) === JSON.stringify(it);
-                            return (
-                              <CommandItem
-                                key={idx}
-                                onSelect={() => {
-                                  setSelectedFilter4(it);
-                                  onFilterSelect4?.(it);
-                                  setFilterOpen4(false);
-                                }}
-                                className="whitespace-nowrap"
-                              >
-                                <Check
-                                  className={`mr-2 h-4 w-4 ${isSelected ? "opacity-100 text-blue-600" : "opacity-0"}`}
-                                />
-                                {filterDisplay4 ? filterDisplay4(it) : String(it)}
-                              </CommandItem>
-                            );
-                          })}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+              {/* Affichage du filtre appliqué si présent */}
+              {appliedFilter && (
+                <span className="flex items-center gap-1 text-xs font-medium text-black bg-sky-100 px-2 py-0.5 rounded-full">
+                  <Filter className="h-3.5 w-3.5 text-sky-500" />
+                  {appliedFilter}
+                </span>
               )}
 
               {searchable && (
@@ -632,11 +380,11 @@ export function DataTable({
             {onPrint && (
               <Button
                 onClick={onPrint}
-                variant="secondary"
+                variant="default"
                 className="gap-2"
               >
-                <Printer className="h-4 w-4" />
-                <span className="hidden sm:inline">Imprimer</span>
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline text-xs">Exporter</span>
               </Button>
             )}
 
@@ -729,11 +477,11 @@ export function DataTable({
           </div>
 
           {/* Desktop / tablet: table view */}
-          <div className="hidden sm:block max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <div className="hidden sm:block max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             <table className="w-full border-collapse">
               <thead className="sticky top-0 z-10 bg-gray-200/90 backdrop-blur-sm shadow-md text-gray-800">
                 <tr>
-                  <th className="px-4 py-0">
+                  <th className="px-2 py-1">
                     <input
                       type="checkbox"
                       checked={
@@ -743,7 +491,7 @@ export function DataTable({
                     />
                   </th>
                   {columns.map((column) => (
-                    <th key={column.key} className="px-4 py-2 text-left text-sm font-semibold">
+                    <th key={column.key} className="px-2 py-1 text-left text-[12px] font-semibold">
                       {column.sortable ? (
                         <Button
                           variant="ghost"
@@ -759,7 +507,7 @@ export function DataTable({
                     </th>
                   ))}
                   {(onEdit || onDelete || onView || onToggleStatus || onManageRoles || onStatut) && (
-                    <th className="px-4 py-2 text-left text-sm font-semibold">ACTIONS</th>
+                    <th className="px-4 py-2 text-left text-[12px] font-semibold">ACTIONS</th>
                   )}
                 </tr>
               </thead>
@@ -791,11 +539,11 @@ export function DataTable({
                       onClick={() => toggleRowSelection(row)}
                       className={`cursor-pointer border-t transition-all ${
                         isRowSelected(row)
-                          ? "bg-blue-50 hover:bg-blue-50"
-                          : "odd:bg-gray-50 hover:bg-gray-100"
+                          ? "bg-gray-400 hover:bg-blue-50"
+                          : "odd:bg-gray-50 hover:bg-gray-400"
                       }`}
                     >
-                      <td className="px-3 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-2 py-1 text-center" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={isRowSelected(row)}
@@ -803,7 +551,7 @@ export function DataTable({
                         />
                       </td>
                       {columns.map((column) => (
-                        <td key={column.key} className="px-3 py-2 text-sm">
+                        <td key={column.key} className="px-2 py-1 text-[12px]">
                           {column.render
                             ? column.render(row[column.key], row)
                             : row[column.key]}
@@ -811,7 +559,7 @@ export function DataTable({
                       ))}
 
                       {(onEdit || onDelete || onView || onToggleStatus || onManageRoles || onStatut) && (
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-1">
                           <div className="flex items-center gap-2">
                             {onView && (
                               <Button

@@ -144,7 +144,7 @@ export default function Dashboard() {
         taux: formatPercent(data.taux_paiement),
       },
       {
-        title: "Montant reste à virer",
+        title: "Montant non viré",
         value: formatAmount(data.reste_a_payer),
         icon: CheckCheck,
         color: "text-red-600",
@@ -159,7 +159,7 @@ export default function Dashboard() {
       setChartData({
         labels: [
           `Déjà Viré : ${formatAmount(data.total_paye)} (${formatPercent(data.taux_paiement)})`,
-          `Reste à Virer : ${formatAmount(data.reste_a_payer)} (${formatPercent(data.taux_reste_a_payer)})`,
+          `Non Viré : ${formatAmount(data.reste_a_payer)} (${formatPercent(data.taux_reste_a_payer)})`,
         ],
         datasets: [
           {
@@ -442,7 +442,7 @@ export default function Dashboard() {
           return (
             <Card
               key={stat.title}
-              className="hover:shadow-sm transition-shadow rounded-xl"
+              className="bg-sky-100 hover:shadow-sm transition-shadow rounded-xl"
             >
               <CardHeader className="p-2 pb-0">
                 <div className="flex flex-row items-start justify-between">
@@ -502,7 +502,7 @@ export default function Dashboard() {
         >
           {/* PIE – Total gain par régie */}
           {hasPieRegieData && (
-            <Card className="h-[400px]">
+            <Card className="bg-sky-100 h-[500px]">
               <CardHeader>
                 <CardTitle className="text-center w-full">
                   Répartition Montants bruts et nets par Régie
@@ -592,10 +592,10 @@ export default function Dashboard() {
 
           {/* PIE – Paiements */}
           {hasChartData && (
-            <Card className="h-[400px]">
+            <Card className="bg-sky-100 h-[500px]">
               <CardHeader>
                 <CardTitle className="text-center w-full">
-                  Répartition Montants virés et restes à virer
+                  Situation Montants virés et non virés
                 </CardTitle>
               </CardHeader>
 

@@ -77,12 +77,11 @@ class ElementController extends Controller
      *     summary="Créer un nouveau élément",
      *     description="Ajoute un nouveau élément.",
      *     security={{"sanctum": {}}},
-     *     @OA\RequestBody(
+     * @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"ELT_LIBELLE"},
-     *             required={"ELT_SENS"},
-     *             @OA\Property(property="ELT_LIBELLE", type="string");
+     *             required={"ELT_LIBELLE", "ELT_SENS"},
+     *             @OA\Property(property="ELT_LIBELLE", type="string"),
      *             @OA\Property(property="ELT_SENS", type="integer")
      *         )
      *     ),
@@ -151,8 +150,8 @@ class ElementController extends Controller
         $derniereVersion = ($element->ELT_VERSION ?? 0) + 1;
 
         $element->update([
-            'ELT_LIBELLE' => $request->ELT_LIBELLE ?? $guichet->ELT_LIBELLE,
-            'ELT_SENS' => $request->ELT_SENS ?? $guichet->ELT_SENS,
+            'ELT_LIBELLE' => $request->ELT_LIBELLE ?? $element->ELT_LIBELLE,
+            'ELT_SENS' => $request->ELT_SENS ?? $element->ELT_SENS,
             'ELT_DATE_MODIFIER' => now(),
             'ELT_MODIFIER_PAR' => auth()->check() ? auth()->user()->UTI_NOM." ".auth()->user()->UTI_PRENOM : 'SYSTEM',
             'ELT_VERSION' => $derniereVersion,

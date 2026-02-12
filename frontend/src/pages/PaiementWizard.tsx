@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +46,11 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   const [validateMessage, setValidateMessage] = useState("");
   const [loadingValidation, setLoadingValidation] = useState(false);
   const [eltSens, setEltSens] = useState<number | null>(null);
+  const [items, setItems] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
   const { toast } = useToast();
+
+  const stepTitles = ["Informations du bénéficiaire", "Détails du quôte-part"];
 
   const [paiement, setPaiement] = useState({
     BEN_CODE: "",
@@ -102,6 +106,16 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     loadPaiementData();
   }, [paiementData, listsLoaded]);
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    axios.get(`${API_URL}/beneficiaires-rib`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => setItems(res.data))
+    .catch(() => {});
+  }, []);
+
   // Charger les listes initiales
   useEffect(() => {
     const loadData = async () => {
@@ -111,19 +125,16 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
       try {
         // Charger les listes (bénéficiaires + éléments + échéances + labels utiles)
-        const [b, l, t, f, g] = await Promise.all([
-          axios.get(`${API_URL}/beneficiaires-rib`, { headers }),
+        const [l, t, f, g] = await Promise.all([
           axios.get(`${API_URL}/elements-publics`, { headers }),
           axios.get(`${API_URL}/typeBeneficiaires-public`, { headers }),
           axios.get(`${API_URL}/fonctions-public`, { headers }),
           axios.get(`${API_URL}/grades-public`, { headers }),
         ]);
-        setBeneficiaires(b.data);
         setElements(l.data);
         setTypes(t.data);
         setFonctions(f.data);
         setGrades(g.data);
-        setRibList(b.data); 
         // Indiquer que les listes sont chargées pour permettre le remplissage en mode édition
         setListsLoaded(true);
 
@@ -169,23 +180,22 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
   // Remplir les infos du bénéficiaire sélectionné (sexe / type / fonction / grade)
   useEffect(() => {
-      if (!paiement.BEN_CODE) {
-        setSelectedBenef(null);
-        setSelectedRib(null);
-        return;
-      }
+    if (!paiement.BEN_CODE) {
+      setSelectedBenef(null);
+      setSelectedRib(null);
+      return;
+    }
 
-      // Trouver le bénéficiaire sélectionné
-      const foundBenef = beneficiaires.find(
-          (b) => String(b.BEN_CODE) === String(paiement.BEN_CODE)
-      );
+    const found = items.find(
+      (b) => String(b.BEN_CODE) === String(paiement.BEN_CODE)
+    );
 
-      // Prendre le premier RIB actif (DOM_STATUT = 2)
-      const rib = foundBenef?.domiciliations?.find(d => d.DOM_STATUT) || null;
+    setSelectedBenef(found || null);
 
-      setSelectedBenef(foundBenef || null);
-      setSelectedRib(rib);
-  }, [paiement.BEN_CODE, beneficiaires]);
+    const rib = found?.domiciliations?.find(d => d.DOM_STATUT) || null;
+    setSelectedRib(rib);
+
+  }, [paiement.BEN_CODE, items]);
 
   // Utilitaires d'affichage
   const getElementInfo = (code: string) => {
@@ -557,20 +567,102 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     };
 
   // ComboBox réutilisable
-  const ComboBox = ({ label, items, value, onSelect, display, disabled = false }: any) => {
+  // const ComboBox = ({ label, items, value, onSelect, display, disabled = false }: any) => {
+  //   const [open, setOpen] = useState(false);
+  //   const selected = useMemo(() => {
+  //     return items.find(
+  //       (i: any) =>
+  //         i.BEN_CODE === value ||
+  //         i.ELT_CODE === value
+  //     );
+  //   }, [items, value]);
+
+  //   return (
+  //     <div>
+  //       <Label>{label}</Label>
+  //       <Popover open={open} onOpenChange={setOpen}>
+  //         <PopoverTrigger asChild>
+  //           <Button variant="outline" className="w-full justify-between truncate text-left" disabled={disabled}>
+  //             {selected ? (
+  //               <span className="truncate max-w-[230px]">{display(selected)}</span>
+  //             ) : (
+  //               <span className="text-muted-foreground">-- Sélectionner --</span>
+  //             )}
+  //             <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+  //           </Button>
+  //         </PopoverTrigger>
+  //         {!disabled && (
+  //           // Popover responsive : full width on very small screens, constrained on larger
+  //           <PopoverContent className="p-0 w-full sm:w-[300px]">
+  //             <Command>
+  //               <CommandInput placeholder={`Rechercher ${label.toLowerCase()}...`} />
+  //               <CommandList>
+  //                 <CommandEmpty>Aucun résultat</CommandEmpty>
+  //                 <CommandGroup>
+  //                   {items.map((item: any) => (
+  //                     <CommandItem
+  //                       key={
+  //                         item.BEN_CODE ||
+  //                         item.ELT_CODE
+  //                       }
+  //                       onSelect={() => {
+  //                         onSelect(
+  //                           item.ELT_CODE ??
+  //                           item.BEN_CODE
+  //                         );
+  //                         setTimeout(() => setOpen(false), 100);
+  //                       }}
+  //                     >
+  //                       <Check
+  //                         className={`mr-2 h-4 w-4 ${value ===
+  //                           (
+  //                             item.BEN_CODE ||
+  //                             item.ELT_CODE)
+  //                           ? "opacity-100 text-blue-600"
+  //                           : "opacity-0"
+  //                           }`}
+  //                       />
+  //                       {display(item)}
+  //                     </CommandItem>
+  //                   ))}
+  //                 </CommandGroup>
+  //               </CommandList>
+  //             </Command>
+  //           </PopoverContent>
+  //         )}
+  //       </Popover>
+  //     </div>
+  //   );
+  // };
+
+  const ComboBox = ({
+    label,
+    items = [],
+    value,
+    onSelect,
+    display,
+    disabled = false,
+  }: any) => {
     const [open, setOpen] = useState(false);
-    const selected = items.find(
-      (i: any) =>
-        i.BEN_CODE === value ||
-        i.ELT_CODE === value
-    );
+    const [localSearch, setLocalSearch] = useState("");
+
+    const selected = useMemo(() => {
+      return items.find(
+        (i: any) => i.BEN_CODE === value || i.ELT_CODE === value
+      );
+    }, [items, value]);
 
     return (
       <div>
         <Label>{label}</Label>
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={(o) => setOpen(o)}>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="w-full justify-between truncate text-left" disabled={disabled}>
+            <Button
+              variant="outline"
+              className="w-full justify-between truncate text-left"
+              disabled={disabled}
+              onClick={() => setOpen(true)} // s'assure que le popover s'ouvre au clic
+            >
               {selected ? (
                 <span className="truncate max-w-[230px]">{display(selected)}</span>
               ) : (
@@ -579,40 +671,45 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
               <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
             </Button>
           </PopoverTrigger>
+
           {!disabled && (
-            // Popover responsive : full width on very small screens, constrained on larger
             <PopoverContent className="p-0 w-full sm:w-[300px]">
-              <Command>
-                <CommandInput placeholder={`Rechercher ${label.toLowerCase()}...`} />
+              <Command shouldFilter={false}>
+                <CommandInput
+                  placeholder={`Rechercher ${label.toLowerCase()}...`}
+                  value={localSearch}
+                  onValueChange={(v) => {
+                    setLocalSearch(v);
+                    setOpen(true); // 🔹 garde le popover ouvert pendant la saisie
+                  }}
+                  autoFocus
+                />
                 <CommandList>
                   <CommandEmpty>Aucun résultat</CommandEmpty>
                   <CommandGroup>
-                    {items.map((item: any) => (
-                      <CommandItem
-                        key={
-                          item.BEN_CODE ||
-                          item.ELT_CODE
-                        }
-                        onSelect={() => {
-                          onSelect(
-                            item.ELT_CODE ??
-                            item.BEN_CODE
-                          );
-                          setTimeout(() => setOpen(false), 100);
-                        }}
-                      >
-                        <Check
-                          className={`mr-2 h-4 w-4 ${value ===
-                            (
-                              item.BEN_CODE ||
-                              item.ELT_CODE)
-                            ? "opacity-100 text-blue-600"
-                            : "opacity-0"
+                    {items
+                      .filter((item: any) =>
+                        display(item).toLowerCase().includes(localSearch.toLowerCase())
+                      )
+                      .map((item: any) => (
+                        <CommandItem
+                          key={item.BEN_CODE || item.ELT_CODE}
+                          onSelect={() => {
+                            onSelect(item.ELT_CODE ?? item.BEN_CODE);
+                            setLocalSearch(""); // reset search
+                            setOpen(false);     // fermer après sélection
+                          }}
+                        >
+                          <Check
+                            className={`mr-2 h-4 w-4 ${
+                              value === (item.BEN_CODE || item.ELT_CODE)
+                                ? "opacity-100 text-blue-600"
+                                : "opacity-0"
                             }`}
-                        />
-                        {display(item)}
-                      </CommandItem>
-                    ))}
+                          />
+                          {display(item)}
+                        </CommandItem>
+                      ))}
                   </CommandGroup>
                 </CommandList>
               </Command>
@@ -623,14 +720,8 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     );
   };
 
-  const stepTitles = ["Informations du paiement d'un bénéficiaire", "Détails du paiement"];
-
   if (!dataReady && paiementData) {
     return <TableSkeletonWizard />;
-  }
-
-  function Skeleton({ height = 12 }: { height?: number }) {
-    return <div className={`h-${height} w-full bg-gray-200 animate-pulse rounded-md`}></div>;
   }
 
   return (
@@ -643,14 +734,14 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
           <div className="text-center mb-3">
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide">
               {paiementData
-                ? "MODIFICATION D'UN PAIEMENT D’UN BÉNÉFICIAIRE"
-                : "MISE EN PAIEMENT D’UN BÉNÉFICIAIRE"}
+                ? "MODIFICATION DU QUOTE-PART D’UN BÉNÉFICIAIRE"
+                : "ENRÔLEMENT DU QUOTE-PART D’UN BÉNÉFICIAIRE"}
             </h1>
 
             <p className="text-xs sm:text-sm text-gray-500 mt-1">
               {paiementData
-                ? "Mise à jour des informations du paiement d'un bénéficiaire"
-                : "Saisie et enregistrement d’un nouveau paiement d'un bénéficiaire"}
+                ? "Mise à jour des informations du quote-part d'un bénéficiaire"
+                : "Saisie et enregistrement d’un nouveau quote-part d'un bénéficiaire"}
             </p>
           </div>
 
@@ -716,10 +807,11 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                   {listsLoaded ? (
                     <ComboBox
                       label="Bénéficiaire *"
-                      items={beneficiaires}
+                      items={items}
                       value={paiement.BEN_CODE}
                       onSelect={(v: any) => setPaiement({ ...paiement, BEN_CODE: v })}
                       display={(t: any) => `${t.BEN_NOM} ${t.BEN_PRENOM || " "}`}
+                      onSearchChange={setSearch}
                     />
                   ) : (
                     <div className="flex items-center justify-center h-12 w-full space-x-2">

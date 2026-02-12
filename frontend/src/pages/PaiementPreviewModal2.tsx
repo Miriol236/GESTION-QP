@@ -168,11 +168,11 @@ export default function PaiementPreviewModal({
               <div className="font-semibold text-gray-600">Statut :</div>
 
               {/* Valeurs */}
-              <div className="font-semibold">{beneficiaire.BANQUE || "—"}</div>
-              <div className="font-semibold">{beneficiaire.GUICHET || "—"}</div>
-              <div className="font-semibold">{beneficiaire.NUMCPT || "—"}</div>
-              <div className="font-semibold">{beneficiaire.RIB || "—"}</div>
-              <td className="px-3 py-2">
+              <div className="text-[12px] font-semibold">{beneficiaire.BANQUE || "—"}</div>
+              <div className="text-[12px] font-semibold">{beneficiaire.GUICHET || "—"}</div>
+              <div className="text-[12px] font-semibold">{beneficiaire.NUMCPT || "—"}</div>
+              <div className="text-[12px] font-semibold">{beneficiaire.RIB || "—"}</div>
+              <td className="text-[12px] px-3 py-2">
                 {getStatutBadge(beneficiaire.DOM_STATUT)}
               </td>
             </div>
@@ -201,17 +201,17 @@ export default function PaiementPreviewModal({
                     Array.isArray(d.details) && d.details.length > 0 ? (
                       d.details.map((det: any, j: number) => (
                         <tr key={`${i}-${j}`} className="border-t">
-                          <td className="px-4 py-2 font-semibold">
+                          <td className="px-4 py-2 text-[12px] font-semibold">
                             {det.ELT_LIBELLE || "—"}
                           </td>
 
                           <td className="px-4 py-2">
                             {det.ELT_SENS === 1 ? (
-                              <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800">
+                              <span className="px-2 py-1 text-[12px] font-semibold rounded bg-green-100 text-green-800">
                                 + Gain
                               </span>
                             ) : det.ELT_SENS === 2 ? (
-                              <span className="px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-800">
+                              <span className="px-2 py-1 text-[12px] font-semibold rounded bg-red-100 text-red-800">
                                 - Retenue
                               </span>
                             ) : (
@@ -219,7 +219,7 @@ export default function PaiementPreviewModal({
                             )}
                           </td>
 
-                          <td className="px-4 py-2 font-semibold text-right">
+                          <td className="px-4 py-2 text-[12px] font-semibold text-right">
                             {det.ELT_MONTANT != null
                               ? Number(det.ELT_MONTANT).toLocaleString("fr-FR")
                               : "—"}
@@ -241,26 +241,23 @@ export default function PaiementPreviewModal({
 
           {/* Totaux */}
           <div className="mt-4 space-y-1 text-sm text-right">
-            <div className="text-sm font-medium text-right">
+            <div className="text-[12px] font-medium text-right">
               <span className="font-semibold text-gray-600">Total gain :</span>{" "}
               {beneficiaire.TOTAL_GAIN != null
-                ? Number(beneficiaire.TOTAL_GAIN).toLocaleString("fr-FR") + " FCFA"
-                : "—"}
+                ? Number(beneficiaire.TOTAL_GAIN).toLocaleString("fr-FR") : "—"}
             </div>
-            <div className="text-sm font-medium text-right">
+            <div className="text-[12px] font-medium text-right">
               <span className="font-semibold text-gray-600">Total retenu :</span>{" "}
               {beneficiaire.TOTAL_RETENU != null
-                ? Number(beneficiaire.TOTAL_RETENU).toLocaleString("fr-FR") + " FCFA"
-                : "—"}
+                ? Number(beneficiaire.TOTAL_RETENU).toLocaleString("fr-FR") : "—"}
             </div>
-            <div className="text-sm font-medium text-right">
+            <div className="text-[12px] font-medium text-right">
               <span className="font-semibold text-gray-600">Total Net à payer :</span>{" "}
               {beneficiaire.MONTANT_NET != null
-                ? Number(beneficiaire.MONTANT_NET).toLocaleString("fr-FR") + " FCFA"
-                : "—"}
+                ? Number(beneficiaire.MONTANT_NET).toLocaleString("fr-FR") : "—"}
             </div>
             <div>
-              <span className="font-semibold text-gray-600">Statut :</span>{" "}
+              <span className="text-[12px] font-semibold text-gray-600">Statut :</span>{" "}
               {getStatutBadge(beneficiaire.PAI_STATUT)}
             </div>
           </div>
@@ -295,7 +292,7 @@ function Info({ label, value }: { label: string; value: any }) {
   return (
     <div>
       <p className="text-gray-500 text-xs font-semibold">{label}</p>
-      <p className="font-medium">{value || "—"}</p>
+      <p className="text-[12px] font-medium">{value || "—"}</p>
     </div>
   );
 }

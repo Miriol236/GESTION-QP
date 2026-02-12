@@ -6,9 +6,17 @@ use Illuminate\Http\Request;
 use App\Models\TypeMouvement;
 
 /**
- * @OA\Tag(
- *     name="TypeMouvement",
- *     description="Gestion des types de mouvement (CRUD)"
+ * @OA\Schema(
+ *     schema="TypeMouvement",
+ *     type="object",
+ *     title="TypeMouvement",
+ *     @OA\Property(property="TYP_CODE", type="string", example="20260001"),
+ *     @OA\Property(property="TYP_LIBELLE", type="string", example="Entrée"),
+ *     @OA\Property(property="TYP_DATE_CREER", type="string", format="date-time", nullable=true),
+ *     @OA\Property(property="TYP_DATE_MODIFIER", type="string", format="date-time", nullable=true),
+ *     @OA\Property(property="TYP_CREER_PAR", type="string", nullable=true),
+ *     @OA\Property(property="TYP_MODIFIER_PAR", type="string", nullable=true),
+ *     @OA\Property(property="TYP_VERSION", type="integer", nullable=true)
  * )
  */
 class TypeMouvementController extends Controller

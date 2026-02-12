@@ -76,12 +76,11 @@ class BanqueController extends Controller
      *     summary="Créer une nouvelle banque",
      *     description="Ajoute une nouvelle banque.",
      *     security={{"sanctum": {}}},
-     *     @OA\RequestBody(
+     * @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"BNQ_CODE"},
-     *             required={"BNQ_LIBELLE"},
-     *             @OA\Property(property="BNQ_CODE", type"string"),
+     *             required={"BNQ_CODE", "BNQ_LIBELLE"},
+     *             @OA\Property(property="BNQ_CODE", type="string"),
      *             @OA\Property(property="BNQ_LIBELLE", type="string")
      *         )
      *     ),
@@ -133,7 +132,7 @@ class BanqueController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             @OA\Property(property="BNQ_CODE", type="string"),
-     *             @OA\Property(property="BNQ_LIBELLE", type="string"),
+     *             @OA\Property(property="BNQ_LIBELLE", type="string")
      *         )
      *     ),
      *     @OA\Response(response=200, description="Banque mise à jour avec succès"),

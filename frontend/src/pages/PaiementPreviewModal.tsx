@@ -210,11 +210,11 @@ useEffect(() => {
               <div className="font-semibold text-gray-600">Statut :</div>
 
               {/* Valeurs */}
-              <div className="font-semibold">{getBeneficiairesInfo(paiement.BEN_CODE)?.banque || "—"}</div>
-              <div className="font-semibold">{getBeneficiairesInfo(paiement.BEN_CODE)?.guichet || "—"}</div>
-              <div className="font-semibold">{getBeneficiairesInfo(paiement.BEN_CODE)?.numeroCompte || "—"}</div>
-              <div className="font-semibold">{getBeneficiairesInfo(paiement.BEN_CODE)?.rib || "—"}</div>
-              <div className="font-semibold">
+              <div className="text-[12px] font-semibold">{getBeneficiairesInfo(paiement.BEN_CODE)?.banque || "—"}</div>
+              <div className="text-[12px] font-semibold">{getBeneficiairesInfo(paiement.BEN_CODE)?.guichet || "—"}</div>
+              <div className="text-[12px] font-semibold">{getBeneficiairesInfo(paiement.BEN_CODE)?.numeroCompte || "—"}</div>
+              <div className="text-[12px] font-semibold">{getBeneficiairesInfo(paiement.BEN_CODE)?.rib || "—"}</div>
+              <div className="text-[12px] font-semibold">
                 <span
                   className={
                     (() => {
@@ -257,15 +257,15 @@ useEffect(() => {
                   <tbody>
                     {detailsPaiement.map((d: any, i: number) => (
                       <tr key={i} className="odd:bg-gray-50 border-t">
-                        <td className="px-4 py-2 font-semibold">{d.ELT_LIBELLE || "—"}</td>
+                        <td className="px-4 py-2 text-[12px] font-semibold">{d.ELT_LIBELLE || "—"}</td>
 
                         <td className="px-4 py-2">
                           {d.ELT_SENS === 1 ? (
-                            <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800">
+                            <span className="px-2 py-1 text-[12px] font-semibold rounded bg-green-100 text-green-800">
                               + Gain
                             </span>
                           ) : d.ELT_SENS === 2 ? (
-                            <span className="px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-800">
+                            <span className="px-2 py-1 text-[12px] font-semibold rounded bg-red-100 text-red-800">
                               - Retenue
                             </span>
                           ) : (
@@ -273,7 +273,7 @@ useEffect(() => {
                           )}
                         </td>
 
-                        <td className="px-4 py-2 font-semibold text-right">
+                        <td className="px-4 py-2 text-[12px] font-semibold text-right">
                           {d.PAI_MONTANT != null
                             ? Number(d.PAI_MONTANT).toLocaleString("fr-FR")
                             : "—"}
@@ -287,31 +287,28 @@ useEffect(() => {
           </div>
           {detailsPaiement.length > 0 && (
             <div>
-              <div className="text-sm font-medium text-right"> 
+              <div className="text-[12px] font-medium text-right"> 
                 <span className="font-semibold text-gray-600">Total gain :</span>{" "}
                 {detailsPaiement[0].TOTAL_GAIN != null
-                  ? Number(detailsPaiement[0].TOTAL_GAIN).toLocaleString("fr-FR") + " FCFA "
-                  : "—"}
+                  ? Number(detailsPaiement[0].TOTAL_GAIN).toLocaleString("fr-FR") : "—"}
               </div>
-              <div className="text-sm font-medium text-right"> 
+              <div className="text-[12px] font-medium text-right"> 
                 <span className="font-semibold text-gray-600">Total retenu :</span>{" "}
                 {detailsPaiement[0].TOTAL_RETENU != null
-                  ? Number(detailsPaiement[0].TOTAL_RETENU).toLocaleString("fr-FR") + " FCFA "
-                  : "—"}
+                  ? Number(detailsPaiement[0].TOTAL_RETENU).toLocaleString("fr-FR") : "—"}
               </div>
-              <div className="text-sm font-medium text-right"> 
+              <div className="text-[12px] font-medium text-right"> 
                 <span className="font-semibold text-gray-600">Total Net à payer :</span>{" "}
                 {detailsPaiement[0].MONTANT_NET != null
-                  ? Number(detailsPaiement[0].MONTANT_NET).toLocaleString("fr-FR") + " FCFA "
-                  : "—"}
+                  ? Number(detailsPaiement[0].MONTANT_NET).toLocaleString("fr-FR") : "—"}
               </div>
-              <div className="text-sm font-medium text-right">
+              <div className="text-[12px] font-medium text-right">
                 <span className="font-semibold text-gray-600">Statut :</span>{" "}
                 {getPaiementBadge(paiement.PAI_STATUT)}
               </div>
               {/* Affichage du motif si rejeté */}
               {paiement.PAI_STATUT === 0 && paiement.PAI_MOTIF_REJET && (
-                <div className="text-sm font-medium text-red-600">
+                <div className="text-[12px] font-medium text-red-600">
                   <span className="font-semibold">Motif du rejet :</span> {paiement.PAI_MOTIF_REJET}
                 </div>
               )}
@@ -358,7 +355,7 @@ function Info({ label, value }: { label: string; value: any }) {
   return (
     <div>
       <p className="text-sm font-semibold text-gray-500">{label}</p>
-      <p className="font-medium text-gray-800">{value || "—"}</p>
+      <p className="text-[12px] font-medium text-gray-800">{value || "—"}</p>
     </div>
   );
 }

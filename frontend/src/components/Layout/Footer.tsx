@@ -11,7 +11,7 @@ export default function Footer({ className = "" }: { className?: string }) {
         className
       )}
     >
-      © {year} — Développé par{" "}
+      © 2025 - {year}  Développé par{" "}
       <span className="font-medium text-foreground ml-1">
         Office National d’Informatique
       </span>
@@ -22,7 +22,7 @@ export default function Footer({ className = "" }: { className?: string }) {
         className="inline-block w-5 h-5 object-contain mx-2"
       />
 
-      — Tous droits réservés
+      Tous droits réservés
     </footer>
   );
 }

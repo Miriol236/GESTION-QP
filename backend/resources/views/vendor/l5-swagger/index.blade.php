@@ -3,7 +3,7 @@
 @php
     $documentationTitle = $documentationTitle ?? 'API Gestion des Quotes-Parts - ONI';
     $documentation = $documentation ?? 'default';
-    $urlsToDocs = $urlsToDocs ?? ['default' => url('storage/api-docs/api-docs.json')];
+    $urlsToDocs = $urlsToDocs ?? ['default' => url('api-docs/api-docs.json')];
     $useAbsolutePath = $useAbsolutePath ?? false;
 @endphp
 

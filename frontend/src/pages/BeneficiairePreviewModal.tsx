@@ -186,12 +186,12 @@ useEffect(() => {
                   <tbody>
                     {domiciliations.map((d: any, i: number) => (
                       <tr key={i} className="odd:bg-gray-50 border-t">
-                        <td className="px-4 py-2 font-semibold"> {[d.BNQ_LIBELLE].filter(Boolean).join(" - ") || "—"}</td>
-                        <td className="px-4 py-2 font-semibold"> {[d.GUI_CODE, d.GUI_NOM].filter(Boolean).join(" - ") || "—"}</td>
+                        <td className="px-4 py-2 text-[12px] font-semibold"> {[d.BNQ_LIBELLE].filter(Boolean).join(" - ") || "—"}</td>
+                        <td className="px-4 py-2 text-[12px] font-semibold"> {[d.GUI_CODE, d.GUI_NOM].filter(Boolean).join(" - ") || "—"}</td>
 
-                        <td className="font-semibold px-4 py-2">{d.DOM_NUMCPT || "_"}</td>
-                        <td className="px-4 py-2 font-semibold text-blue-600">{d.DOM_RIB || "—"}</td>
-                        <td className="px-3 py-2 align-top">
+                        <td className="text-[12px] font-semibold px-4 py-2">{d.DOM_NUMCPT || "_"}</td>
+                        <td className="px-4 py-2 text-[12px] font-semibold text-blue-600">{d.DOM_RIB || "—"}</td>
+                        <td className="px-3 py-2 text-[12px] align-top">
                           {(() => {
                             let bgColor = "";
                             let textColor = "";
@@ -280,7 +280,7 @@ function Info({ label, value }: { label: string; value: any }) {
   return (
     <div>
       <p className="text-sm font-semibold text-gray-500">{label}</p>
-      <p className="font-medium text-gray-800">{value || "—"}</p>
+      <p className="text-[12px] font-medium text-gray-800">{value || "—"}</p>
     </div>
   );
 }

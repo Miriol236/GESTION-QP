@@ -11,6 +11,20 @@ use Illuminate\Support\Facades\Hash;
  *     name="Utilisateurs",
  *     description="Gestion des utilisateurs et de leurs informations"
  * )
+ *
+ * @OA\Schema(
+ *     schema="Utilisateur",
+ *     type="object",
+ *     @OA\Property(property="UTI_CODE", type="string", description="Code unique de l'utilisateur"),
+ *     @OA\Property(property="UTI_NOM", type="string", description="Nom de l'utilisateur"),
+ *     @OA\Property(property="UTI_PRENOM", type="string", description="Prénom de l'utilisateur"),
+ *     @OA\Property(property="UTI_SEXE", type="string", nullable=true, description="Sexe de l'utilisateur"),
+ *     @OA\Property(property="UTI_USERNAME", type="string", description="Nom d'utilisateur"),
+ *     @OA\Property(property="UTI_AVATAR", type="string", nullable=true, description="Avatar de l'utilisateur"),
+ *     @OA\Property(property="UTI_STATUT", type="integer", description="Statut de l'utilisateur (1=actif, 0=inactif)"),
+ *     @OA\Property(property="GRP_CODE", type="string", description="Code du groupe"),
+ *     @OA\Property(property="REG_CODE", type="string", nullable=true, description="Code de la régie")
+ * )
  */
 class UtilisateurController extends Controller
 {
@@ -207,13 +221,13 @@ class UtilisateurController extends Controller
 
     /**
      * @OA\Delete(
-     *     path="/api/utilisateurs/{code}",
+     *     path="/api/utilisateurs/{id}",
      *     tags={"Utilisateurs"},
      *     summary="Supprimer un utilisateur",
      *     description="Supprime un utilisateur du système par son code.",
      *     security={{"sanctum": {}}},
      *     @OA\Parameter(
-     *         name="code",
+     *         name="id",
      *         in="path",
      *         required=true,
      *         @OA\Schema(type="string")
@@ -291,20 +305,28 @@ class UtilisateurController extends Controller
     public function updatePassword(Request $request)
     {
         $request->validate([
-            'password' => 'required|string|min:6',
+            'password'   => 'nullable|string|min:6',
+            'UTI_NOM'    => 'required|string|max:100',
+            'UTI_PRENOM' => 'required|string|max:100',
+            'UTI_SEXE'   => 'required|in:M,F', // adapte selon ta base
         ]);
 
         $user = auth()->user();
 
         $user->update([
-            'UTI_PASSWORD' => Hash::make($request->password),
-            'UTI_DATE_MODIFIER' => now(),
-            'UTI_MODIFIER_PAR' => $user->UTI_NOM.' '.$user->UTI_PRENOM,
-            'UTI_VERSION' => ($user->UTI_VERSION ?? 0) + 1,
+            'UTI_NOM'          => $request->UTI_NOM,
+            'UTI_PRENOM'       => $request->UTI_PRENOM,
+            'UTI_SEXE'         => $request->UTI_SEXE,
+            'UTI_PASSWORD'     => $request->password 
+                                    ? Hash::make($request->password) 
+                                    : $user->UTI_PASSWORD,
+            'UTI_DATE_MODIFIER'=> now(),
+            'UTI_MODIFIER_PAR' => $request->UTI_NOM.' '.$request->UTI_PRENOM,
+            'UTI_VERSION'      => ($user->UTI_VERSION ?? 0) + 1,
         ]);
 
         return response()->json([
-            'message' => 'Mot de passe mis à jour avec succès'
+            'message' => 'Profil mis à jour avec succès'
         ]);
     }
 

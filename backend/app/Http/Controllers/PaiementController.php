@@ -65,6 +65,7 @@ class PaiementController extends Controller
         $paiements = Paiement::query()
             ->select(
                 't_paiements.*',
+                't_beneficiaires.BEN_CODE',
                 't_beneficiaires.BEN_MATRICULE',
                 DB::raw("CONCAT(t_beneficiaires.BEN_NOM, ' ', t_beneficiaires.BEN_PRENOM) as BENEFICIAIRE"),
                 't_beneficiaires.BEN_SEXE',
@@ -115,13 +116,9 @@ class PaiementController extends Controller
      *     @OA\Response(response=401, description="Utilisateur non authentifié")
      * )
      */
-    public function getBenStatus()
+    public function getBenStatus(Request $request)
     {
-        $user = auth()->user();
-
-        if (!$user) {
-            return response()->json(['message' => 'Utilisateur non authentifié.'], 401);
-        }
+        $search = $request->search;
 
         $beneficiaires = Beneficiaire::with([
             'domiciliations' => function ($query) {
@@ -136,12 +133,47 @@ class PaiementController extends Controller
                     );
             }
         ])
-        ->where('POS_CODE', '01') // Position spécifique
+        ->where('POS_CODE', '01')
+        ->when($search, function ($query) use ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw('LOWER(BEN_CODE) LIKE ?', ['%' . strtolower($search) . '%'])
+                ->orWhereRaw('LOWER(BEN_NOM) LIKE ?', ['%' . strtolower($search) . '%'])
+                ->orWhereRaw('LOWER(BEN_PRENOM) LIKE ?', ['%' . strtolower($search) . '%']);
+            });
+        })
         ->orderBy('BEN_CODE', 'desc')
+        // ->limit($search ? 1000 : 20)
         ->get();
 
         return response()->json($beneficiaires);
     }
+    // public function getBenStatus()
+    // {
+    //     $user = auth()->user();
+
+    //     if (!$user) {
+    //         return response()->json(['message' => 'Utilisateur non authentifié.'], 401);
+    //     }
+
+    //     $beneficiaires = Beneficiaire::with([
+    //         'domiciliations' => function ($query) {
+    //             $query->whereIn('DOM_STATUT', [2, 3])
+    //                 ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
+    //                 ->leftJoin('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
+    //                 ->select(
+    //                     't_domiciliers.*',
+    //                     't_banques.BNQ_LIBELLE',
+    //                     't_guichets.GUI_NOM',
+    //                     't_guichets.GUI_CODE'
+    //                 );
+    //         }
+    //     ])
+    //     ->where('POS_CODE', '01') // Position spécifique
+    //     ->orderBy('BEN_CODE', 'desc')
+    //     ->get();
+
+    //     return response()->json($beneficiaires);
+    // }
 
     /**
      * @OA\Get(

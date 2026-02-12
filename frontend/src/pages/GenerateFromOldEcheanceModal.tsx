@@ -165,7 +165,7 @@ export default function GenerateFromOldEcheanceModal({
             className={`gap-2 bg-sky-600 hover:bg-sky-700 text-white ${!selected ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
             <Zap className="h-4 w-4" />
-            Générer
+            Appliquer
           </Button>
         </DialogFooter>
       </DialogContent>

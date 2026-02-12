@@ -1,0 +1,3397 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "API Gestion des Quotes-Parts - Authentification",
+        "description": "Documentation des routes d’authentification (login, logout, me).",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://127.0.0.1:8000",
+            "description": "Serveur local"
+        }
+    ],
+    "paths": {
+        "/api/login": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Connexion d’un utilisateur",
+                "description": "Permet de se connecter avec un nom d'utilisateur et un mot de passe.",
+                "operationId": "a3b306d14572d1f4bd6c064b3233e7b8",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "username",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "username": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Connexion réussie",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "access_token": {
+                                            "type": "string"
+                                        },
+                                        "user": {
+                                            "properties": {
+                                                "UTI_CODE": {
+                                                    "type": "string"
+                                                },
+                                                "UTI_NOM": {
+                                                    "type": "string"
+                                                },
+                                                "UTI_USERNAME": {
+                                                    "type": "string"
+                                                },
+                                                "UTI_STATUT": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Identifiants incorrects"
+                    },
+                    "403": {
+                        "description": "Compte inactif"
+                    }
+                }
+            }
+        },
+        "/api/me": {
+            "get": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Obtenir les informations de l’utilisateur connecté",
+                "description": "Retourne les informations du compte actuellement connecté.",
+                "operationId": "9d9bc556f927575aa492a88c28fe5908",
+                "responses": {
+                    "200": {
+                        "description": "Informations de l’utilisateur connecté",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "UTI_CODE": {
+                                            "type": "string"
+                                        },
+                                        "UTI_NOM": {
+                                            "type": "string"
+                                        },
+                                        "UTI_USERNAME": {
+                                            "type": "string"
+                                        },
+                                        "UTI_STATUT": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/logout": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Déconnexion d’un utilisateur",
+                "description": "Révoque le token d’accès actuel de l’utilisateur connecté.",
+                "operationId": "fe8f3429cd6979b3b4517e186505f9f9",
+                "responses": {
+                    "200": {
+                        "description": "Déconnexion réussie",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user-fonctionnalites": {
+            "get": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Obtenir les fonctionnalités de l’utilisateur connecté",
+                "description": "Retourne la liste des codes de fonctionnalités associées au groupe de l'utilisateur connecté.",
+                "operationId": "9e023d757130ca1dc708e80377fa304e",
+                "responses": {
+                    "200": {
+                        "description": "Liste des fonctionnalités récupérée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/banques": {
+            "get": {
+                "tags": [
+                    "Banques"
+                ],
+                "summary": "Lister toutes les banques",
+                "description": "Retourne la liste complète des banques.",
+                "operationId": "733d354b91d57c9afe5fa5952ec1bf43",
+                "responses": {
+                    "200": {
+                        "description": "Liste des banques récupérée avec succès"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Banques"
+                ],
+                "summary": "Créer une nouvelle banque",
+                "description": "Ajoute une nouvelle banque.",
+                "operationId": "f65c32a37f0e7d378d570b6578dc4c52",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "BNQ_CODE",
+                                    "BNQ_LIBELLE"
+                                ],
+                                "properties": {
+                                    "BNQ_CODE": {
+                                        "type": "string"
+                                    },
+                                    "BNQ_LIBELLE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Banque créée avec succès"
+                    },
+                    "409": {
+                        "description": "Une banque avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/banques/{code}": {
+            "get": {
+                "tags": [
+                    "Banques"
+                ],
+                "summary": "Afficher une banque",
+                "description": "Retourne les détails d’une banque à partir de son code.",
+                "operationId": "28793dbf6702a26838c2a0244faa17cb",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "banque trouvée"
+                    },
+                    "404": {
+                        "description": "banque non trouvée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Banques"
+                ],
+                "summary": "Mettre à jour une banque",
+                "description": "Modifie les informations d’une banque existante.",
+                "operationId": "f1e9d153bcaa4e412a0a887b11dfde86",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "BNQ_CODE": {
+                                        "type": "string"
+                                    },
+                                    "BNQ_LIBELLE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Banque mise à jour avec succès"
+                    },
+                    "404": {
+                        "description": "Banque non trouvée"
+                    },
+                    "409": {
+                        "description": "Une banque avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Banques"
+                ],
+                "summary": "Supprimer une banque",
+                "description": "Supprime une banque existante par son code.",
+                "operationId": "04e5527c4ec416c0cb6550fb97a47e77",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Banque supprimée avec succès"
+                    },
+                    "404": {
+                        "description": "Banque non trouvée"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/beneficiaires": {
+            "get": {
+                "tags": [
+                    "Beneficiaire"
+                ],
+                "summary": "Lister tous les bénéficiaires",
+                "description": "Retourne la liste complète des bénéficiaires enregistrés.",
+                "operationId": "f118ace00660abc59f2677716da37608",
+                "responses": {
+                    "200": {
+                        "description": "Liste des bénéficiaires récupérée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Beneficiaire"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Utilisateur non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Beneficiaire"
+                ],
+                "summary": "Créer un nouveau bénéficiaire",
+                "description": "Ajoute un nouveau bénéficiaire dans le système.",
+                "operationId": "b566c6794788484568412ff47fe3b6d5",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "BEN_NOM",
+                                    "BEN_PRENOM",
+                                    "TYP_CODE"
+                                ],
+                                "properties": {
+                                    "BEN_MATRICULE": {
+                                        "type": "string"
+                                    },
+                                    "BEN_NOM": {
+                                        "type": "string"
+                                    },
+                                    "BEN_PRENOM": {
+                                        "type": "string"
+                                    },
+                                    "BEN_SEXE": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "TYP_CODE": {
+                                        "type": "string"
+                                    },
+                                    "FON_CODE": {
+                                        "type": "string"
+                                    },
+                                    "GRD_CODE": {
+                                        "type": "string"
+                                    },
+                                    "REG_CODE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Bénéficiaire créé avec succès"
+                    },
+                    "409": {
+                        "description": "Bénéficiaire déjà existant"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/beneficiaires/all": {
+            "get": {
+                "tags": [
+                    "Beneficiaire"
+                ],
+                "summary": "Lister tous les bénéficiaires avec détails",
+                "description": "Retourne la liste complète avec banques, guichets, types, fonctions et grades.",
+                "operationId": "1932cc1416475addb1f976521a0de0f1",
+                "responses": {
+                    "200": {
+                        "description": "Liste détaillée récupérée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Utilisateur non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/beneficiaires/{id}": {
+            "get": {
+                "tags": [
+                    "Beneficiaire"
+                ],
+                "summary": "Afficher les détails d’un bénéficiaire",
+                "description": "Retourne les informations détaillées d’un bénéficiaire spécifique.",
+                "operationId": "25a743076b83b920aa141b4a3a2f9d56",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Code du bénéficiaire",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Bénéficiaire trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Beneficiaire"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Bénéficiaire non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Beneficiaire"
+                ],
+                "summary": "Mettre à jour un bénéficiaire",
+                "description": "Modifie les informations d’un bénéficiaire existant.",
+                "operationId": "659d2a473c16be29dd21623412ca31ff",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Code du bénéficiaire à modifier",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "BEN_MATRICULE": {
+                                        "type": "string"
+                                    },
+                                    "BEN_NOM": {
+                                        "type": "string"
+                                    },
+                                    "BEN_PRENOM": {
+                                        "type": "string"
+                                    },
+                                    "BEN_SEXE": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "TYP_CODE": {
+                                        "type": "string"
+                                    },
+                                    "FON_CODE": {
+                                        "type": "string"
+                                    },
+                                    "GRD_CODE": {
+                                        "type": "string"
+                                    },
+                                    "REG_CODE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Bénéficiaire mis à jour avec succès"
+                    },
+                    "404": {
+                        "description": "Bénéficiaire non trouvé"
+                    },
+                    "409": {
+                        "description": "Conflit : Bénéficiaire déjà existant"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/beneficiaires/{code}": {
+            "delete": {
+                "tags": [
+                    "Beneficiaire"
+                ],
+                "summary": "Supprimer un bénéficiaire",
+                "description": "Supprime un bénéficiaire par son code.",
+                "operationId": "9542d0d4342b19a5955b47d2a2424388",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "description": "Code du bénéficiaire à supprimer",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Bénéficiaire supprimé avec succès"
+                    },
+                    "404": {
+                        "description": "Bénéficiaire non trouvé"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/echeances": {
+            "get": {
+                "tags": [
+                    "Echeances"
+                ],
+                "summary": "Lister toutes les échéances",
+                "description": "Retourne la liste complète des échéances.",
+                "operationId": "fa4f4fb79c5513a1cb2469aa98df45c2",
+                "responses": {
+                    "200": {
+                        "description": "Liste des échéances récupérée avec succès"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Echeances"
+                ],
+                "summary": "Créer une nouvelle échéance",
+                "description": "Ajoute une nouvelle échéance.",
+                "operationId": "37a4b43bedd8c6f9e478aec8ae962b64",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "ECH_LIBELLE"
+                                ],
+                                "properties": {
+                                    "ECH_LIBELLE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Echéance créée avec succès"
+                    },
+                    "409": {
+                        "description": "Une échéance avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/echeances-publique": {
+            "get": {
+                "tags": [
+                    "Echeances"
+                ],
+                "summary": "Lister toutes les échéances (public)",
+                "description": "Retourne la liste des échéances accessibles publiquement.",
+                "operationId": "1cb3fe297019fe9154a8d70eeefbc60f",
+                "responses": {
+                    "200": {
+                        "description": "Liste des échéances récupérée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "ECH_CODE": {
+                                                "type": "string"
+                                            },
+                                            "ECH_LIBELLE": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/echeances/{code}": {
+            "get": {
+                "tags": [
+                    "Echeances"
+                ],
+                "summary": "Afficher une échéance",
+                "description": "Retourne les détails d’une échéance à partir de son code.",
+                "operationId": "30a2b0da57f2916298d1599527f5ab2a",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Echéance trouvée"
+                    },
+                    "404": {
+                        "description": "Echéance non trouvée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Echeances"
+                ],
+                "summary": "Mettre à jour une échéance",
+                "description": "Modifie les informations d’une échéance existante.",
+                "operationId": "e4dde57e70667fc8a1eb5b8ad1e53c40",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "ECH_LIBELLE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Echéance mise à jour avec succès"
+                    },
+                    "404": {
+                        "description": "Echéance non trouvée"
+                    },
+                    "409": {
+                        "description": "Une échéance avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Echeances"
+                ],
+                "summary": "Supprimer une échéance",
+                "description": "Supprime une échéance existante par son code.",
+                "operationId": "c48a43657f82af39b48e3e8f3d99d037",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Echéance supprimée avec succès"
+                    },
+                    "404": {
+                        "description": "Echéance non trouvée"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/echeances/{code}/activer": {
+            "put": {
+                "tags": [
+                    "Echeances"
+                ],
+                "summary": "Activer une échéance",
+                "description": "Active une échéance spécifique et désactive les autres.",
+                "operationId": "72d33c701dfe48e599b92e1ffdd04cb0",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Échéance activée avec succès"
+                    },
+                    "404": {
+                        "description": "Échéance non trouvée"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/elements": {
+            "get": {
+                "tags": [
+                    "Elements"
+                ],
+                "summary": "Lister tous les éléments",
+                "description": "Retourne la liste complète des éléments.",
+                "operationId": "2b0a99d189b3930e814455926c208ce7",
+                "responses": {
+                    "200": {
+                        "description": "Liste des éléments récupéré avec succès"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Elements"
+                ],
+                "summary": "Créer un nouveau élément",
+                "description": "Ajoute un nouveau élément.",
+                "operationId": "521bcab5c0d35f5620ca1a3897d495fc",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "ELT_LIBELLE",
+                                    "ELT_SENS"
+                                ],
+                                "properties": {
+                                    "ELT_LIBELLE": {
+                                        "type": "string"
+                                    },
+                                    "ELT_SENS": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Elément créé avec succès"
+                    },
+                    "409": {
+                        "description": "Un élément avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/elements/{code}": {
+            "get": {
+                "tags": [
+                    "Elements"
+                ],
+                "summary": "Afficher un élément",
+                "description": "Retourne les détails d’un élément à partir de son code.",
+                "operationId": "9cdc544f0031ba502208835d16b7b734",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Elément trouvé"
+                    },
+                    "404": {
+                        "description": "Elément non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Elements"
+                ],
+                "summary": "Mettre à jour un élément",
+                "description": "Modifie les informations d’un élément existant.",
+                "operationId": "4780ccf6fc17d8a32bcb5f478f8eb562",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "ELT_LIBELLE": {
+                                        "type": "string"
+                                    },
+                                    "ELT_SENS": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Elément mis à jour avec succès"
+                    },
+                    "404": {
+                        "description": "Elément non trouvé"
+                    },
+                    "409": {
+                        "description": "Un élément avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Elements"
+                ],
+                "summary": "Supprimer un élément",
+                "description": "Supprime un élément existant par son code.",
+                "operationId": "47e7abb17e14c988d08f7ed26d77a403",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Elément supprimé avec succès"
+                    },
+                    "404": {
+                        "description": "Elément non trouvé"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/fonctions": {
+            "get": {
+                "tags": [
+                    "Fonctions"
+                ],
+                "summary": "Lister toutes les fonctions",
+                "description": "Retourne la liste complète des fonctions.",
+                "operationId": "9bbecbbca721bbb2f1a966943c65c360",
+                "responses": {
+                    "200": {
+                        "description": "Liste des fonctions récupérée avec succès"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Fonctions"
+                ],
+                "summary": "Créer une nouvelle fonction",
+                "description": "Ajoute une nouvelle fonction.",
+                "operationId": "44863aaf3bacca584e9ff11ccc9e4897",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "FON_LIBELLE"
+                                ],
+                                "properties": {
+                                    "FON_LIBELLE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Fonction créée avec succès"
+                    },
+                    "409": {
+                        "description": "Une fonction avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/fonctions/{code}": {
+            "get": {
+                "tags": [
+                    "Fonctions"
+                ],
+                "summary": "Afficher une fonction",
+                "description": "Retourne les détails d’une fonction à partir de son code.",
+                "operationId": "21d5a015bdd025091de8150d8220a5e9",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Fonction trouvée"
+                    },
+                    "404": {
+                        "description": "Fonction non trouvée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Fonctions"
+                ],
+                "summary": "Mettre à jour une fonction",
+                "description": "Modifie les informations d’une fonction existante.",
+                "operationId": "d999683a53e86636c6b55269a4b8fccb",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "FON_LIBELLE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Fonction mise à jour avec succès"
+                    },
+                    "404": {
+                        "description": "Fonction non trouvée"
+                    },
+                    "409": {
+                        "description": "Une fonction avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Fonctions"
+                ],
+                "summary": "Supprimer une fonction",
+                "description": "Supprime une fonction existante par son code.",
+                "operationId": "1f0a3a90e8ff21335da588b52b56b73d",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Fonction supprimée avec succès"
+                    },
+                    "404": {
+                        "description": "Fonction non trouvée"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/fonctionnalites": {
+            "get": {
+                "tags": [
+                    "Fonctionnalités"
+                ],
+                "summary": "Lister toutes les fonctionnalités",
+                "description": "Retourne la liste complète des fonctionnalités disponibles.",
+                "operationId": "a826b46c685d9b92f41ce61e624652fe",
+                "responses": {
+                    "200": {
+                        "description": "Liste des fonctionnalités récupérée avec succès"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Fonctionnalités"
+                ],
+                "summary": "Créer une nouvelle fonctionnalité",
+                "description": "Ajoute une nouvelle fonctionnalité dans le système.",
+                "operationId": "fe3e11c035a779acc04b99a900f663b1",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "FON_NOM"
+                                ],
+                                "properties": {
+                                    "FON_NOM": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Fonctionnalité créée avec succès"
+                    },
+                    "409": {
+                        "description": "Une fonctionnalité avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/fonctionnalites/{code}": {
+            "get": {
+                "tags": [
+                    "Fonctionnalités"
+                ],
+                "summary": "Afficher une fonctionnalité",
+                "description": "Retourne les détails d'une fonctionnalité à partir de son code.",
+                "operationId": "11feb368c4063bce5ded6deb491c6a2d",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détails de la fonctionnalité récupérés avec succès"
+                    },
+                    "404": {
+                        "description": "Fonctionnalité non trouvée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Fonctionnalités"
+                ],
+                "summary": "Mettre à jour une fonctionnalité",
+                "description": "Modifie les informations d'une fonctionnalité existante.",
+                "operationId": "46da84a5fdc18a41ca65e48a3a0cab37",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "FON_NOM": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Fonctionnalité mise à jour avec succès"
+                    },
+                    "404": {
+                        "description": "Fonctionnalité non trouvée"
+                    },
+                    "409": {
+                        "description": "Une fonctionnalité avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Fonctionnalités"
+                ],
+                "summary": "Supprimer une fonctionnalité",
+                "description": "Supprime une fonctionnalité existante par son code.",
+                "operationId": "8d2e6ee46abfd711e8d9eb367a8a00db",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Fonctionnalité supprimée avec succès"
+                    },
+                    "404": {
+                        "description": "Fonctionnalité non trouvée"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/grades": {
+            "get": {
+                "tags": [
+                    "Grades"
+                ],
+                "summary": "Lister tous les grades",
+                "description": "Retourne la liste complète des grade.",
+                "operationId": "cae0a0648a61fe31dd77daa49c9ad23e",
+                "responses": {
+                    "200": {
+                        "description": "Liste des grade récupéré avec succès"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Grades"
+                ],
+                "summary": "Créer un nouvel grade",
+                "description": "Ajoute un nouvel grade.",
+                "operationId": "efc1d4b5eaeb535c0441557a378fb4ef",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "GRD_LIBELLE"
+                                ],
+                                "properties": {
+                                    "GRD_LIBELLE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Grade créé avec succès"
+                    },
+                    "409": {
+                        "description": "Un grade avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/grades/{code}": {
+            "get": {
+                "tags": [
+                    "Grades"
+                ],
+                "summary": "Afficher un grade",
+                "description": "Retourne les détails d’un grade à partir de son code.",
+                "operationId": "85850c66be821e73d9f624b124873e7a",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Grade trouvé"
+                    },
+                    "404": {
+                        "description": "Grade non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Grades"
+                ],
+                "summary": "Mettre à jour un grade",
+                "description": "Modifie les informations d’un grade existant.",
+                "operationId": "382317b0046068d766d4dcbade440615",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "GRD_LIBELLE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Grade mis à jour avec succès"
+                    },
+                    "404": {
+                        "description": "Grade non trouvé"
+                    },
+                    "409": {
+                        "description": "Un grade avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Grades"
+                ],
+                "summary": "Supprimer un grade",
+                "description": "Supprime un grade existant par son code.",
+                "operationId": "cb03ee0ebaa63f16108d327d1c6470fd",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Grade supprimé avec succès"
+                    },
+                    "404": {
+                        "description": "Grade non trouvé"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/groupes": {
+            "get": {
+                "tags": [
+                    "Groupes"
+                ],
+                "summary": "Lister tous les groupes",
+                "description": "Retourne la liste complète des groupes d’utilisateurs.",
+                "operationId": "26d7d88b4311ae1b78103608d47b81a0",
+                "responses": {
+                    "200": {
+                        "description": "Liste des groupes récupérée avec succès"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Groupes"
+                ],
+                "summary": "Créer un nouveau groupe",
+                "description": "Ajoute un nouveau groupe d’utilisateurs.",
+                "operationId": "33946dfdde0bd3f489dddc4e178fb457",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "GRP_NOM"
+                                ],
+                                "properties": {
+                                    "GRP_NOM": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Groupe créé avec succès"
+                    },
+                    "409": {
+                        "description": "Un groupe avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/groupes/{code}": {
+            "get": {
+                "tags": [
+                    "Groupes"
+                ],
+                "summary": "Afficher un groupe",
+                "description": "Retourne les détails d’un groupe à partir de son code.",
+                "operationId": "948d3b07a56d1251e7e3ead63be8cc6e",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Groupe trouvé"
+                    },
+                    "404": {
+                        "description": "Groupe non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Groupes"
+                ],
+                "summary": "Mettre à jour un groupe",
+                "description": "Modifie les informations d’un groupe existant.",
+                "operationId": "0e34538b8c3599d318a69911877a9465",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "GRP_NOM": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Groupe mis à jour avec succès"
+                    },
+                    "404": {
+                        "description": "Groupe non trouvé"
+                    },
+                    "409": {
+                        "description": "Un groupe avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Groupes"
+                ],
+                "summary": "Supprimer un groupe",
+                "description": "Supprime un groupe existant par son code.",
+                "operationId": "854285de5ed5d1014d5323183f01c5ef",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Groupe supprimé avec succès"
+                    },
+                    "404": {
+                        "description": "Groupe non trouvé"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/groupes/{code}/fonctionnalites": {
+            "get": {
+                "tags": [
+                    "Groupes"
+                ],
+                "summary": "Lister les fonctionnalités associées à un groupe",
+                "description": "Retourne les fonctionnalités liées à un groupe.",
+                "operationId": "a84b5652d1f28f4c237d5613230c739f",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Fonctionnalités du groupe récupérées avec succès"
+                    },
+                    "404": {
+                        "description": "Groupe non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Groupes"
+                ],
+                "summary": "Mettre à jour les droits d’un groupe",
+                "description": "Associe ou retire des fonctionnalités à un groupe via un tableau de codes.",
+                "operationId": "88dd5e0365f584237ff199682437fb9e",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "fonctionnalites": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Droits du groupe mis à jour avec succès"
+                    },
+                    "404": {
+                        "description": "Groupe non trouvé"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/guichets": {
+            "get": {
+                "tags": [
+                    "Guichets"
+                ],
+                "summary": "Lister tous les guichets",
+                "description": "Retourne la liste complète des guichets.",
+                "operationId": "35c88f259492ad84c607adfb77c2d940",
+                "responses": {
+                    "200": {
+                        "description": "Liste des guichets récupéré avec succès"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Guichets"
+                ],
+                "summary": "Créer un nouveau guichet",
+                "description": "Ajoute un nouveau guichet.",
+                "operationId": "af62a82ec470c21c13f6c6c8800b3660",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "GUI_NOM",
+                                    "GUI_CODE",
+                                    "BNQ_CODE"
+                                ],
+                                "properties": {
+                                    "GUI_NOM": {
+                                        "type": "string",
+                                        "example": "Guichet Central"
+                                    },
+                                    "GUI_CODE": {
+                                        "type": "string",
+                                        "example": "G001"
+                                    },
+                                    "BNQ_CODE": {
+                                        "type": "string",
+                                        "example": "BNQ01"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Guichet créé avec succès"
+                    },
+                    "409": {
+                        "description": "Un guichet avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/guichets/{code}": {
+            "get": {
+                "tags": [
+                    "Guichets"
+                ],
+                "summary": "Afficher un guichet",
+                "description": "Retourne les détails d’un guichet à partir de son code.",
+                "operationId": "9d1f9a9d52bab965b6b13eac3391dc02",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Guichet trouvé"
+                    },
+                    "404": {
+                        "description": "Guichet non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Guichets"
+                ],
+                "summary": "Mettre à jour un guichet",
+                "description": "Modifie les informations d’un guichet existant.",
+                "operationId": "5c206ce6fc0371787108d3d1a632f3f9",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "GUI_NOM": {
+                                        "type": "string"
+                                    },
+                                    "GUI_CODE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Guichet mis à jour avec succès"
+                    },
+                    "404": {
+                        "description": "Guichet non trouvé"
+                    },
+                    "409": {
+                        "description": "Un guichet avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Guichets"
+                ],
+                "summary": "Supprimer un guichet",
+                "description": "Supprime un guichet existant par son code.",
+                "operationId": "844a288ad2d52ef671dfb44619a00515",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Guichet supprimé avec succès"
+                    },
+                    "404": {
+                        "description": "Guichet non trouvé"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/paiements": {
+            "get": {
+                "tags": [
+                    "Paiements"
+                ],
+                "summary": "Lister tous les paiements",
+                "description": "Retourne la liste complète des paiements enregistrés.",
+                "operationId": "228c5720fb8a55f052efcfa2e73505e9",
+                "responses": {
+                    "200": {
+                        "description": "Liste des paiements récupérée avec succès"
+                    },
+                    "401": {
+                        "description": "Utilisateur non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Paiements"
+                ],
+                "summary": "Créer un nouveau paiement",
+                "description": "Ajoute un nouveau paiement dans le système.",
+                "operationId": "fb93e04db8675925d016adee04a095e8",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "BEN_CODE",
+                                    "REG_CODE"
+                                ],
+                                "properties": {
+                                    "BEN_CODE": {
+                                        "type": "string"
+                                    },
+                                    "REG_CODE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Paiement créé avec succès"
+                    },
+                    "409": {
+                        "description": "Paiement déjà existant"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/paiements/beneficiaires": {
+            "get": {
+                "tags": [
+                    "Paiements"
+                ],
+                "summary": "Lister les bénéficiaires avec RIB actif",
+                "description": "Retourne la liste des bénéficiaires qui ont au moins un RIB actif.",
+                "operationId": "5222431941c81095738dadc4bfb8f114",
+                "responses": {
+                    "200": {
+                        "description": "Liste des bénéficiaires récupérée avec succès"
+                    },
+                    "401": {
+                        "description": "Utilisateur non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/paiements/{id}": {
+            "get": {
+                "tags": [
+                    "Paiements"
+                ],
+                "summary": "Afficher les détails d’un paiement",
+                "description": "Retourne les informations détaillées d’un paiement spécifique.",
+                "operationId": "af5e37d407a752cdf5fae2d5f2e4ed96",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paiement trouvé"
+                    },
+                    "404": {
+                        "description": "Paiement non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Paiements"
+                ],
+                "summary": "Mettre à jour un paiement",
+                "description": "Modifie les informations d’un paiement existant.",
+                "operationId": "b65d374076b38225eaa920de967b49d3",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "BEN_CODE": {
+                                        "type": "string"
+                                    },
+                                    "REG_CODE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Paiement mis à jour avec succès"
+                    },
+                    "404": {
+                        "description": "Paiement non trouvé"
+                    },
+                    "409": {
+                        "description": "Conflit : Paiement déjà existant"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/paiements/all": {
+            "get": {
+                "tags": [
+                    "Paiements"
+                ],
+                "summary": "Lister tous les bénéficiaires avec RIB actif et détails paiements",
+                "description": "Retourne la liste complète des bénéficiaires avec RIB actif et informations sur leurs paiements.",
+                "operationId": "06d693ec488e249f195381f39f400fcf",
+                "responses": {
+                    "200": {
+                        "description": "Liste des bénéficiaires récupérée avec succès"
+                    },
+                    "401": {
+                        "description": "Utilisateur non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/paiements/{code}": {
+            "delete": {
+                "tags": [
+                    "Paiements"
+                ],
+                "summary": "Supprimer un paiement",
+                "description": "Supprime un paiement par son code.",
+                "operationId": "c44f17b0f925b519592f86cc76cdaa25",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paiement supprimé avec succès"
+                    },
+                    "404": {
+                        "description": "Paiement non trouvé"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/regies": {
+            "get": {
+                "tags": [
+                    "Regies"
+                ],
+                "summary": "Lister toutes les régies",
+                "description": "Retourne la liste complète des régies.",
+                "operationId": "1a84b8b3ff96d3921737fc6004eb5909",
+                "responses": {
+                    "200": {
+                        "description": "Liste des régies récupérée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Regie"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Regies"
+                ],
+                "summary": "Créer une nouvelle régie",
+                "description": "Ajoute une nouvelle régie.",
+                "operationId": "62115ef656fe875e525a48fb94656aca",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "REG_LIBELLE",
+                                    "REG_SIGLE",
+                                    "REG_SIGLE_CODE"
+                                ],
+                                "properties": {
+                                    "REG_LIBELLE": {
+                                        "type": "string"
+                                    },
+                                    "REG_SIGLE": {
+                                        "type": "string"
+                                    },
+                                    "REG_SIGLE_CODE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Régie créée avec succès"
+                    },
+                    "409": {
+                        "description": "Une régie avec ce nom ou sigle existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/regies/{code}": {
+            "get": {
+                "tags": [
+                    "Regies"
+                ],
+                "summary": "Afficher une régie",
+                "description": "Retourne les détails d’une régie à partir de son code.",
+                "operationId": "1e6e5be9030dd540cdb316f1be7c4c75",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "description": "Code de la régie",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Régie trouvée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Regie"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Régie non trouvée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Regies"
+                ],
+                "summary": "Mettre à jour une régie",
+                "description": "Modifie les informations d’une régie existante.",
+                "operationId": "0b3a5c8ec424f2d0ddecd86665659eb7",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "description": "Code de la régie à modifier",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "REG_LIBELLE": {
+                                        "type": "string"
+                                    },
+                                    "REG_SIGLE": {
+                                        "type": "string"
+                                    },
+                                    "REG_SIGLE_CODE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Régie mise à jour avec succès"
+                    },
+                    "404": {
+                        "description": "Régie non trouvée"
+                    },
+                    "409": {
+                        "description": "Une régie avec ce nom ou sigle existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Regies"
+                ],
+                "summary": "Supprimer une régie",
+                "description": "Supprime une régie existante par son code.",
+                "operationId": "a62a2364487f7078e0fa897b3945a2c9",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "description": "Code de la régie à supprimer",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Régie supprimée avec succès"
+                    },
+                    "404": {
+                        "description": "Régie non trouvée"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/typeBeneficiaires": {
+            "get": {
+                "tags": [
+                    "TypeBeneficiaires"
+                ],
+                "summary": "Lister tous les types bénéficiaires",
+                "description": "Retourne la liste complète des types bénéficiaires.",
+                "operationId": "aa5af37d1787b4e8170f0976a952cbec",
+                "responses": {
+                    "200": {
+                        "description": "Liste des types bénéficiaires récupérée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TypeBeneficiaire"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "TypeBeneficiaires"
+                ],
+                "summary": "Créer un nouveau type bénéficiaire",
+                "description": "Ajoute un nouveau type bénéficiaire.",
+                "operationId": "1dd72776b34f19489cec89883cb5e9ae",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "TYP_LIBELLE"
+                                ],
+                                "properties": {
+                                    "TYP_LIBELLE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Type bénéficiaire créé avec succès"
+                    },
+                    "409": {
+                        "description": "Un type bénéficiaire avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/typeBeneficiaires-public": {
+            "get": {
+                "tags": [
+                    "TypeBeneficiaires"
+                ],
+                "summary": "Lister tous les types bénéficiaires (public)",
+                "description": "Retourne la liste des types bénéficiaires accessibles publiquement.",
+                "operationId": "94166027fef60161be380aefea384836",
+                "responses": {
+                    "200": {
+                        "description": "Liste des types bénéficiaires récupérée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "TYP_CODE": {
+                                                "type": "string"
+                                            },
+                                            "TYP_LIBELLE": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/typeBeneficiaires/{code}": {
+            "get": {
+                "tags": [
+                    "TypeBeneficiaires"
+                ],
+                "summary": "Afficher un type bénéficiaire",
+                "description": "Retourne les détails d’un type bénéficiaire à partir de son code.",
+                "operationId": "ab4552d8e570745fc663bf3410d748f0",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "description": "Code du type bénéficiaire",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Type bénéficiaire trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TypeBeneficiaire"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Type bénéficiaire non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "TypeBeneficiaires"
+                ],
+                "summary": "Mettre à jour un type bénéficiaire",
+                "description": "Modifie les informations d’un type bénéficiaire existant.",
+                "operationId": "5219ee5fd0a9a3e6eb6cfbf1b2081307",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "description": "Code du type bénéficiaire à modifier",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "TYP_LIBELLE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Type bénéficiaire mis à jour avec succès"
+                    },
+                    "404": {
+                        "description": "Type bénéficiaire non trouvé"
+                    },
+                    "409": {
+                        "description": "Un type bénéficiaire avec ce nom existe déjà"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "TypeBeneficiaires"
+                ],
+                "summary": "Supprimer un type bénéficiaire",
+                "description": "Supprime un type bénéficiaire existant par son code.",
+                "operationId": "da63ef423604e5cb19303b4734730a75",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "description": "Code du type bénéficiaire à supprimer",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Type bénéficiaire supprimé avec succès"
+                    },
+                    "404": {
+                        "description": "Type bénéficiaire non trouvé"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/typeMouvement": {
+            "get": {
+                "tags": [
+                    "TypeMouvement"
+                ],
+                "summary": "Lister tous les types de mouvement",
+                "description": "Retourne la liste complète des types de mouvement.",
+                "operationId": "99583a0bc96a6bbd98e74f1a4e5aaf36",
+                "responses": {
+                    "200": {
+                        "description": "Liste des types de mouvement récupérée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TypeMouvement"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/utilisateurs": {
+            "get": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Lister tous les utilisateurs",
+                "description": "Retourne la liste complète des utilisateurs enregistrés.",
+                "operationId": "27a03cbccef26b92bf6d80712f8b8ab8",
+                "responses": {
+                    "200": {
+                        "description": "Liste des utilisateurs récupérée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Utilisateur"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Créer un nouvel utilisateur",
+                "description": "Ajoute un nouvel utilisateur dans le système.",
+                "operationId": "dded82ccae378b45b0c84f76ec078823",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "UTI_NOM",
+                                    "UTI_PRENOM",
+                                    "UTI_USERNAME",
+                                    "UTI_PASSWORD",
+                                    "GRP_CODE"
+                                ],
+                                "properties": {
+                                    "UTI_NOM": {
+                                        "type": "string"
+                                    },
+                                    "UTI_PRENOM": {
+                                        "type": "string"
+                                    },
+                                    "UTI_USERNAME": {
+                                        "type": "string"
+                                    },
+                                    "UTI_PASSWORD": {
+                                        "type": "string"
+                                    },
+                                    "UTI_SEXE": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "UTI_AVATAR": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "GRP_CODE": {
+                                        "type": "string"
+                                    },
+                                    "REG_CODE": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Utilisateur créé avec succès"
+                    },
+                    "409": {
+                        "description": "Utilisateur déjà existant"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/utilisateurs/{id}": {
+            "get": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Afficher les détails d’un utilisateur",
+                "description": "Retourne les informations détaillées d’un utilisateur spécifique.",
+                "operationId": "565dd7bc723d9a51b807156bd330fb2d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identifiant unique de l'utilisateur",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Utilisateur trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Utilisateur"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Utilisateur non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Mettre à jour un utilisateur",
+                "description": "Modifie les informations d’un utilisateur existant.",
+                "operationId": "08fd8a9313115a94181f3651f05b6fa6",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "UTI_NOM": {
+                                        "type": "string"
+                                    },
+                                    "UTI_PRENOM": {
+                                        "type": "string"
+                                    },
+                                    "UTI_SEXE": {
+                                        "type": "string"
+                                    },
+                                    "UTI_AVATAR": {
+                                        "type": "string"
+                                    },
+                                    "UTI_USERNAME": {
+                                        "type": "string"
+                                    },
+                                    "UTI_PASSWORD": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "GRP_CODE": {
+                                        "type": "string"
+                                    },
+                                    "REG_CODE": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Utilisateur mis à jour avec succès"
+                    },
+                    "404": {
+                        "description": "Utilisateur non trouvé"
+                    },
+                    "409": {
+                        "description": "Conflit : utilisateur déjà existant"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Supprimer un utilisateur",
+                "description": "Supprime un utilisateur du système par son code.",
+                "operationId": "c0fc30a3d234d962f29c73d25304de83",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Utilisateur supprimé avec succès"
+                    },
+                    "404": {
+                        "description": "Utilisateur non trouvé"
+                    },
+                    "403": {
+                        "description": "Impossible de supprimer un administrateur"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/utilisateurs/{id}/toggle-status": {
+            "patch": {
+                "tags": [
+                    "Utilisateurs"
+                ],
+                "summary": "Changer le statut d’un utilisateur (activer/désactiver)",
+                "description": "Bascule le statut d’un utilisateur : actif ↔ inactif.",
+                "operationId": "b9439d513c9a75c4dc997283fdf75cbd",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Statut changé avec succès"
+                    },
+                    "404": {
+                        "description": "Utilisateur non trouvé"
+                    },
+                    "403": {
+                        "description": "Impossible de désactiver un administrateur"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Beneficiaire": {
+                "title": "Beneficiaire",
+                "description": "Représentation d’un bénéficiaire",
+                "properties": {
+                    "BEN_CODE": {
+                        "type": "string"
+                    },
+                    "BEN_NOM": {
+                        "type": "string"
+                    },
+                    "BEN_PRENOM": {
+                        "type": "string"
+                    },
+                    "BEN_MATRICULE": {
+                        "type": "string"
+                    },
+                    "BEN_SEXE": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "BEN_TELEPHONE": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "BEN_STATUT": {
+                        "type": "boolean"
+                    }
+                },
+                "type": "object"
+            },
+            "Regie": {
+                "title": "Regie",
+                "description": "Représentation d’une régie",
+                "properties": {
+                    "REG_CODE": {
+                        "type": "string"
+                    },
+                    "REG_LIBELLE": {
+                        "type": "string"
+                    },
+                    "REG_SIGLE": {
+                        "type": "string"
+                    },
+                    "REG_SIGLE_CODE": {
+                        "type": "string"
+                    },
+                    "REG_STATUT": {
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "REG_DATE_CREER": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "REG_DATE_MODIFIER": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "REG_VERSION": {
+                        "type": "integer",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "TypeBeneficiaire": {
+                "title": "TypeBeneficiaire",
+                "description": "Représentation d’un type bénéficiaire",
+                "properties": {
+                    "TYP_CODE": {
+                        "type": "string",
+                        "example": "TB001"
+                    },
+                    "TYP_LIBELLE": {
+                        "type": "string",
+                        "example": "Salarié"
+                    },
+                    "TYP_DATE_CREER": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "TYP_DATE_MODIFIER": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "TYP_CREER_PAR": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "TYP_MODIFIER_PAR": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "TYP_VERSION": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "TYP_STATUT": {
+                        "type": "boolean",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "TypeMouvement": {
+                "title": "TypeMouvement",
+                "properties": {
+                    "TYP_CODE": {
+                        "type": "string",
+                        "example": "20260001"
+                    },
+                    "TYP_LIBELLE": {
+                        "type": "string",
+                        "example": "Entrée"
+                    },
+                    "TYP_DATE_CREER": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "TYP_DATE_MODIFIER": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "TYP_CREER_PAR": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "TYP_MODIFIER_PAR": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "TYP_VERSION": {
+                        "type": "integer",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "Utilisateur": {
+                "properties": {
+                    "UTI_CODE": {
+                        "description": "Code unique de l'utilisateur",
+                        "type": "string"
+                    },
+                    "UTI_NOM": {
+                        "description": "Nom de l'utilisateur",
+                        "type": "string"
+                    },
+                    "UTI_PRENOM": {
+                        "description": "Prénom de l'utilisateur",
+                        "type": "string"
+                    },
+                    "UTI_SEXE": {
+                        "description": "Sexe de l'utilisateur",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "UTI_USERNAME": {
+                        "description": "Nom d'utilisateur",
+                        "type": "string"
+                    },
+                    "UTI_AVATAR": {
+                        "description": "Avatar de l'utilisateur",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "UTI_STATUT": {
+                        "description": "Statut de l'utilisateur (1=actif, 0=inactif)",
+                        "type": "integer"
+                    },
+                    "GRP_CODE": {
+                        "description": "Code du groupe",
+                        "type": "string"
+                    },
+                    "REG_CODE": {
+                        "description": "Code de la régie",
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "sanctum": {
+                "type": "apiKey",
+                "description": "Enter token in format (Bearer <token>)",
+                "name": "Authorization",
+                "in": "header"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Banques",
+            "description": "Gestion des banques"
+        },
+        {
+            "name": "Echeances",
+            "description": "Gestion des échéances"
+        },
+        {
+            "name": "Elements",
+            "description": "Gestion des éléments"
+        },
+        {
+            "name": "Fonctionnalités",
+            "description": "Gestion des fonctionnalités (CRUD)"
+        },
+        {
+            "name": "Grades",
+            "description": "Gestion des grades"
+        },
+        {
+            "name": "Groupes",
+            "description": "Gestion des groupes et de leurs droits d’accès"
+        },
+        {
+            "name": "Guichets",
+            "description": "Gestion des guichets"
+        },
+        {
+            "name": "Paiements",
+            "description": "Gestion des paiements des quôtes-parts"
+        },
+        {
+            "name": "Utilisateurs",
+            "description": "Gestion des utilisateurs et de leurs informations"
+        },
+        {
+            "name": "Authentification",
+            "description": "Authentification"
+        },
+        {
+            "name": "Beneficiaire",
+            "description": "Beneficiaire"
+        },
+        {
+            "name": "Fonctions",
+            "description": "Fonctions"
+        },
+        {
+            "name": "Regies",
+            "description": "Regies"
+        },
+        {
+            "name": "TypeBeneficiaires",
+            "description": "TypeBeneficiaires"
+        },
+        {
+            "name": "TypeMouvement",
+            "description": "TypeMouvement"
+        }
+    ]
+}

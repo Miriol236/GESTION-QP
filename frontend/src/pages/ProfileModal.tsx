@@ -11,7 +11,9 @@ import { useState } from "react";
 import axios from "axios";
 import { API_URL } from "@/config/api";
 import { toast } from "@/components/ui/use-toast";
-import { User, Lock, Eye, EyeOff, UserCircle, Shield, Building2 } from "lucide-react";
+import { User, Lock, Eye, EyeOff, UserCircle, Shield, Building2, Pencil } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useEffect } from "react";
 
 interface Props {
   open: boolean;
@@ -19,31 +21,43 @@ interface Props {
 }
 
 export default function ProfileModal({ open, onClose }: Props) {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
 
+  const [editMode, setEditMode] = useState(false);
+  const [nom, setNom] = useState(user?.UTI_NOM || "");
+  const [prenom, setPrenom] = useState(user?.UTI_PRENOM || "");
+  const [sexe, setSexe] = useState(user?.UTI_SEXE || "");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleUpdatePassword = async () => {
-    if (!password || password.length < 6) {
+  useEffect(() => {
+    if (user) {
+      setNom(user.UTI_NOM || "");
+      setPrenom(user.UTI_PRENOM || "");
+      setSexe(user.UTI_SEXE || "");
+    }
+  }, [user]);
+
+  const handleUpdateProfile = async () => {
+    if (password && password.length < 6) {
       toast({
-        title: "Mot de passe invalide",
+        title: "Erreur",
         description: "Le mot de passe doit contenir au moins 6 caractères.",
         variant: "destructive",
       });
       return;
     }
 
-    if (password !== passwordConfirm) {
+    if (password && password !== passwordConfirm) {
       toast({
         title: "Erreur",
-        description: "Les mots de passe ne correspondent pas.",
+        description: "Le mot de passe et sa confirmation ne correspondent pas.",
         variant: "destructive",
       });
-      return;
+      return; // stop la fonction ici
     }
 
     try {
@@ -51,8 +65,13 @@ export default function ProfileModal({ open, onClose }: Props) {
       const token = localStorage.getItem("token");
 
       await axios.put(
-        `${API_URL}/profile-password`,
-        { password },
+        `${API_URL}/profile-update`,
+        {
+          UTI_NOM: nom,
+          UTI_PRENOM: prenom,
+          UTI_SEXE: sexe,
+          password: password || null,
+        },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -60,13 +79,20 @@ export default function ProfileModal({ open, onClose }: Props) {
 
       toast({
         title: "Succès",
-        description: "Mot de passe mis à jour avec succès.",
+        description: "Profil mis à jour avec succès.",
         variant: "success",
       });
 
+      setUser({
+        ...user,
+        UTI_NOM: nom,
+        UTI_PRENOM: prenom,
+        UTI_SEXE: sexe,
+      });
+
+      setEditMode(false);
       setPassword("");
       setPasswordConfirm("");
-      onClose();
     } catch (err: any) {
       toast({
         title: "Erreur",
@@ -80,15 +106,24 @@ export default function ProfileModal({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[450px] rounded-2xl p-6">
+      <DialogContent className="sm:max-w-[550px] rounded-2xl p-6">
         <DialogHeader className="text-center space-y-2">
           <DialogTitle className="text-lg font-semibold flex items-center justify-center">
-            MON PROFIL UTILISATEUR
+            MON PROFIL {user?.groupe?.GRP_NOM ?? "-"}
           </DialogTitle>
           
           {/* Avatar */}
-          <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-            <User className="w-8 h-8 text-primary" />
+          <div className="relative mx-auto w-16 h-16">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <User className="w-8 h-8 text-primary" />
+            </div>
+
+            <button
+              onClick={() => setEditMode(!editMode)}
+              className="absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-1 shadow-md hover:scale-105 transition"
+            >
+              <Pencil size={14} />
+            </button>
           </div>
 
         </DialogHeader>
@@ -126,7 +161,7 @@ export default function ProfileModal({ open, onClose }: Props) {
                     : "bg-gray-400"
                 }`}
             />
-            {user?.UTI_STATUT === 1 ? "Compte actif" : "Compte inactif"}
+            {user?.UTI_STATUT === 1 ? "Actif" : "Inactif"}
             </span>
         </div>
 
@@ -142,19 +177,6 @@ export default function ProfileModal({ open, onClose }: Props) {
                 <p className="text-muted-foreground text-xs">Nom d'utilisateur</p>
                 <p className="font-medium truncate">
                 {user?.UTI_USERNAME}
-                </p>
-            </div>
-            </div>
-
-            {/* Rôle */}
-            <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-500/10">
-                <Shield className="h-4 w-4 text-purple-600" />
-            </div>
-            <div>
-                <p className="text-muted-foreground text-xs">Rôle</p>
-                <p className="font-medium">
-                {user?.groupe?.GRP_NOM ?? "-"}
                 </p>
             </div>
             </div>
@@ -177,72 +199,107 @@ export default function ProfileModal({ open, onClose }: Props) {
         </div>
         </div>
 
-        {/* Sécurité */}
-        <div className="mt-6 space-y-3">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Lock className="w-4 h-4 text-primary" />
-            Sécurité
-          </div>
+        {editMode && (
+          <div className="mt-6 space-y-4 border-t pt-6">
 
-          {/* Nouveau mot de passe */}
-          <div className="relative">
-            <Input
-              type={showPassword ? "text" : "password"}
-              placeholder="Nouveau mot de passe"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
+            <div className="text-sm font-medium text-primary">
+              Modification des informations
+            </div>
 
-          {/* Confirmation */}
-          <div className="relative">
-            <Input
-              type={showPasswordConfirm ? "text" : "password"}
-              placeholder="Confirmer le mot de passe"
-              value={passwordConfirm}
-              onChange={(e) => setPasswordConfirm(e.target.value)}
-            />
-            <button
-              type="button"
-              onClick={() =>
-                setShowPasswordConfirm(!showPasswordConfirm)
-              }
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            >
-              {showPasswordConfirm ? (
-                <EyeOff size={18} />
-              ) : (
-                <Eye size={18} />
-              )}
-            </button>
-          </div>
-        </div>
+            {/* Nom & Prénom */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col">
+                <label className="text-xs text-muted-foreground mb-1">Nom</label>
+                <Input
+                  placeholder="Nom"
+                  value={nom}
+                  onChange={(e) => setNom(e.target.value)}
+                />
+              </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-2 mt-6">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={loading}
-          >
-            Annuler
-          </Button>
-          <Button
-            onClick={handleUpdatePassword}
-            disabled={
-                loading || !password || !passwordConfirm || password !== passwordConfirm
-            }
-          >
-            {loading ? "Mise à jour..." : "Mettre à jour"}
-          </Button>
-        </div>
+              <div className="flex flex-col">
+                <label className="text-xs text-muted-foreground mb-1">Prénom</label>
+                <Input
+                  placeholder="Prénom"
+                  value={prenom}
+                  onChange={(e) => setPrenom(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Sexe */}
+            <div className="flex flex-col mt-4">
+              <label className="text-xs text-muted-foreground mb-1">Sexe</label>
+              <Select value={sexe} onValueChange={setSexe}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner le sexe" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="M">Masculin</SelectItem>
+                  <SelectItem value="F">Féminin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Mot de passe */}
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder="Nouveau mot de passe"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+
+            {/* Confirmation */}
+            <div className="relative">
+              <Input
+                type={showPasswordConfirm ? "text" : "password"}
+                placeholder="Confirmer le mot de passe"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              >
+                {showPasswordConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+
+            {/* Boutons édition */}
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setEditMode(false);
+                  setPassword("");
+                  setPasswordConfirm("");
+                }}
+                disabled={loading}
+              >
+                Annuler
+              </Button>
+
+              <Button
+                type="button"
+                onClick={handleUpdateProfile}
+                disabled={loading}
+              >
+                {loading ? "Mise à jour..." : "Enregistrer"}
+              </Button>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

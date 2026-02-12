@@ -45,7 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/utilisateurs/{id}', [UtilisateurController::class, 'update'])
         ->middleware('fonctionnalite:0001');
     
-    Route::put('/profile-password', [UtilisateurController::class, 'updatePassword']);
+    Route::put('/profile-update', [UtilisateurController::class, 'updatePassword']);
 
     Route::delete('/utilisateurs/{id}', [UtilisateurController::class, 'destroy'])
         ->middleware('fonctionnalite:0001');
@@ -157,6 +157,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/paiements', [PaiementController::class, 'index'])->middleware('fonctionnalite:0014');
     Route::get('/beneficiaires-rib', [PaiementController::class, 'getBenStatus']);
     Route::get('/info-beneficiaires', [PaiementController::class, 'getAll']);
+    Route::get('/search-beneficiaires', [BeneficiaireController::class, 'searchBeneficiaires']);
     Route::get('/paiements/{id}', [PaiementController::class, 'show'])->middleware('fonctionnalite:0014');
     Route::post('/paiements', [PaiementController::class, 'store'])->middleware('fonctionnalite:0014');
     Route::post('/paiements/generate', [PaiementController::class, 'generatePaiementsFromOldEcheance']);
@@ -221,4 +222,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/mouvements/paiements', [MouvementController::class, 'getMouvementsPaiementsEnCours'])->middleware('fonctionnalite:0021');
     Route::get('/mouvements/totaux', [MouvementController::class, 'getTotauxMouvementsEnCours']);
 
+    Route::get('/paiements-filters', [\App\Http\Controllers\Report\PaiementReportController::class, 'filters']);
+    Route::get('/beneficiaires-export', [\App\Http\Controllers\Report\BeneficiaireReportController::class, 'export']);
+    Route::get('/paiements-export', [\App\Http\Controllers\Report\PaiementReportController::class, 'exportEtatGlobal']);
 });

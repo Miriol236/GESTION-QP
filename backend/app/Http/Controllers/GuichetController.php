@@ -78,16 +78,14 @@ class GuichetController extends Controller
      *     description="Ajoute un nouveau guichet.",
      *     security={{"sanctum": {}}},
      *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"GUI_NOM"},
-     *             required={"GUI_CODE"},
-     *             required={"BNQ_CODE"},
-     *             @OA\Property(property="GUI_NOM", type="string"),
-     *             @OA\Property(property="GUI_CODE", type="string")
-     *             @OA\Property(property="BNQ_CODE", type="string")
-     *         )
-     *     ),
+     *          required=true,
+     *           @OA\JsonContent(
+     *               required={"GUI_NOM","GUI_CODE","BNQ_CODE"},
+     *               @OA\Property(property="GUI_NOM", type="string", example="Guichet Central"),
+     *               @OA\Property(property="GUI_CODE", type="string", example="G001"),
+     *               @OA\Property(property="BNQ_CODE", type="string", example="BNQ01")
+     *           )
+     *       ),
      *     @OA\Response(response=201, description="Guichet créé avec succès"),
      *     @OA\Response(response=409, description="Un guichet avec ce nom existe déjà"),
      *     @OA\Response(response=401, description="Non authentifié")

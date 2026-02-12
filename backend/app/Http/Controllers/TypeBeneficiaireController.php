@@ -6,9 +6,23 @@ use Illuminate\Http\Request;
 use App\Models\TypeBeneficiaire;
 
 /**
- * @OA\Tag(
- *     name="TypeBeneficiaires",
- *     description="Gestion des types bénéficiaires (CRUD)"
+ * @OA\Schema(
+ *     schema="TypeBeneficiaire",
+ *     type="object",
+ *     title="TypeBeneficiaire",
+ *     description="Représentation d’un type bénéficiaire",
+ *
+ *     @OA\Property(property="TYP_CODE", type="string", example="TB001"),
+ *     @OA\Property(property="TYP_LIBELLE", type="string", example="Salarié"),
+ *
+ *     @OA\Property(property="TYP_DATE_CREER", type="string", format="date-time", nullable=true),
+ *     @OA\Property(property="TYP_DATE_MODIFIER", type="string", format="date-time", nullable=true),
+ *
+ *     @OA\Property(property="TYP_CREER_PAR", type="string", nullable=true),
+ *     @OA\Property(property="TYP_MODIFIER_PAR", type="string", nullable=true),
+ *
+ *     @OA\Property(property="TYP_VERSION", type="integer", nullable=true),
+ *     @OA\Property(property="TYP_STATUT", type="boolean", nullable=true)
  * )
  */
 class TypeBeneficiaireController extends Controller
@@ -34,6 +48,19 @@ class TypeBeneficiaireController extends Controller
         return response()->json($types);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/typeBeneficiaires-public",
+     *     tags={"TypeBeneficiaires"},
+     *     summary="Lister tous les types bénéficiaires (public)",
+     *     description="Retourne la liste des types bénéficiaires accessibles publiquement.",
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste des types bénéficiaires récupérée avec succès",
+     *         @OA\JsonContent(type="array", @OA\Items(type="object", @OA\Property(property="TYP_CODE", type="string"), @OA\Property(property="TYP_LIBELLE", type="string")))
+     *     )
+     * )
+     */
     public function indexPublic()
     {
         return response()->json(

@@ -6,9 +6,20 @@ use Illuminate\Http\Request;
 use App\Models\Regie;
 
 /**
- * @OA\Tag(
- *     name="Regies",
- *     description="Gestion des régies"
+ * @OA\Schema(
+ *     schema="Regie",
+ *     type="object",
+ *     title="Regie",
+ *     description="Représentation d’une régie",
+ *
+ *     @OA\Property(property="REG_CODE", type="string"),
+ *     @OA\Property(property="REG_LIBELLE", type="string"),
+ *     @OA\Property(property="REG_SIGLE", type="string"),
+ *     @OA\Property(property="REG_SIGLE_CODE", type="string"),
+ *     @OA\Property(property="REG_STATUT", type="boolean", nullable=true),
+ *     @OA\Property(property="REG_DATE_CREER", type="string", format="date-time"),
+ *     @OA\Property(property="REG_DATE_MODIFIER", type="string", format="date-time", nullable=true),
+ *     @OA\Property(property="REG_VERSION", type="integer", nullable=true)
  * )
  */
 class RegieController extends Controller

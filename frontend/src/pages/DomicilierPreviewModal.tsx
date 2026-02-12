@@ -157,11 +157,11 @@ export default function DomicilierPreviewModal({
                 <tbody>
                   {domiciliations.map((d, i) => (
                     <tr key={i} className="border-t">
-                      <td className="px-3 py-2">{d.BANQUE ?? "—"}</td>
-                      <td className="px-3 py-2">{d.GUICHET ?? "—"}</td>
-                      <td className="px-3 py-2">{d.NUMCPT ?? "—"}</td>
-                      <td className="px-3 py-2">{d.RIB ?? "—"}</td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 text-[12px]">{d.BANQUE ?? "—"}</td>
+                      <td className="px-3 py-2 text-[12px]">{d.GUICHET ?? "—"}</td>
+                      <td className="px-3 py-2 text-[12px]">{d.NUMCPT ?? "—"}</td>
+                      <td className="px-3 py-2 text-[12px]">{d.RIB ?? "—"}</td>
+                      <td className="px-3 py-2 text-[12px]">
                         {statutBadge(d.DOM_STATUT)}
                       </td>
                     </tr>
@@ -201,7 +201,7 @@ function Info({ label, value }: { label: string; value: any }) {
   return (
     <div>
       <p className="text-gray-500 text-xs font-semibold">{label}</p>
-      <p className="font-medium">{value || "—"}</p>
+      <p className="text-[12px]">{value || "—"}</p>
     </div>
   );
 }

@@ -155,6 +155,21 @@ class AuthController extends Controller
         return response()->json(['message' => 'Déconnexion réussie']);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/user-fonctionnalites",
+     *     tags={"Authentification"},
+     *     summary="Obtenir les fonctionnalités de l’utilisateur connecté",
+     *     description="Retourne la liste des codes de fonctionnalités associées au groupe de l'utilisateur connecté.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste des fonctionnalités récupérée avec succès",
+     *         @OA\JsonContent(type="array", @OA\Items(type="string"))
+     *     ),
+     *     @OA\Response(response=401, description="Non authentifié")
+     * )
+     */
     public function getUserFonctionnalites()
     {
         $user = auth()->user();

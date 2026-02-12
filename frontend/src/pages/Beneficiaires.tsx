@@ -11,8 +11,11 @@ import { TableSkeleton } from "@/components/loaders/TableSkeleton";
 import BeneficiairePreviewModal from "./BeneficiairePreviewModal";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { User, ChartColumnIncreasing, CheckCheck } from "lucide-react";
+import { User, ChartColumnIncreasing, CheckCheck, Search, X } from "lucide-react";
+import BeneficiaireExportModal from "./BeneficiaireExportModal";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import BeneficiaireFiltersDialog from "@/components/common/BeneficiaireFiltersDialog";
 
 export default function Beneficiaires() {
   const [beneficiaires, setBeneficiaires] = useState<any[]>([]);
@@ -31,6 +34,9 @@ export default function Beneficiaires() {
   const [selectedRowsForStatus, setSelectedRowsForStatus] = useState<any[]>([]);
   const [isValidateStatusDialogOpen, setIsValidateStatusDialogOpen] = useState(false);
   const [selectedTypeBen, setSelectedTypeBen] = useState<any | null>(null);
+  const [openExportModal, setOpenExportModal] = useState(false);
+  const [selectedType, setSelectedType] = useState<any | null>(null);
+
   const { toast } = useToast();
 
   const { user } = useAuth();
@@ -67,8 +73,10 @@ export default function Beneficiaires() {
     setIsDeleteDialogOpen(true);
   };
 
-  const handlePrint = () => {
-    window.print(); // Simple impression du contenu
+  // Fonction à passer au dialog
+  const handleApplyFilter = ({ type }: { type: any | null }) => {
+    setSelectedType(type);
+    // ici tu peux filtrer tes données selon le type si besoin
   };
 
   //  Charger les bénéficiaires depuis l’API
@@ -244,7 +252,7 @@ export default function Beneficiaires() {
       render: (value: string) => {
         const ben = beneficiaires.find(b => b.BEN_CODE === value);
         return (
-          <div  className="bg-primary/10 font-semibold">
+          <div  className="bg-primary/10">
             {ben ? ben.BEN_CODE : "—"}
           </div>
         );
@@ -257,7 +265,7 @@ export default function Beneficiaires() {
         <div>
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-primary" />
-            <span className="font-medium">{row.BEN_NOM} {row.BEN_PRENOM}</span>
+            <span>{row.BEN_NOM} {row.BEN_PRENOM}</span>
           </div>
         </div>
       ),
@@ -268,7 +276,7 @@ export default function Beneficiaires() {
       render: (value) => {
         if (value !== "M" && value !== "F") {
           return (
-            <div className="bg-gray-500/20 text-gray-700">
+            <div>
               Non défini
             </div>
           );
@@ -277,14 +285,7 @@ export default function Beneficiaires() {
         const isMale = value === "M";
 
         return (
-          <div
-            // variant={isMale ? "default" : "secondary"}
-            className={
-              isMale
-                ? "bg-blue-500/20 text-blue-700"
-                : "bg-pink-500/20 text-pink-700"
-            }
-          >
+          <div>
             {isMale ? "Masculin" : "Féminin"}
           </div>
         );
@@ -370,6 +371,14 @@ export default function Beneficiaires() {
         <div>
           <h1 className="text-xl font-bold text-primary">
             Gestion des bénéficiaires et leurs informations bancaires</h1>
+
+            <div className="flex gap-2">
+              <BeneficiaireExportModal
+                selectedTypeBen={selectedTypeBen} // filtre parent
+                open={openExportModal}           // contrôle ouverture
+                onOpenChange={setOpenExportModal} // Radix Dialog appelle ça à la fermeture ou ouverture
+              />
+            </div>
         </div>
         <Dialog
           open={openModal}
@@ -401,20 +410,48 @@ export default function Beneficiaires() {
         </Dialog>
       </div>
 
+      {/* Barre de recherche */}
+      <div className="flex gap-4 mb-4 bg-sky-100 p-3 rounded-lg shadow-sm">
+        <BeneficiaireFiltersDialog
+          types={types}
+          selectedType={selectedTypeBen}
+          onApply={({ type }) => setSelectedTypeBen(type)}
+          onReset={() => setSelectedTypeBen(null)}
+        />
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+          <Input
+            placeholder="Rechercher (Code, Matricule solde, Nom et Prénom)"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-white border border-gray-300 focus:ring-2 focus:ring-blue-500"
+          />
+        </div>        
+      </div>
+
       {/* Table */}
       <DataTable
         title={`Effectif (${displayed.length})`}
+        appliedFilter={
+          selectedTypeBen && (
+            <span className="flex items-center gap-1 text-xs font-medium text-black bg-sky-100 px-2 py-0.5 rounded-full">
+              {selectedTypeBen.TYP_LIBELLE}
+              <button
+                type="button"
+                className="ml-1 text-red-600 hover:text-red-600"
+                onClick={() => setSelectedTypeBen(null)}
+              >
+                <X className="h-4.5 w-4.5"/>
+              </button>
+            </span>
+          )
+        }
         columns={columns}
         data={displayed}
+        onPrint={() => setOpenExportModal(true)}
         onAdd={can.onAdd ? handleAdd : undefined}
         onValidate={nivCode === '01' ? handleStatusUpdate : undefined}
         rowKey="BEN_CODE"
-        filterItems={types.map((e) => ({
-          ...e,
-          label: `${e.TYP_LIBELLE}`
-        }))}
-        filterDisplay={(it: any) => it.label || it.TYP_LIBELLE}
-        onFilterSelect={(it) => setSelectedTypeBen(it)}
         onView={(b) => {
           setSelectedBeneficiaire(b);
           setOpenPreview(true);
@@ -422,10 +459,8 @@ export default function Beneficiaires() {
         onEdit={can.onEdit ? handleEdit : undefined}
         onDelete={can.onDelete ? handleDelete : undefined}
         addButtonText="Nouveau"
-        filterPlaceholder="Tous les types"
         // onDeleteAll={(rows) => (rows)}
-        searchPlaceholder="Rechercher (Code, Nom et Prénom)."
-        onSearchChange={(value: string) => setSearchTerm(value)}
+        searchable={false}
         // onPrint={handlePrint}
       />
 
