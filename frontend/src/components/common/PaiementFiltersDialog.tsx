@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 
 type Option = {
@@ -60,23 +61,31 @@ export default function PaiementFiltersDialog({
 }: Props) {
   const [open, setOpen] = useState(false);
 
-  // Etats locaux pour stocker temporairement les sélections
   const [tempEcheance, setTempEcheance] = useState(selectedEcheance);
   const [tempRegie, setTempRegie] = useState(selectedRegie);
   const [tempStatut, setTempStatut] = useState(selectedStatut);
   const [tempType, setTempType] = useState(selectedType);
 
-  // Réinitialiser les états temporaires quand le modal s'ouvre
+  // Etats pour la recherche dans chaque comboBox
+  const [searchEcheance, setSearchEcheance] = useState("");
+  const [searchRegie, setSearchRegie] = useState("");
+  const [searchStatut, setSearchStatut] = useState("");
+  const [searchType, setSearchType] = useState("");
+
   useEffect(() => {
     if (open) {
       setTempEcheance(selectedEcheance);
       setTempRegie(selectedRegie);
       setTempStatut(selectedStatut);
       setTempType(selectedType);
+
+      setSearchEcheance("");
+      setSearchRegie("");
+      setSearchStatut("");
+      setSearchType("");
     }
   }, [open, selectedEcheance, selectedRegie, selectedStatut, selectedType]);
 
-  // Appliquer les filtres et fermer le modal
   const handleApply = () => {
     onApply({
       echeance: tempEcheance,
@@ -87,12 +96,60 @@ export default function PaiementFiltersDialog({
     setOpen(false);
   };
 
-  // Vérifie si aucun filtre n'est sélectionné
   const isApplyDisabled =
     !tempEcheance &&
     !tempRegie &&
     (tempStatut === null || tempStatut === undefined) &&
     !tempType;
+
+  // Fonction utilitaire pour rendre chaque Select avec recherche et scroll
+  const renderSelect = (
+    label: string,
+    value: any,
+    onChange: (v: any) => void,
+    options: any[],
+    optionLabel: string,
+    optionValue: string,
+    searchValue: string,
+    setSearch: (v: string) => void
+  ) => (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <Label>{label}</Label>
+        {value && (
+          <button onClick={() => onChange(null)} className="text-red-500 hover:text-red-600">
+            <X size={16} />
+          </button>
+        )}
+      </div>
+      <Select value={value?.[optionValue] ?? ""} onValueChange={(v) => onChange(options.find((o) => o[optionValue] === v) ?? null)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Par défaut" />
+        </SelectTrigger>
+        <SelectContent className="w-full">
+          {/* Recherche */}
+          <div className="p-2">
+            <Input
+              placeholder="Rechercher..."
+              value={searchValue}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full text-sm"
+            />
+          </div>
+          {/* Liste avec scrollbar */}
+          <div className="max-h-60 overflow-auto">
+            {options
+              .filter((o) => o[optionLabel].toLowerCase().includes(searchValue.toLowerCase()))
+              .map((o) => (
+                <SelectItem key={o[optionValue]} value={o[optionValue]}>
+                  {o[optionLabel]}
+                </SelectItem>
+              ))}
+          </div>
+        </SelectContent>
+      </Select>
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -103,145 +160,58 @@ export default function PaiementFiltersDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent
-        className="sm:max-w-lg"
-        onInteractOutside={(e) => e.preventDefault()}
-      >
+      <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Filtres</DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* ===== ÉCHÉANCE ===== */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <Label>Échéance</Label>
-              {tempEcheance && (
-                <button
-                  onClick={() => setTempEcheance(null)}
-                  className="text-red-500 hover:text-red-600"
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-            <Select
-              value={tempEcheance?.ECH_CODE ?? ""}
-              onValueChange={(v) =>
-                setTempEcheance(echeances.find((e) => e.ECH_CODE === v))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Par défaut" />
-              </SelectTrigger>
-              <SelectContent>
-                {echeances.map((e) => (
-                  <SelectItem key={e.ECH_CODE} value={e.ECH_CODE}>
-                    {e.ECH_LIBELLE}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* ===== RÉGIE ===== */}
-          {showRegie && (
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <Label>Régie</Label>
-                {tempRegie && (
-                  <button
-                    onClick={() => setTempRegie(null)}
-                    className="text-red-500 hover:text-red-600"
-                  >
-                    <X size={16} />
-                  </button>
-                )}
-              </div>
-              <Select
-                value={tempRegie?.REG_CODE ?? ""}
-                onValueChange={(v) =>
-                  setTempRegie(regies?.find((r) => r.REG_CODE === v) ?? null)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Par défaut" />
-                </SelectTrigger>
-                <SelectContent>
-                  {regies?.map((r) => (
-                    <SelectItem key={r.REG_CODE} value={r.REG_CODE}>
-                      {r.REG_SIGLE}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {renderSelect(
+            "Échéance",
+            tempEcheance,
+            setTempEcheance,
+            echeances,
+            "ECH_LIBELLE",
+            "ECH_CODE",
+            searchEcheance,
+            setSearchEcheance
           )}
 
-          {/* ===== STATUT ===== */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <Label>Statut</Label>
-              {tempStatut !== null && (
-                <button
-                  onClick={() => setTempStatut(null)}
-                  className="text-red-500 hover:text-red-600"
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-            <Select
-              value={tempStatut?.toString() ?? ""}
-              onValueChange={(v) => setTempStatut(Number(v))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Par défaut" />
-              </SelectTrigger>
-              <SelectContent>
-                {statuts.map((s) => (
-                  <SelectItem key={s.value} value={String(s.value)}>
-                    {s.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {showRegie &&
+            renderSelect(
+              "Régie",
+              tempRegie,
+              setTempRegie,
+              regies ?? [],
+              "REG_SIGLE",
+              "REG_CODE",
+              searchRegie,
+              setSearchRegie
+            )}
 
-          {/* ===== TYPE ===== */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <Label>Type bénéficiaire</Label>
-              {tempType && (
-                <button
-                  onClick={() => setTempType(null)}
-                  className="text-red-500 hover:text-red-600"
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-            <Select
-              value={tempType?.TYP_CODE ?? ""}
-              onValueChange={(v) =>
-                setTempType(types.find((t) => t.TYP_CODE === v))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Par défaut" />
-              </SelectTrigger>
-              <SelectContent>
-                {types.map((t) => (
-                  <SelectItem key={t.TYP_CODE} value={t.TYP_CODE}>
-                    {t.TYP_LIBELLE}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {renderSelect(
+            "Statut",
+            tempStatut !== null ? { value: tempStatut, label: statuts.find((s) => s.value === tempStatut)?.label ?? "" } : null,
+            (v) => setTempStatut(v ? v.value : null),
+            statuts,
+            "label",
+            "value",
+            searchStatut,
+            setSearchStatut
+          )}
+
+          {renderSelect(
+            "Type bénéficiaire",
+            tempType,
+            setTempType,
+            types,
+            "TYP_LIBELLE",
+            "TYP_CODE",
+            searchType,
+            setSearchType
+          )}
         </div>
 
-        {/* ===== FOOTER ===== */}
         <DialogFooter className="flex justify-between">
           <Button
             variant="ghost"

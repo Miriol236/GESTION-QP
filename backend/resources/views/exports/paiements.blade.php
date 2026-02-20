@@ -193,7 +193,8 @@ th {
     <th>TYPE</th>
     <th>BANQUE</th>
     <th>GUICHET</th>
-    <th>N° COMPTE - CLE RIB</th>
+    <th>N° COMPTE</th>
+    <th>CLE RIB</th>
     <th>MONTANT BRUT</th>
     <th>MONTANT NET</th>
 </tr>
@@ -204,18 +205,21 @@ th {
 @foreach($bloc['rows'] as $p)
 <tr>
     <td style="text-align:center">{{ $p->BEN_CODE }}</td>
-    <td>{{ $p->BENEFICIAIRE }}</td>
+    <td style="width:200px;">{{ $p->BENEFICIAIRE }}</td>
     <td style="text-align:center">{{ $p->TYPE_BENEFICIAIRE }}</td>
     <td>{{ $p->BNQ_LIBELLE }}</td>
     <td>{{ $p->GUI_CODE }}</td>
     <td>{{ $p->NUMCPT }}</td>
+    <td style="text-align:center; width:80px;">
+        {{ $p->CLE_RIB }}
+    </td>
     <td style="text-align:right">{{ number_format($p->BRUT,0,',',' ') }}</td>
     <td style="text-align:right">{{ number_format($p->NET,0,',',' ') }}</td>
 </tr>
 @endforeach
 
 <tr class="total-row">
-    <td style="font-weight:bold" colspan="6">
+    <td style="font-weight:bold" colspan="7">
         TOTAL ({{ count($bloc['rows']) }}) {{ $fonction }}
     </td>
     <td style="text-align:right; font-weight:bold">{{ number_format($bloc['total_brut'],0,',',' ') }}</td>

@@ -48,9 +48,10 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   const [eltSens, setEltSens] = useState<number | null>(null);
   const [items, setItems] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const { toast } = useToast();
 
-  const stepTitles = ["Informations du bénéficiaire", "Détails du quôte-part"];
+  const stepTitles = ["Informations du bénéficiaire", "Détails de la quote-part"];
 
   const [paiement, setPaiement] = useState({
     BEN_CODE: "",
@@ -227,7 +228,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
           description: "Paiement mis à jour !",
           variant: "success",
         });
-        window.dispatchEvent(new Event("totalUpdated"));
         setStep(2);
       } else {
         // Mode création
@@ -237,7 +237,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
           description: "Paiement enregistré !",
           variant: "success",
         });
-        window.dispatchEvent(new Event("totalUpdated"));
         setPaieCode(data.PAI_CODE);
         setStep(2);
 
@@ -313,6 +312,8 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     }
 
     try {
+      setLoadingDetail(true)
+
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}` };
       const { data } = await axios.post(
@@ -341,13 +342,14 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         description: data.message || "Détails ajoutés !",
         variant: "success",
       });
-      window.dispatchEvent(new Event("totalUpdated"));
     } catch (error: any) {
       toast({
         title: "Erreur",
         description: error?.response?.data?.message || "Erreur lors de l’ajout.",
         variant: "destructive",
       });
+    } finally {
+      setLoadingDetail(false);
     }
   };
 
@@ -424,6 +426,8 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     }
 
     try {
+      setLoadingDetail(true)
+
       const token = localStorage.getItem("token");
       const { data } = await axios.put(
         `${API_URL}/details-paiement/${editId}`,
@@ -461,6 +465,8 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         description: error?.response?.data?.message || "Erreur lors de la mise à jour.",
         variant: "destructive",
       });
+    } finally {
+      setLoadingDetail(false);
     }
   };
 
@@ -734,14 +740,14 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
           <div className="text-center mb-3">
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide">
               {paiementData
-                ? "MODIFICATION DU QUOTE-PART D’UN BÉNÉFICIAIRE"
-                : "ENRÔLEMENT DU QUOTE-PART D’UN BÉNÉFICIAIRE"}
+                ? "MODIFICATION DE LA QUOTE-PART D’UN BÉNÉFICIAIRE"
+                : "ENRÔLEMENT DE LA QUOTE-PART D’UN BÉNÉFICIAIRE"}
             </h1>
 
             <p className="text-xs sm:text-sm text-gray-500 mt-1">
               {paiementData
-                ? "Mise à jour des informations du quote-part d'un bénéficiaire"
-                : "Saisie et enregistrement d’un nouveau quote-part d'un bénéficiaire"}
+                ? "Mise à jour des informations de la quote-part d'un bénéficiaire"
+                : "Saisie et enregistrement d’une nouvelle quote-part d'un bénéficiaire"}
             </p>
           </div>
 
@@ -1058,8 +1064,8 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                   <div className="w-full sm:w-auto flex gap-2">
                     <Button
                       onClick={isEditing ? handleUpdateDetailsPaiement : handleAddDetailsPaiement}
-                      disabled={!isEditing && !currentDetailsPaiements.ELT_CODE}
-                      className={`px-3 py-1.5 rounded-md text-sm
+                      disabled={loadingDetail || (!isEditing && !currentDetailsPaiements.ELT_CODE)}
+                      className={`px-3 py-1.5 rounded-md text-sm flex items-center justify-center gap-2
                         ${isEditing
                           ? "bg-green-600 hover:bg-green-700 text-white"
                           : currentDetailsPaiements.ELT_CODE
@@ -1068,14 +1074,19 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                         }
                       `}
                     >
-                      {isEditing ? (
+                      {loadingDetail ? (
                         <>
-                          <Save className="w-4 h-4 mr-2" />
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          {isEditing ? "Mise à jour..." : "Ajout..."}
+                        </>
+                      ) : isEditing ? (
+                        <>
+                          <Save className="w-4 h-4" />
                           Mettre à jour
                         </>
                       ) : (
                         <>
-                          <Plus className="w-4 h-4 mr-2" />
+                          <Plus className="w-4 h-4" />
                           Ajouter
                         </>
                       )}

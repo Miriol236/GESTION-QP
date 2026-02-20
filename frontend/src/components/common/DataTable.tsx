@@ -226,6 +226,12 @@ export function DataTable({
 
   // Fonction pour cocher/décocher une ligne (utilise stableRowKey)
   const toggleRowSelection = (row: any) => {
+    // Vérifie le statut des paiements et bénéficiaires
+    // if (row.PAI_STATUT > 1 || row.BEN_STATUT > 1) {
+    //   // console.warn("Cette ligne ne peut pas être sélectionnée (PAI_STATUT ou BEN_STATUT > 1)");
+    //   return;
+    // }
+
     const id = String(row?.[stableRowKey] ?? JSON.stringify(row));
     setSelectedIds((prev) => {
       if (prev.includes(id)) return prev.filter((p) => p !== id);

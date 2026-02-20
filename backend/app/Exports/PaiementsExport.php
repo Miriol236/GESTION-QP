@@ -29,6 +29,7 @@ class PaiementsExport implements FromCollection, WithHeadings
                 'BNQ_LIBELLE'   => $p->BNQ_LIBELLE ?? '',
                 'GUI_CODE'      => $p->GUI_CODE ?? '',
                 'NUMCPT'        => $p->NUMCPT ?? '',
+                'CLE_RIB'        => $p->CLE_RIB ?? '',
                 'MONTANT_BRUT'  => $p->BRUT ?? 0,
                 'MONTANT_NET'   => $p->NET ?? 0,
             ];
@@ -44,7 +45,8 @@ class PaiementsExport implements FromCollection, WithHeadings
             'TYPE BENEFICIAIRE',
             'BANQUE',
             'GUICHET',
-            'N° COMPTE - CLE RIB',
+            'N° COMPTE',
+            'CLE RIB',
             'MONTANT BRUT',
             'MONTANT NET',
         ];

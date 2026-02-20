@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Users as UsersIcon, Shield, User } from "lucide-react";
+import { Users as UsersIcon, Shield, User, Loader2 } from "lucide-react";
 import ConfirmDeleteDialog from "@/components/common/ConfirmDeleteDialog";
 import axios from "axios";
 import { Value } from "@radix-ui/react-select";
@@ -26,6 +26,7 @@ export default function Utilisateurs() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedSexe, setSelectedSexe] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   //  Chargement initial
@@ -221,6 +222,8 @@ export default function Utilisateurs() {
     };
 
     try {
+      setLoading(true);
+
       if (editingUtilisateur) {
         await axios.put(`${API_URL}/utilisateurs/${editingUtilisateur.UTI_CODE}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
@@ -251,6 +254,8 @@ export default function Utilisateurs() {
         description: err?.response?.data?.message || "Échec de l'enregistrement",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -387,13 +392,37 @@ export default function Utilisateurs() {
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
-              <Button type="submit" variant="default">
-                {editingUtilisateur ? "Modifier" : "Ajouter"}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                disabled={loading}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="submit"
+                variant="default"
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {loading
+                  ? editingUtilisateur
+                    ? "Modification..."
+                    : "Création..."
+                  : editingUtilisateur
+                    ? "Modifier"
+                    : "Ajouter"}
               </Button>
             </div>
           </form>
         </DialogContent>
+        {loading && (
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center rounded-lg z-50">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
       </Dialog>
 
       {/* Confirmation suppression */}

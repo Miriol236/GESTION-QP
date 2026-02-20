@@ -97,7 +97,6 @@ class DashbordController extends Controller
             ->when(empty($reg) && !empty($user->REG_CODE), fn($q) => $q->where('REG_CODE', $user->REG_CODE))
             ->when(!empty($ech), fn($q) => $q->where('ECH_CODE', $ech))
             ->when($statut !== null && $statut !== "all", fn($q) => $q->where('PAI_STATUT', intval($statut)))
-            ->distinct('BEN_CODE')
             ->count('BEN_CODE');
 
         return response()->json([

@@ -19,7 +19,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Check, ChevronDown, Edit, Trash2, ArrowRight, ArrowLeft, Power, Plus, X, Save, Send, Paperclip, Download, FileUp, FileDown, Upload } from "lucide-react";
+import { Check, ChevronDown, Edit, Trash2, ArrowRight, ArrowLeft, Power, Plus, X, Save, Send, Paperclip, Download, FileUp, FileDown, Upload, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { API_URL } from "@/config/api";
 import { TableSkeletonWizard } from "@/components/loaders/TableSkeletonWizard";
@@ -63,7 +63,8 @@ export default function BeneficiaireWizard({
   const [openValidateDialog, setOpenValidateDialog] = useState(false);
   const [validateMessage, setValidateMessage] = useState("");
   const [loadingValidation, setLoadingValidation] = useState(false);
-
+  const [numCompteLength, setNumCompteLength] = useState(0);
+  const [loadingDomiciliation, setLoadingDomiciliation] = useState(false);
   const { toast } = useToast();
 
   const [beneficiaire, setBeneficiaire] = useState({
@@ -383,6 +384,7 @@ export default function BeneficiaireWizard({
     );
 
     try {
+      setLoadingDomiciliation(true)
       const token = localStorage.getItem("token");
 
       // Utilisation de FormData pour inclure le fichier
@@ -429,6 +431,8 @@ export default function BeneficiaireWizard({
         description: err?.response?.data?.message || "Erreur lors de l'ajout.",
         variant: "destructive",
       });
+    } finally {
+      setLoadingDomiciliation(false)
     }
   };
 
@@ -499,6 +503,8 @@ export default function BeneficiaireWizard({
     }
 
     try {
+      setLoadingDomiciliation(true)
+
       const token = localStorage.getItem("token");
 
       // FormData pour gérer le fichier
@@ -552,6 +558,8 @@ export default function BeneficiaireWizard({
         description: error?.response?.data?.message || "Erreur lors de la mise à jour.",
         variant: "destructive",
       });
+    } finally {
+      setLoadingDomiciliation(false)
     }
   };
 
@@ -967,83 +975,72 @@ export default function BeneficiaireWizard({
               transition={{ duration: 0.3 }}
             >
               <div className="flex flex-col gap-4 md:gap-5">
-                {/* Matricule en haut, pleine largeur sur mobile, 1/3 sur desktop */}
-                <div className="w-full sm:w-1/2 md:w-1/3">
-                  <Label>Matricule solde</Label>
-                  <Input
-                    value={beneficiaire.BEN_MATRICULE}
-                    onChange={(e) =>
-                      setBeneficiaire({
-                        ...beneficiaire,
-                        BEN_MATRICULE: e.target.value.toUpperCase(),
-                      })
-                    }
-                    className="h-10 text-sm text-gray-900 caret-blue-600 w-full bg-white"
-                  />
-                </div>
+                {/* Matricule, nom et prénom en haut, pleine largeur sur mobile, 1/3 sur desktop */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                  {/* Matricule */}
+                  <div>
+                    <Label>Matricule solde</Label>
+                    <Input
+                      value={beneficiaire.BEN_MATRICULE}
+                      onChange={(e) =>
+                        setBeneficiaire({ ...beneficiaire, BEN_MATRICULE: e.target.value.toUpperCase() })
+                      }
+                      className="h-9 text-sm text-gray-900 caret-blue-600 w-full bg-white"
+                    />
+                  </div>
 
-                {/* Les autres champs en dessous, 1 colonne sur mobile, 2 sur small, 3 colonnes sur desktop */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {/* Nom */}
                   <div>
                     <Label>Nom <span className="text-red-500">*</span></Label>
                     <Input
                       value={beneficiaire.BEN_NOM}
                       onChange={(e) =>
-                        setBeneficiaire({
-                          ...beneficiaire,
-                          BEN_NOM: e.target.value.toUpperCase(), // Conversion auto en MAJ
-                        })
+                        setBeneficiaire({ ...beneficiaire, BEN_NOM: e.target.value.toUpperCase() })
                       }
-                      className="h-10 text-sm uppercase text-gray-900 caret-blue-600 w-full bg-white" // Affichage en MAJ
+                      className="h-9 text-sm uppercase text-gray-900 caret-blue-600 w-full bg-white"
                     />
                   </div>
 
+                  {/* Prénom */}
                   <div>
                     <Label>Prénom <span className="text-red-500">*</span></Label>
                     <Input
                       value={beneficiaire.BEN_PRENOM}
                       onChange={(e) =>
-                        setBeneficiaire({
-                          ...beneficiaire,
-                          BEN_PRENOM: e.target.value.toUpperCase(), // Conversion auto en MAJ
-                        })
+                        setBeneficiaire({ ...beneficiaire, BEN_PRENOM: e.target.value.toUpperCase() })
                       }
-                      className="h-10 text-sm uppercase text-gray-900 caret-blue-600 w-full bg-white" // Affichage en MAJ
+                      className="h-9 text-sm uppercase text-gray-900 caret-blue-600 w-full bg-white"
                     />
                   </div>
+                </div>
 
-                  {/* Sexe en pleine largeur sur mobile, compact sur desktop */}
-                  <div className="col-span-1 md:col-span-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                  {/* Sexe */}
+                  <div>
                     <Label>Sexe <span className="text-red-500">*</span></Label>
-                    <div className="flex items-center gap-4 mt-2">
-                      <label className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mt-1">
+                      <label className="flex items-center gap-1">
                         <input
                           type="radio"
                           name="sexe"
                           value="M"
                           checked={beneficiaire.BEN_SEXE === "M"}
                           onChange={(e) =>
-                            setBeneficiaire({
-                              ...beneficiaire,
-                              BEN_SEXE: e.target.value,
-                            })
+                            setBeneficiaire({ ...beneficiaire, BEN_SEXE: e.target.value })
                           }
                           className="accent-blue-600 w-4 h-4"
                         />
                         Masculin
                       </label>
 
-                      <label className="flex items-center gap-2">
+                      <label className="flex items-center gap-1">
                         <input
                           type="radio"
                           name="sexe"
                           value="F"
                           checked={beneficiaire.BEN_SEXE === "F"}
                           onChange={(e) =>
-                            setBeneficiaire({
-                              ...beneficiaire,
-                              BEN_SEXE: e.target.value,
-                            })
+                            setBeneficiaire({ ...beneficiaire, BEN_SEXE: e.target.value })
                           }
                           className="accent-pink-500 w-4 h-4"
                         />
@@ -1052,59 +1049,53 @@ export default function BeneficiaireWizard({
                     </div>
                   </div>
 
+                  {/* Date de naissance */}
                   <div>
                     <Label>Date de naissance <span className="text-red-500">*</span></Label>
                     <Input
                       type="date"
-                      max={today} //  bloque les dates futures
+                      max={today}
                       value={beneficiaire.BEN_DATE_NAISSANCE}
                       onChange={(e) =>
-                        setBeneficiaire({
-                          ...beneficiaire,
-                          BEN_DATE_NAISSANCE: e.target.value,
-                        })
+                        setBeneficiaire({ ...beneficiaire, BEN_DATE_NAISSANCE: e.target.value })
                       }
-                      className="h-10 text-sm text-gray-900 w-full bg-white"
+                      className="h-9 text-sm text-gray-900 w-full bg-white"
                     />
                   </div>
 
+                  {/* Type de bénéficiaire */}
                   <ComboBox
                     label="Type de bénéficiaire *"
                     items={types}
                     value={beneficiaire.TYP_CODE}
-                    onSelect={(v: any) =>
-                      setBeneficiaire({ ...beneficiaire, TYP_CODE: v })
-                    }
+                    onSelect={(v: any) => setBeneficiaire({ ...beneficiaire, TYP_CODE: v })}
                     display={(t: any) => t.TYP_LIBELLE}
                   />
 
+                  {/* Fonction */}
                   <ComboBox
                     label="Fonction"
                     items={fonctions}
                     value={beneficiaire.FON_CODE}
-                    onSelect={(v: any) =>
-                      setBeneficiaire({ ...beneficiaire, FON_CODE: v })
-                    }
+                    onSelect={(v: any) => setBeneficiaire({ ...beneficiaire, FON_CODE: v })}
                     display={(f: any) => f.FON_LIBELLE}
                   />
 
+                  {/* Grade */}
                   <ComboBox
                     label="Grade"
                     items={grades}
                     value={beneficiaire.GRD_CODE}
-                    onSelect={(v: any) =>
-                      setBeneficiaire({ ...beneficiaire, GRD_CODE: v })
-                    }
+                    onSelect={(v: any) => setBeneficiaire({ ...beneficiaire, GRD_CODE: v })}
                     display={(g: any) => g.GRD_LIBELLE}
                   />
 
+                  {/* Position */}
                   <ComboBox
-                    label="Position*"
+                    label="Position *"
                     items={positions}
                     value={beneficiaire.POS_CODE}
-                    onSelect={(v: any) =>
-                      setBeneficiaire({ ...beneficiaire, POS_CODE: v })
-                    }
+                    onSelect={(v: any) => setBeneficiaire({ ...beneficiaire, POS_CODE: v })}
                     display={(p: any) => p.POS_LIBELLE}
                   />
                 </div>
@@ -1193,12 +1184,21 @@ export default function BeneficiaireWizard({
                         num = num.replace(/\D/g, "").slice(0, 11);
                       }
 
+                      // Calcul de la clé RIB
                       const rib = calculerCleRib(currentDomiciliation.BNQ_CODE, currentDomiciliation.GUI_ID, num);
+
+                      // Met à jour l'état du formulaire
                       setCurrentDomiciliation({ ...currentDomiciliation, DOM_NUMCPT: num, DOM_RIB: rib });
+
+                      // Met à jour le compteur
+                      setNumCompteLength(num.length);
                     }}
                     placeholder={isBanquePrimaire ? "11 chiffres uniquement" : ""}
                     className="h-9 w-full"
                   />
+                  <div className="text-right text-xs text-blue-600 mt-1">
+                    {currentDomiciliation.DOM_NUMCPT.length}
+                  </div>
                 </div>
 
                 {/* Clé RIB et actions */}
@@ -1278,27 +1278,34 @@ export default function BeneficiaireWizard({
                     <Button
                       onClick={isEditing ? handleUpdateDomiciliation : handleAddDomiciliation}
                       disabled={
+                        loadingDomiciliation ||
                         !currentDomiciliation.BNQ_CODE ||
                         (isBanquePrimaire && currentDomiciliation.DOM_NUMCPT.length < 11)
                       }
-                      className={`px-3 py-1.5 rounded-md text-sm
-                        ${!currentDomiciliation.BNQ_CODE ||
-                        (isBanquePrimaire && currentDomiciliation.DOM_NUMCPT.length < 11)
-                          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                          : isEditing
-                          ? "bg-green-600 hover:bg-green-700 text-white"
-                          : "bg-blue-600 hover:bg-blue-700 text-white"
+                      className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-2
+                        ${
+                          !currentDomiciliation.BNQ_CODE ||
+                          (isBanquePrimaire && currentDomiciliation.DOM_NUMCPT.length < 11)
+                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            : isEditing
+                            ? "bg-green-600 hover:bg-green-700 text-white"
+                            : "bg-blue-600 hover:bg-blue-700 text-white"
                         }
                       `}
                     >
-                      {isEditing ? (
+                      {loadingDomiciliation ? (
                         <>
-                          <Save className="w-4 h-4 mr-2" />
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          {isEditing ? "Mise à jour..." : "Ajout..."}
+                        </>
+                      ) : isEditing ? (
+                        <>
+                          <Save className="w-4 h-4" />
                           Mettre à jour
                         </>
                       ) : (
                         <>
-                          <Plus className="w-4 h-4 mr-2" />
+                          <Plus className="w-4 h-4" />
                           Ajouter
                         </>
                       )}

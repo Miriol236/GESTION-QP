@@ -86,13 +86,8 @@ class PaiementReportController extends Controller
                 't_type_beneficiaires.TYP_LIBELLE as TYPE_BENEFICIAIRE',
                 't_banques.BNQ_LIBELLE',
                 't_guichets.GUI_CODE',
-                DB::raw("
-                    CONCAT(
-                        COALESCE(t_domiciliers.DOM_NUMCPT, ''),
-                        CASE WHEN t_domiciliers.DOM_NUMCPT IS NOT NULL THEN ' - ' ELSE '-' END,
-                        COALESCE(t_domiciliers.DOM_RIB, '')
-                    ) as NUMCPT
-                "),
+                't_domiciliers.DOM_NUMCPT as NUMCPT',
+                't_domiciliers.DOM_RIB as CLE_RIB',
                 'totaux.BRUT',
                 'totaux.NET',
             ])

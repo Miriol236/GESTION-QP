@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Users } from "lucide-react";
+import { Loader2, Users } from "lucide-react";
 import ConfirmDeleteDialog from "@/components/common/ConfirmDeleteDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -29,6 +29,7 @@ export default function Groupe() {
   const [openRightsModal, setOpenRightsModal] = useState(false);
   const [fonctionnalites, setFonctionnalites] = useState<any[]>([]);
   const [selectedFonctionnalites, setSelectedFonctionnalites] = useState<string[]>([]);
+  const [loadingSave, setLoadingSave] = useState(false);
   const [currentGroupe, setCurrentGroupe] = useState<any | null>(null);
 
   const { toast } = useToast();
@@ -244,6 +245,8 @@ export default function Groupe() {
     if (!currentGroupe) return;
 
     try {
+      setLoadingSave(true);
+
       const token = localStorage.getItem("token");
       await axios.post(
         `${API_URL}/groupes/${currentGroupe.GRP_CODE}/fonctionnalites`,
@@ -265,6 +268,8 @@ export default function Groupe() {
         description: "Impossible de sauvegarder les droits.",
         variant: "destructive",
       });
+    } finally {
+      setLoadingSave(false);
     }
   };
 
@@ -365,10 +370,29 @@ export default function Groupe() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenRightsModal(false)}>Annuler</Button>
-            <Button onClick={handleSaveFonctionnalites}>Sauvegarder</Button>
+            <Button
+              variant="outline"
+              onClick={() => setOpenRightsModal(false)}
+              disabled={loadingSave}
+            >
+              Annuler
+            </Button>
+
+            <Button
+              onClick={handleSaveFonctionnalites}
+              disabled={loadingSave}
+              className="flex items-center gap-2"
+            >
+              {loadingSave && <Loader2 className="h-4 w-4 animate-spin" />}
+              {loadingSave ? "Sauvegarde..." : "Sauvegarder"}
+            </Button>
           </DialogFooter>
         </DialogContent>
+        {loadingSave && (
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center rounded-lg z-50">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
       </Dialog>
 
       {/* Confirmation suppression */}

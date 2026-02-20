@@ -438,10 +438,11 @@ export default function Beneficiaires() {
               {selectedTypeBen.TYP_LIBELLE}
               <button
                 type="button"
-                className="ml-1 text-red-600 hover:text-red-600"
+                title={`Supprimer le filtre ${selectedTypeBen.TYP_LIBELLE}`}
+                className="ml-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-md p-1 transition-colors"
                 onClick={() => setSelectedTypeBen(null)}
               >
-                <X className="h-4.5 w-4.5"/>
+                <X className="h-3.5 w-3.5"/>
               </button>
             </span>
           )

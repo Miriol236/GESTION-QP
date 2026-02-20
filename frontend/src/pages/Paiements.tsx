@@ -133,7 +133,7 @@ export default function Paiements() {
 
   //  Charger les paiements depuis l’API
   const fetchPaiements = async (ech_code: string | null = null) => {
-    // setIsLoading(true);
+    setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
 
@@ -695,7 +695,7 @@ export default function Paiements() {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-xl font-bold text-primary">
-            Gestion des paiements des quôtes-parts</h1>
+            Gestion des paiements des quotes-parts</h1>
 
             <div className="flex gap-2">
               <PaiementExportModal
@@ -716,7 +716,6 @@ export default function Paiements() {
             setOpenModal(open);
             // When dialog is closed (either by X button or programmatically), refresh the list and stats
             if (!open) {
-              fetchPaiements();
               fetchTotals(selectedEcheance ? selectedEcheance.ECH_CODE : null);
             }
           }}
@@ -740,7 +739,7 @@ export default function Paiements() {
               onFinish={() => {
                 // Close dialog and refresh table and stats when wizard is finished
                 setOpenModal(false);
-                fetchPaiements();
+                fetchPaiements(selectedEcheance?.ECH_CODE ?? null);
                 fetchTotals(selectedEcheance ? selectedEcheance.ECH_CODE : null);
               }}
             />
@@ -837,7 +836,6 @@ export default function Paiements() {
       {/* Table */}
       <DataTable
         title={`Effectif (${displayedPaiements.length})`}
-        // appliedFilter={appliedFilterPaiement} 
         appliedFilter={
           appliedFilterPaiement && (
             <div className="flex flex-wrap gap-2 mt-2">
@@ -849,7 +847,8 @@ export default function Paiements() {
                   {label}
                   <button
                     type="button"
-                    className="ml-1 text-red-600 hover:text-red-600"
+                    title={`Supprimer le filtre ${label}`}
+                    className="ml-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-md p-1 transition-colors"
                     onClick={() => {
                       // suppression selon le label
                       if (label === selectedEcheance?.ECH_LIBELLE) setSelectedEcheance(null);
@@ -858,7 +857,7 @@ export default function Paiements() {
                       if (label === selectedTypeBen?.TYP_LIBELLE) setSelectedTypeBen(null);
                     }}
                   >
-                    <X className="h-4.5 w-4.5"/>
+                    <X className="h-3.5 w-3.5"/>
                   </button>
                 </div>
               ))}
@@ -952,6 +951,29 @@ export default function Paiements() {
             <DialogTitle>Paiements ignorés</DialogTitle>
           </DialogHeader>
 
+          {/* Message explicatif dynamique */}
+          <div className="px-4 py-2 text-sm text-gray-700 space-y-2">
+            {ignoredDetails.length === 0 && (
+              <p>Aucun paiement ignoré.</p>
+            )}
+
+            {ignoredDetails.some((g) => g.title === "Doublons") && (
+              <p>
+                <span className="font-semibold">Doublons :</span> 
+                le ou les bénéficiaires listés ci-dessous apparaissent déjà dans l'échéance active. 
+                Lors de cette génération, un paiement a été enregistré pour chacun, et les doublons ont été ignorés.
+              </p>
+            )}
+
+            {ignoredDetails.some((g) => g.title === "Inactifs") && (
+              <p>
+                <span className="font-semibold">Inactifs :</span> 
+                le ou les bénéficiaires listés ci-dessous sont actuellement inactifs. 
+                Ils ne peuvent pas recevoir de paiement et ont donc été ignorés.
+              </p>
+            )}
+          </div>
+
           {/* Contenu scrollable */}
           <div className="flex-1 overflow-y-auto px-4 py-2">
             <div className={`grid gap-6 ${ignoredDetails.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
@@ -974,7 +996,7 @@ export default function Paiements() {
 
           <DialogFooter className="mt-2 flex justify-end">
             <Button onClick={() => setShowIgnoredModal(false)}>
-              <X/>
+              <X />
               Fermer
             </Button>
           </DialogFooter>

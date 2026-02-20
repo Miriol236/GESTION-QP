@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 
 interface Props {
@@ -32,25 +33,72 @@ export default function BeneficiaireFiltersDialog({
   onReset,
 }: Props) {
   const [open, setOpen] = useState(false);
-
-  // Etat temporaire pour stocker la sélection dans le modal
   const [tempType, setTempType] = useState(selectedType);
+  const [searchType, setSearchType] = useState("");
 
-  // Réinitialiser la sélection temporaire à l'ouverture du modal
   useEffect(() => {
     if (open) {
       setTempType(selectedType);
+      setSearchType("");
     }
   }, [open, selectedType]);
 
-  // Appliquer et fermer le modal
   const handleApply = () => {
     onApply({ type: tempType });
     setOpen(false);
   };
 
-  // Désactiver le bouton si aucun filtre sélectionné
   const isApplyDisabled = !tempType;
+
+  // Fonction utilitaire pour Select avec recherche et scroll
+  const renderSelect = (
+    label: string,
+    value: any,
+    onChange: (v: any) => void,
+    options: any[],
+    optionLabel: string,
+    optionValue: string,
+    searchValue: string,
+    setSearch: (v: string) => void
+  ) => (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <Label>{label}</Label>
+        {value && (
+          <button onClick={() => onChange(null)} className="text-red-500 hover:text-red-600">
+            <X size={16} />
+          </button>
+        )}
+      </div>
+      <Select
+        value={value?.[optionValue] ?? ""}
+        onValueChange={(v) => onChange(options.find((o) => o[optionValue] === v) ?? null)}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Par défaut" />
+        </SelectTrigger>
+        <SelectContent className="w-full">
+          <div className="p-2">
+            <Input
+              placeholder="Rechercher..."
+              value={searchValue}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full text-sm"
+            />
+          </div>
+          <div className="max-h-60 overflow-auto">
+            {options
+              .filter((o) => o[optionLabel].toLowerCase().includes(searchValue.toLowerCase()))
+              .map((o) => (
+                <SelectItem key={o[optionValue]} value={o[optionValue]}>
+                  {o[optionLabel]}
+                </SelectItem>
+              ))}
+          </div>
+        </SelectContent>
+      </Select>
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -61,48 +109,24 @@ export default function BeneficiaireFiltersDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent
-        className="sm:max-w-lg"
-        onInteractOutside={(e) => e.preventDefault()} // Bloque le clic à l’extérieur
-      >
+      <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Filtres</DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* ===== TYPE ===== */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <Label>Type bénéficiaire</Label>
-              {tempType && (
-                <button
-                  onClick={() => setTempType(null)}
-                  className="text-red-500 hover:text-red-600"
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-
-            <Select
-              value={tempType?.TYP_CODE ?? ""}
-              onValueChange={(v) => setTempType(types.find((t) => t.TYP_CODE === v))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Par défaut" />
-              </SelectTrigger>
-              <SelectContent>
-                {types.map((t) => (
-                  <SelectItem key={t.TYP_CODE} value={t.TYP_CODE}>
-                    {t.TYP_LIBELLE}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {renderSelect(
+            "Type bénéficiaire",
+            tempType,
+            setTempType,
+            types,
+            "TYP_LIBELLE",
+            "TYP_CODE",
+            searchType,
+            setSearchType
+          )}
         </div>
 
-        {/* ===== FOOTER ===== */}
         <DialogFooter className="flex justify-between">
           <Button
             variant="ghost"
