@@ -57,7 +57,7 @@ class BeneficiaireController extends Controller
             return response()->json(['message' => 'Utilisateur non authentifié.'], 401);
         }
 
-        $beneficiaires = Beneficiaire::orderBy('BEN_CODE', 'desc')->get();
+        $beneficiaires = Beneficiaire::orderBy('BEN_NOM', 'asc')->get();
 
         return response()->json($beneficiaires);
     }
@@ -195,8 +195,19 @@ class BeneficiaireController extends Controller
             'BEN_NOM' => 'required|string|max:100',
             'BEN_PRENOM' => 'required|string|max:100',
             'BEN_SEXE' => 'nullable|string|max:1',
+            'FON_CODE' => 'required|string',
             'TYP_CODE' => 'required|string',
             'POS_CODE' => 'required|string',
+            'BEN_DATE_NAISSANCE' => [
+                'required',
+                'date',
+                function ($attribute, $value, $fail) {
+                    $age = Carbon::parse($value)->age;
+                    if ($age < 15) {
+                        $fail('Le bénéficiaire doit avoir au moins 15 ans.');
+                    }
+                },
+            ],
         ]);
 
         $exists = Beneficiaire::where('BEN_NOM', $request->BEN_NOM)
@@ -301,6 +312,18 @@ class BeneficiaireController extends Controller
 
         if (!$beneficiaire) {
             return response()->json(['message' => 'Bénéficiaire non trouvé'], 404);
+        }
+
+        // Vérifier l'âge >= 15 ans
+        if ($request->BEN_DATE_NAISSANCE) {
+            $dateNaissance = new \Carbon\Carbon($request->BEN_DATE_NAISSANCE);
+            $aujourdhuiMoins15 = \Carbon\Carbon::now()->subYears(15);
+
+            if ($dateNaissance->gt($aujourdhuiMoins15)) {
+                return response()->json([
+                    'message' => 'Le bénéficiaire doit avoir au moins 15 ans.'
+                ], 422);
+            }
         }
 
         $nouvelleVersion = ($beneficiaire->BEN_VERSION ?? 0) + 1;
@@ -621,4 +644,60 @@ class BeneficiaireController extends Controller
         ]);
     }
 
+    public function search(Request $request)
+    {
+        $nom = $request->query('nom');
+        $prenom = $request->query('prenom');
+
+        if (!$nom && !$prenom) {
+            return response()->json([]);
+        }
+
+        $query = \App\Models\Beneficiaire::with([
+            'position', // ajout position
+            'domiciliations' => function ($q) {
+                $q->whereIn('DOM_STATUT', [2, 3])
+                ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
+                ->leftJoin('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
+                ->select(
+                    't_domiciliers.*',
+                    't_banques.BNQ_LIBELLE',
+                    't_guichets.GUI_CODE'
+                );
+            }
+        ]);
+
+        if ($nom) {
+            $query->where('BEN_NOM', 'like', '%' . strtoupper($nom) . '%');
+        }
+
+        if ($prenom) {
+            $query->where('BEN_PRENOM', 'like', '%' . strtoupper($prenom) . '%');
+        }
+
+        $results = $query->limit(3)->get();
+
+        // Formatter infos pour le front
+        $results->transform(function ($b) {
+            $firstDom = $b->domiciliations->first();
+
+            // DOM_INFO propre
+            if ($firstDom) {
+                if ($firstDom->DOM_RIB) {
+                    $b->DOM_INFO = "{$firstDom->BNQ_LIBELLE} {$firstDom->GUI_CODE} {$firstDom->DOM_NUMCPT}-{$firstDom->DOM_RIB}";
+                } else {
+                    $b->DOM_INFO = "{$firstDom->BNQ_LIBELLE} {$firstDom->GUI_CODE} {$firstDom->DOM_NUMCPT}";
+                }
+            } else {
+                $b->DOM_INFO = null;
+            }
+
+            // POS_LIBELLE direct pour le front
+            $b->POS_LIBELLE = $b->position->POS_LIBELLE ?? null;
+
+            return $b;
+        });
+
+        return response()->json($results);
+    }
 }

@@ -1,8 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Eye, X } from "lucide-react";
+import { Eye, X, FileDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { API_URL } from "@/config/api";
+import axios from "axios";
+import { useToast } from "@/hooks/use-toast";
 
 type Props = {
   open: boolean;
@@ -17,6 +20,48 @@ export default function DomicilierPreviewModal({
   beneficiaire,
   domiciliations = [],
 }: Props) {
+
+  const { toast } = useToast();
+  const [previewFile, setPreviewFile] = useState<{ url: string; type: string } | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  
+  // Fonction pour prévisualiser le fichier RIB dans le modal
+  const handlePreviewRib = async (DOM_CODE: string) => {
+    try {
+      setLoadingPreview(true);
+      const token = localStorage.getItem("token");
+
+      const response = await axios.get(`${API_URL}/rib/preview/${DOM_CODE}`, {
+        responseType: "blob",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const contentType = response.headers["content-type"];
+      const file = new Blob([response.data], { type: contentType });
+      const fileURL = window.URL.createObjectURL(file);
+      setPreviewFile({ url: fileURL, type: contentType });
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        title: "Erreur",
+        description: error?.response?.data?.message || "Impossible d'ouvrir le fichier",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  // Fermer la prévisualisation
+  const closePreview = () => {
+    if (previewFile?.url) {
+      window.URL.revokeObjectURL(previewFile.url);
+    }
+    setPreviewFile(null);
+  };
+
   // Bloquer ESC
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -29,6 +74,15 @@ export default function DomicilierPreviewModal({
     if (open) window.addEventListener("keydown", handler, true);
     return () => window.removeEventListener("keydown", handler, true);
   }, [open]);
+
+  // Nettoyer l'URL lors du unmount
+  useEffect(() => {
+    return () => {
+      if (previewFile?.url) {
+        window.URL.revokeObjectURL(previewFile.url);
+      }
+    };
+  }, [previewFile]);
 
   if (!open) return null;
 
@@ -51,7 +105,7 @@ export default function DomicilierPreviewModal({
       case 2:
         return (
           <Badge className="bg-orange-500/20 text-orange-700">
-            En cours d’approbation…
+            En cours d'approbation…
           </Badge>
         );
 
@@ -74,11 +128,15 @@ export default function DomicilierPreviewModal({
   const statutBadge = (statut: number) =>
     statut === 2 ? (
       <Badge className="bg-orange-100 text-orange-700">
-        En attente d’approbation
+        En attente d'approbation
       </Badge>
     ) : (
       <Badge className="bg-gray-100 text-gray-600">Inconnu</Badge>
     );
+
+  // Vérifier si le fichier est un PDF ou une image
+  const isPdf = previewFile?.type === "application/pdf";
+  const isImage = previewFile?.type.startsWith("image/");
 
   return (
     <div
@@ -88,7 +146,7 @@ export default function DomicilierPreviewModal({
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+        className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
       >
         {/* HEADER */}
         <div className="flex justify-between items-center p-3 bg-blue-600 text-white">
@@ -102,7 +160,7 @@ export default function DomicilierPreviewModal({
         </div>
 
         {/* CONTENT */}
-        <div className="p-6 space-y-6 overflow-y-auto">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* INFOS BÉNÉFICIAIRE */}
           <h3 className="font-semibold text-blue-600 mb-2">
               Information du bénéficiaire
@@ -133,6 +191,41 @@ export default function DomicilierPreviewModal({
             />
           </div>
 
+          {/* PRÉVISUALISATION DU FICHIER */}
+          {previewFile && (
+            <div className="border rounded-lg p-4 bg-gray-50">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-semibold text-blue-600">Aperçu du fichier</h3>
+                <Button variant="ghost" size="sm" onClick={closePreview}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="bg-gray-200 rounded h-96 overflow-hidden">
+                {loadingPreview ? (
+                  <div className="flex items-center justify-center h-full">
+                    <span className="text-gray-500">Chargement...</span>
+                  </div>
+                ) : isPdf ? (
+                  <iframe
+                    src={previewFile.url}
+                    className="w-full h-full"
+                    title="Aperçu PDF"
+                  />
+                ) : isImage ? (
+                  <img
+                    src={previewFile.url}
+                    alt="Aperçu"
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <span className="text-gray-500">Type de fichier non pris en charge</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* TABLE RIB */}
           <div>
             <h3 className="font-semibold text-blue-600 mb-2">
@@ -152,6 +245,7 @@ export default function DomicilierPreviewModal({
                     <th className="px-3 py-2 text-left">N° Compte</th>
                     <th className="px-3 py-2 text-left">Clé RIB</th>
                     <th className="px-3 py-2 text-left">Statut</th>
+                    <th className="px-3 py-2 text-left">Fichier</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -163,6 +257,21 @@ export default function DomicilierPreviewModal({
                       <td className="px-3 py-2 text-[12px]">{d.RIB ?? "—"}</td>
                       <td className="px-3 py-2 text-[12px]">
                         {statutBadge(d.DOM_STATUT)}
+                      </td>
+                      <td className="px-3 py-2 text-[12px]">
+                        {d.DOM_FICHIER ? (
+                          <Button
+                            variant="outline" // plus visible que "ghost"
+                            size="sm"
+                            onClick={() => handlePreviewRib(d.DOM_CODE)}
+                            className="flex items-center gap-1"
+                            title="Afficher le fichier"
+                          >
+                            <Eye className="w-4 h-4 text-green-600" />
+                            <span className="text-xs text-green-700">Voir le fichier du RIB</span>
+                          </Button>
+                        ) : null
+                        }
                       </td>
                     </tr>
                   ))}
@@ -201,7 +310,7 @@ function Info({ label, value }: { label: string; value: any }) {
   return (
     <div>
       <p className="text-gray-500 text-xs font-semibold">{label}</p>
-      <p className="text-[12px]">{value || "—"}</p>
+      <div className="text-[12px]">{value || "—"}</div>
     </div>
   );
 }

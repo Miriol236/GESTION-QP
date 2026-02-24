@@ -444,6 +444,7 @@ class MouvementController extends Controller
                 't_domiciliers.DOM_NUMCPT as NUMCPT',
                 't_domiciliers.DOM_RIB as RIB',
                 't_domiciliers.DOM_STATUT',
+                't_domiciliers.DOM_FICHIER',
 
                 // ===== Bénéficiaire =====
                 't_beneficiaires.BEN_MATRICULE',
@@ -1361,11 +1362,8 @@ class MouvementController extends Controller
             ->join('t_utilisateurs', 't_utilisateurs.UTI_CODE', '=', 't_mouvements.MVT_UTI_CODE')
             ->where('t_beneficiaires.BEN_STATUT', 2)
             ->where('t_mouvements.TYP_CODE', '20250001')
-            ->when($nivValeur == 2, function ($query) use ($user) {
-                $query
-                    ->where('t_mouvements.MVT_NIV', 1)
-                    ->where('t_utilisateurs.REG_CODE', $user->REG_CODE);
-            })
+            ->where('t_mouvements.MVT_NIV', $nivValeur)
+            ->where('t_mouvements.MVT_UTI_REG', $user->REG_CODE) // même régie
             ->count();
 
         /*
@@ -1378,11 +1376,8 @@ class MouvementController extends Controller
             ->join('t_utilisateurs', 't_utilisateurs.UTI_CODE', '=', 't_mouvements.MVT_UTI_CODE')
             ->where('t_domiciliers.DOM_STATUT', 2)
             ->where('t_mouvements.TYP_CODE', '20250003')
-            ->when($nivValeur == 2, function ($query) use ($user) {
-                $query
-                    ->where('t_mouvements.MVT_NIV', 1)
-                    ->where('t_utilisateurs.REG_CODE', $user->REG_CODE);
-            })
+            ->where('t_mouvements.MVT_NIV', $nivValeur)
+            ->where('t_mouvements.MVT_UTI_REG', $user->REG_CODE) // même régie
             ->count();
 
         /*
@@ -1395,11 +1390,8 @@ class MouvementController extends Controller
             ->join('t_utilisateurs', 't_utilisateurs.UTI_CODE', '=', 't_mouvements.MVT_UTI_CODE')
             ->where('t_paiements.PAI_STATUT', 2)
             ->where('t_mouvements.TYP_CODE', '20250002')
-            ->when($nivValeur == 2, function ($query) use ($user) {
-                $query
-                    ->where('t_mouvements.MVT_NIV', 1)
-                    ->where('t_utilisateurs.REG_CODE', $user->REG_CODE);
-            })
+            ->where('t_mouvements.MVT_NIV', $nivValeur)
+            ->where('t_mouvements.MVT_UTI_REG', $user->REG_CODE) // même régie
             ->count();
 
         /*

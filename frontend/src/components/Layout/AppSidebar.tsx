@@ -99,6 +99,7 @@ export function AppSidebar() {
   const location = useLocation();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const [allowedFonctionnalites, setAllowedFonctionnalites] = useState<string[]>([]);
+  const [localMenu, setLocalMenu] = useState(menuItems);
 
   // Récupérer les fonctionnalités autorisées
   const fetchPermissions = async () => {
@@ -129,50 +130,61 @@ export function AppSidebar() {
   }, []);
 
   // Totaux des mouvements
-  // const [totaux, setTotaux] = useState<{ total_general: number; par_type: Record<string, { total: number }> }>({
-  //   total_general: 0,
-  //   par_type: {},
-  // });
+  const [totaux, setTotaux] = useState<{ total_general: number; par_type: Record<string, { total: number }> }>({
+    total_general: 0,
+    par_type: {},
+  });
 
-  // useEffect(() => {
-  //   const fetchTotaux = async () => {
-  //     try {
-  //       const res = await axios.get(`${API_URL}/mouvements/totaux`);
-  //       setTotaux(res.data);
-  //     } catch (err) {
-  //       console.error("Erreur récupération totaux mouvements :", err);
-  //     }
-  //   };
+  useEffect(() => {
+    const fetchTotaux = async () => {
+      try {
+        // Réinitialiser immédiatement pour le nouvel utilisateur
+        setTotaux({ total_general: 0, par_type: {} });
 
-  //   fetchTotaux();
-  //   // const interval = setInterval(fetchTotaux, 30000); // actualisation toutes les 30s
-  //   // return () => clearInterval(interval);
-  // }, []);
+        const token = localStorage.getItem("token");
+        const res = await axios.get(`${API_URL}/mouvements/totaux`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setTotaux(res.data);
+      } catch (err) {
+        console.error("Erreur récupération totaux mouvements :", err);
+        setTotaux({ total_general: 0, par_type: {} }); // Sécuriser en cas d'erreur
+      }
+    };
 
-  // //  Mettre à jour dynamiquement les titres des mouvements avec totaux
-  // menuItems.forEach((menu) => {
-  //   if (menu.title === "Mouvements") {
-  //     // titre parent avec total général
-  //     menu.title = `Mouvements${totaux.total_general > 0 ? ` (${totaux.total_general})` : ""}`;
+    fetchTotaux();
 
-  //     // titre des sous-menus
-  //     menu.children = menu.children.map((child) => {
-  //       const typCodeMap: Record<string, string> = {
-  //         "Validation Bénéficiaires": "20250001",
-  //         "Validation Paiements": "20250002",
-  //         "Validation RIB": "20250003",
-  //       };
+    const handleUpdate = () => fetchTotaux();
+    window.addEventListener("mouvementsUpdated", handleUpdate);
 
-  //       const code = typCodeMap[child.title.replace(/\s*\(\d+\)/, "")]; // enlever ancien total s'il existe
-  //       const total = code ? totaux.par_type[code]?.total : 0;
+    return () => window.removeEventListener("mouvementsUpdated", handleUpdate);
+  }, []);
+  
 
-  //       return {
-  //         ...child,
-  //         title: `${child.title.replace(/\s*\(\d+\)/, "")}${total && total > 0 ? ` (${total})` : ""}`,
-  //       };
-  //     });
-  //   }
-  // });
+  //  Mettre à jour dynamiquement les titres des mouvements avec totaux
+  menuItems.forEach((menu) => {
+    if (menu.title === "Mouvements") {
+      // titre parent avec total général
+      menu.title = `Mouvements${totaux.total_general > 0 ? ` (${totaux.total_general})` : ""}`;
+
+      // titre des sous-menus
+      menu.children = menu.children.map((child) => {
+        const typCodeMap: Record<string, string> = {
+          "Validation Bénéficiaires": "20250001",
+          "Validation Paiements": "20250002",
+          "Validation RIB": "20250003",
+        };
+
+        const code = typCodeMap[child.title.replace(/\s*\(\d+\)/, "")]; // enlever ancien total s'il existe
+        const total = code ? totaux.par_type[code]?.total : 0;
+
+        return {
+          ...child,
+          title: `${child.title.replace(/\s*\(\d+\)/, "")}${total && total > 0 ? ` (${total})` : ""}`,
+        };
+      });
+    }
+  });
 
   // Filtrer le menu selon les droits
   const filterMenuItems = (items: any[]): any[] => {

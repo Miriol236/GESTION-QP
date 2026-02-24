@@ -8,7 +8,6 @@ import { MainLayout } from "@/components/Layout/MainLayout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Beneficiaires from "./pages/Beneficiaires";
-import ListeBeneficiaires from "./pages/ListeBeneficiaires";
 import NotFound from "./pages/NotFound";
 import Utilisateurs from "./pages/Utilisateurs";
 import Fonctionnalites from "./pages/Fonctionnalites";
@@ -47,7 +46,6 @@ const App = () => (
             <Route element={<MainLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/beneficiaires" element={<Beneficiaires />} />
-              <Route path="/liste-beneficiaires" element={<ListeBeneficiaires />} />
               <Route path="/paiements" element={<Paiements />} />
               <Route path="/utilisateurs" element={<Utilisateurs />} />
               <Route path="/fonctionnalites" element={<Fonctionnalites />} />

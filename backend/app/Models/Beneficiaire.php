@@ -86,4 +86,9 @@ class Beneficiaire extends Model
     {
         return $this->belongsTo(TypeBeneficiaire::class, 'TYP_CODE', 'TYP_CODE');
     }
+
+    public function position()
+    {
+        return $this->belongsTo(Position::class, 'POS_CODE', 'POS_CODE');
+    }
 }

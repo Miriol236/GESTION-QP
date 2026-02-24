@@ -39,27 +39,32 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedType: Type | null; // Type filtré depuis le parent, facultatif
+  selectedEcheance?: Echeance | null; 
   echeances: Echeance[];     // Liste des échéances disponibles
   selectedRegie: Regie | null;
   regies: Regie[];             // liste complète des régies
   userSansRegie: boolean;       // true si l'utilisateur n'a pas de régie
   onRegieChange?: (regie: Regie | null) => void; // callback pour changer la régie
+  onEcheanceChange?: (echeance: Echeance | null) => void;
 }
 
 export default function PaiementExportModal({
   open,
   onOpenChange,
   selectedType,
+  selectedEcheance,
   echeances,
   selectedRegie,
   regies,
   userSansRegie,
   onRegieChange,
+  onEcheanceChange,
 }: Props) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [selectedEcheance, setSelectedEcheance] = useState<Echeance | null>(null);
+  const [selectedEcheanceLocal, setSelectedEcheanceLocal] = useState<Echeance | null>(selectedEcheance ?? null);
+  
 
   // Fake progress animation
   useEffect(() => {
@@ -73,6 +78,12 @@ export default function PaiementExportModal({
       if (interval) clearInterval(interval);
     };
   }, [isLoading]);
+
+  useEffect(() => {
+    if (selectedEcheance !== undefined) {
+      setSelectedEcheanceLocal(selectedEcheance);
+    }
+  }, [selectedEcheance]);
 
   // Debug
 //   useEffect(() => {
@@ -160,27 +171,28 @@ export default function PaiementExportModal({
             Échéance <span className="text-red-500">*</span>
           </label>
             <Select
-                value={selectedEcheance?.ECH_CODE || ""}
-                onValueChange={(val) =>
-                    setSelectedEcheance(echeances.find((e) => e.ECH_CODE === val) || null)
-                }
-                >
-                <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une échéance" />
-                </SelectTrigger>
-
-                <SelectContent>
-                    <Command>
-                    <CommandInput placeholder="Rechercher une échéance..." />
-                    <CommandGroup>
-                        {echeances.map((e) => (
-                        <SelectItem key={e.ECH_CODE} value={e.ECH_CODE}>
-                            {e.ECH_LIBELLE}
-                        </SelectItem>
-                        ))}
-                    </CommandGroup>
-                    </Command>
-                </SelectContent>
+              value={selectedEcheanceLocal?.ECH_CODE || ""}
+              onValueChange={(val) => {
+                const ech = echeances.find((e) => e.ECH_CODE === val) || null;
+                setSelectedEcheanceLocal(ech);
+                onEcheanceChange?.(ech); //  informe le parent
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner une échéance" />
+              </SelectTrigger>
+              <SelectContent>
+                <Command>
+                  <CommandInput placeholder="Rechercher une échéance..." />
+                  <CommandGroup>
+                    {echeances.map((e) => (
+                      <SelectItem key={e.ECH_CODE} value={e.ECH_CODE}>
+                        {e.ECH_LIBELLE}
+                      </SelectItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </SelectContent>
             </Select>
         </div>
 

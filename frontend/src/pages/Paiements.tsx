@@ -707,6 +707,8 @@ export default function Paiements() {
                 regies={regies || []}
                 userSansRegie={showRegie}
                 onRegieChange={setSelectedRegie}
+                selectedEcheance={selectedEcheance} 
+                onEcheanceChange={setSelectedEcheance}
               />
             </div>
         </div>        
@@ -837,32 +839,63 @@ export default function Paiements() {
       <DataTable
         title={`Effectif (${displayedPaiements.length})`}
         appliedFilter={
-          appliedFilterPaiement && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {appliedFilterPaiement.split(" | ").map((label, index) => (
-                <div
-                key={index}
-                className="flex items-center bg-sky-100 text-black px-2 py-1 rounded-full text-xs font-medium"
-                >
-                  {label}
+          appliedFilterPaiement && (() => {
+            // Crée un tableau des filtres actifs avec leur label et action de suppression
+            const filters = [];
+
+            if (selectedEcheance) filters.push({ label: selectedEcheance.ECH_LIBELLE, clear: () => setSelectedEcheance(null) });
+            if (selectedRegie) filters.push({ label: selectedRegie.REG_LIBELLE, clear: () => setSelectedRegie(null) });
+            if (selectedStatut !== null && selectedStatut !== undefined) {
+              const statutLabel = statutOptions.find(s => s.value === selectedStatut)?.label;
+              if (statutLabel) filters.push({ label: statutLabel, clear: () => setSelectedStatut(null) });
+            }
+            if (selectedTypeBen) filters.push({ label: selectedTypeBen.TYP_LIBELLE, clear: () => setSelectedTypeBen(null) });
+
+            const activeCount = filters.length;
+
+            return (
+              <div className="flex flex-wrap gap-2 mt-2 items-center">
+                {/* Compteur */}
+                <span className="text-xs font-semibold text-gray-600 mr-1">
+                  Filtres ({activeCount})
+                </span>
+
+                {/* Badges */}
+                {filters.map((f, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center bg-sky-100 text-black px-2 py-1 rounded-full text-xs font-medium"
+                  >
+                    {f.label}
+                    <button
+                      type="button"
+                      title={`Supprimer le filtre ${f.label}`}
+                      className="ml-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-md p-1 transition-colors"
+                      onClick={f.clear}
+                    >
+                      <X className="h-3.5 w-3.5"/>
+                    </button>
+                  </div>
+                ))}
+
+                {/* Tout effacer → seulement si ≥ 2 filtres */}
+                {activeCount >= 2 && (
                   <button
                     type="button"
-                    title={`Supprimer le filtre ${label}`}
-                    className="ml-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-md p-1 transition-colors"
+                    className="text-xs text-red-600 hover:text-red-700 underline"
                     onClick={() => {
-                      // suppression selon le label
-                      if (label === selectedEcheance?.ECH_LIBELLE) setSelectedEcheance(null);
-                      if (label === selectedRegie?.REG_LIBELLE) setSelectedRegie(null);
-                      if (label === statutOptions.find(s => s.value === selectedStatut)?.label) setSelectedStatut(null);
-                      if (label === selectedTypeBen?.TYP_LIBELLE) setSelectedTypeBen(null);
+                      setSelectedEcheance(null);
+                      setSelectedRegie(null);
+                      setSelectedStatut(null);
+                      setSelectedTypeBen(null);
                     }}
                   >
-                    <X className="h-3.5 w-3.5"/>
+                    Tout effacer
                   </button>
-                </div>
-              ))}
-            </div>
-          )
+                )}
+              </div>
+            );
+          })()
         }
         columns={columns}
         data={displayedPaiements}

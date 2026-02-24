@@ -24,8 +24,12 @@ use App\Http\Controllers\NiveauValidationController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\VirementController;
 use App\Http\Controllers\MouvementController;
+use App\Http\Controllers\BeneficiaireLocalController;
+use App\Http\Controllers\PaiementLocalController;
 
 Route::post('/login', [AuthController::class, 'login']);
+Route::middleware('api.key')->get('/liste-beneficiaires', [BeneficiaireLocalController::class, 'index']);
+Route::middleware('api.key')->get('/liste-paiements', [PaiementLocalController::class, 'index']);
 Route::middleware('auth:sanctum')->get('/user-fonctionnalites', [AuthController::class, 'getUserFonctionnalites']);
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -126,8 +130,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Routes bénéficiaires
     Route::get('/beneficiaires', [BeneficiaireController::class, 'index'])->middleware('fonctionnalite:0011');
-    Route::get('/liste-beneficiaires', [BeneficiaireController::class, 'getAll'])->middleware('fonctionnalite:0012');
+    // Route::get('/liste-beneficiaires', [BeneficiaireController::class, 'getAll'])->middleware('fonctionnalite:0012');
     Route::get('/beneficiaires/{id}', [BeneficiaireController::class, 'show'])->middleware('fonctionnalite:0011');
+    Route::get('/beneficiaires-search', [BeneficiaireController::class, 'search']);
     Route::post('/beneficiaires', [BeneficiaireController::class, 'store'])->middleware('fonctionnalite:0011');
     Route::post('/domiciliations', [DomicilierController::class, 'store']);
     Route::put('/beneficiaires/valider/{id?}', [BeneficiaireController::class, 'validerBeneficiaire']);

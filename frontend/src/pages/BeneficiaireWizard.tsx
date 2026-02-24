@@ -65,7 +65,41 @@ export default function BeneficiaireWizard({
   const [loadingValidation, setLoadingValidation] = useState(false);
   const [numCompteLength, setNumCompteLength] = useState(0);
   const [loadingDomiciliation, setLoadingDomiciliation] = useState(false);
+  const [benefSuggestions, setBenefSuggestions] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [ageError, setAgeError] = useState(""); // message d'erreur si < 15 ans
+  const today = new Date();
+  const maxDate15 = new Date(
+    today.getFullYear() - 15,
+    today.getMonth(),
+    today.getDate()
+  )
+    .toISOString()
+    .split("T")[0];
+
   const { toast } = useToast();
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setBeneficiaire({ ...beneficiaire, BEN_DATE_NAISSANCE: value });
+
+    if (value) {
+      const selectedDate = new Date(value);
+      const minAllowedDate = new Date(
+        today.getFullYear() - 15,
+        today.getMonth(),
+        today.getDate()
+      );
+
+      if (selectedDate > minAllowedDate) {
+        setAgeError("Le bénéficiaire doit avoir au moins 15 ans.");
+      } else {
+        setAgeError("");
+      }
+    } else {
+      setAgeError("");
+    }
+  };
 
   const [beneficiaire, setBeneficiaire] = useState({
     BEN_MATRICULE: "",
@@ -88,8 +122,6 @@ export default function BeneficiaireWizard({
     DOM_RIB: "",
     DOM_FICHIER: null,
   });
-
-  const today = new Date().toISOString().split("T")[0];
 
   const [benefCode, setBenefCode] = useState<string | null>(null);
 
@@ -225,6 +257,47 @@ export default function BeneficiaireWizard({
     }
   }, [benefCode]);
 
+  const searchBeneficiaires = async (nom: string, prenom: string) => {
+    if (!nom && !prenom) {
+      setBenefSuggestions([]);
+      return;
+    }
+
+    try {
+      setSearchLoading(true);
+      const token = localStorage.getItem("token");
+
+      const res = await axios.get(`${API_URL}/beneficiaires-search`, {
+        params: { nom, prenom },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setBenefSuggestions(res.data || []);
+    } catch {
+      setBenefSuggestions([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (
+        beneficiaire.BEN_NOM.length >= 2 ||
+        beneficiaire.BEN_PRENOM.length >= 2
+      ) {
+        searchBeneficiaires(
+          beneficiaire.BEN_NOM,
+          beneficiaire.BEN_PRENOM
+        );
+      } else {
+        setBenefSuggestions([]);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [beneficiaire.BEN_NOM, beneficiaire.BEN_PRENOM]);
+
   // Utilitaires d'affichage
   const getBanqueInfo = (code: string) => {
     const b = banques.find((bnq) => String(bnq.BNQ_CODE).trim() === String(code).trim());
@@ -271,7 +344,7 @@ export default function BeneficiaireWizard({
 
   // Enregistrement bénéficiaire (étape 1)
   const handleNext = async () => {
-    if (!beneficiaire.BEN_NOM || !beneficiaire.BEN_PRENOM || !beneficiaire.BEN_SEXE || !beneficiaire.BEN_DATE_NAISSANCE || !beneficiaire.TYP_CODE || !beneficiaire.POS_CODE) {
+    if (!beneficiaire.BEN_NOM || !beneficiaire.BEN_PRENOM || !beneficiaire.BEN_SEXE || !beneficiaire.BEN_DATE_NAISSANCE || !beneficiaire.TYP_CODE || !beneficiaire.FON_CODE || !beneficiaire.POS_CODE) {
       toast({
           title: "Avertissement",
           description: "Veuillez remplir tous les champs obligatoires.",
@@ -327,7 +400,7 @@ export default function BeneficiaireWizard({
           description: "Aucun bénéficiaire sélectionné.",
           variant: "destructive",
         });
-    if (!beneficiaire.BEN_NOM || !beneficiaire.BEN_PRENOM || !beneficiaire.TYP_CODE || !beneficiaire.POS_CODE) {
+    if (!beneficiaire.BEN_NOM || !beneficiaire.BEN_PRENOM || !beneficiaire.TYP_CODE || !beneficiaire.FON_CODE || !beneficiaire.POS_CODE) {
       toast({
           title: "Avertissement",
           description: "Veuillez remplir tous les champs obligatoires.",
@@ -351,7 +424,7 @@ export default function BeneficiaireWizard({
     } catch (error: any) {
         toast({
           title: "Erreur",
-          description: "Erreur lors de la mise à jour",
+          description: error?.response?.data?.message || "Erreur lors de la mise à jour",
           variant: "destructive",
       });
     } finally {
@@ -1012,6 +1085,88 @@ export default function BeneficiaireWizard({
                       className="h-9 text-sm uppercase text-gray-900 caret-blue-600 w-full bg-white"
                     />
                   </div>
+
+                  {/* Suggestions doublons */}
+                  {!beneficiaireData && (benefSuggestions.length > 0 || searchLoading) && (
+                    <div className="mt-2 col-span-full rounded-md border border-amber-200 bg-amber-50 p-3">
+
+                      {/* Titre dynamique */}
+                      <div className="text-xs font-semibold text-amber-800 mb-2">
+                        {benefSuggestions.some(
+                          (b) =>
+                            b.BEN_NOM.toUpperCase() === beneficiaire.BEN_NOM.toUpperCase() &&
+                            b.BEN_PRENOM.toUpperCase() === beneficiaire.BEN_PRENOM.toUpperCase()
+                        )
+                          ? <span className="text-red-600">
+                              Attention : un bénéficiaire avec ce nom et prénom existe déjà. 
+                              Veuillez vérifier les autres informations pour être sûr !
+                            </span>
+                          : "Correspondances sur nom/prénom"}
+                      </div>
+
+                      {/* Indicateur de recherche */}
+                      {searchLoading && (
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Recherche...
+                        </div>
+                      )}
+
+                      {/* Tableau des suggestions */}
+                      <div className="flex flex-col gap-1 max-h-40 overflow-y-auto text-xs">
+
+                        {/* Header */}
+                        <div className="grid grid-cols-6 gap-2 font-semibold text-gray-700 border-b pb-1 mb-1">
+                          <div>Nom / Prénom</div>
+                          <div>Date naissance</div>
+                          <div>Position</div>
+                          <div>Banque</div>
+                          <div>Guichet</div>
+                          <div>N° Compte - clé RIB</div>
+                        </div>
+
+                        {/* Lignes */}
+                        {benefSuggestions.map((b) => (
+                          <div
+                            key={b.BEN_CODE}
+                            className="grid grid-cols-6 gap-2 border-b last:border-0 py-1 px-2 hover:bg-amber-100 rounded"
+                          >
+                            <div className="font-medium">
+                              {b.BEN_NOM} {b.BEN_PRENOM}
+                            </div>
+
+                            <div className="text-gray-500">
+                              {b.BEN_DATE_NAISSANCE || "-"}
+                            </div>
+
+                            {/* Position */}
+                            <div className="text-gray-600">
+                              {b.POS_LIBELLE || "-"}
+                            </div>
+
+                            {/* Banque */}
+                            <div className="text-gray-600">
+                              {b.domiciliations?.[0]?.BNQ_LIBELLE || "-"}
+                            </div>
+
+                            {/* Guichet */}
+                            <div className="text-gray-600">
+                              {b.domiciliations?.[0]?.GUI_CODE || "-"}
+                            </div>
+
+                            {/* Compte + RIB */}
+                            <div className="text-gray-600">
+                              {b.domiciliations?.[0]
+                                ? b.domiciliations[0].DOM_RIB
+                                  ? `${b.domiciliations[0].DOM_NUMCPT}-${b.domiciliations[0].DOM_RIB}`
+                                  : b.domiciliations[0].DOM_NUMCPT
+                                : "-"}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2">
@@ -1054,13 +1209,14 @@ export default function BeneficiaireWizard({
                     <Label>Date de naissance <span className="text-red-500">*</span></Label>
                     <Input
                       type="date"
-                      max={today}
+                      max={maxDate15} // bloque le calendrier
                       value={beneficiaire.BEN_DATE_NAISSANCE}
-                      onChange={(e) =>
-                        setBeneficiaire({ ...beneficiaire, BEN_DATE_NAISSANCE: e.target.value })
-                      }
-                      className="h-9 text-sm text-gray-900 w-full bg-white"
+                      onChange={handleDateChange}
+                      className={`h-9 text-sm text-gray-900 w-full bg-white ${ageError ? "border-red-500" : ""}`}
                     />
+                    {ageError && (
+                      <p className="text-red-500 text-xs mt-1">{ageError}</p>
+                    )}
                   </div>
 
                   {/* Type de bénéficiaire */}
@@ -1074,7 +1230,7 @@ export default function BeneficiaireWizard({
 
                   {/* Fonction */}
                   <ComboBox
-                    label="Fonction"
+                    label="Fonction *"
                     items={fonctions}
                     value={beneficiaire.FON_CODE}
                     onSelect={(v: any) => setBeneficiaire({ ...beneficiaire, FON_CODE: v })}

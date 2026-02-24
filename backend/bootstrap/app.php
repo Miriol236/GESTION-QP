@@ -16,8 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Middleware perso
         $middleware->alias([
             'fonctionnalite' => App\Http\Middleware\CheckFonctionnalite::class,
+            'api.key'        => App\Http\Middleware\ApiKeyMiddleware::class,
         ]);
-
     
         // Sanctum pour API
         $middleware->api(prepend: [

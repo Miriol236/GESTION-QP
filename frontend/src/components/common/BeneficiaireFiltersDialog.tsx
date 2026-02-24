@@ -21,36 +21,66 @@ import { useState, useEffect } from "react";
 
 interface Props {
   types: any[];
+  fonctions: any[];
+  positions: any[];
   selectedType: any | null;
-  onApply: (v: { type: any | null }) => void;
+  selectedFonction: any | null;
+  selectedPosition: any | null;
+  onApply: (v: { type: any | null; fonction: any | null; position: any | null }) => void;
   onReset: () => void;
 }
 
 export default function BeneficiaireFiltersDialog({
   types,
+  fonctions,
+  positions,
   selectedType,
+  selectedFonction,
+  selectedPosition,
   onApply,
   onReset,
 }: Props) {
   const [open, setOpen] = useState(false);
+
   const [tempType, setTempType] = useState(selectedType);
+  const [tempFonction, setTempFonction] = useState(selectedFonction);
+  const [tempPosition, setTempPosition] = useState(selectedPosition);
+
   const [searchType, setSearchType] = useState("");
+  const [searchFonction, setSearchFonction] = useState("");
+  const [searchPosition, setSearchPosition] = useState("");
 
   useEffect(() => {
     if (open) {
       setTempType(selectedType);
+      setTempFonction(selectedFonction);
+      setTempPosition(selectedPosition);
+
       setSearchType("");
+      setSearchFonction("");
+      setSearchPosition("");
     }
-  }, [open, selectedType]);
+  }, [open, selectedType, selectedFonction, selectedPosition]);
 
   const handleApply = () => {
-    onApply({ type: tempType });
+    onApply({
+      type: tempType,
+      fonction: tempFonction,
+      position: tempPosition,
+    });
     setOpen(false);
   };
 
-  const isApplyDisabled = !tempType;
+  const handleResetLocal = () => {
+    setTempType(null);
+    setTempFonction(null);
+    setTempPosition(null);
+    onReset();
+  };
 
-  // Fonction utilitaire pour Select avec recherche et scroll
+  const isApplyDisabled = !tempType && !tempFonction && !tempPosition;
+
+  // Select générique
   const renderSelect = (
     label: string,
     value: any,
@@ -65,18 +95,25 @@ export default function BeneficiaireFiltersDialog({
       <div className="flex items-center justify-between">
         <Label>{label}</Label>
         {value && (
-          <button onClick={() => onChange(null)} className="text-red-500 hover:text-red-600">
+          <button
+            onClick={() => onChange(null)}
+            className="text-red-500 hover:text-red-600"
+          >
             <X size={16} />
           </button>
         )}
       </div>
+
       <Select
         value={value?.[optionValue] ?? ""}
-        onValueChange={(v) => onChange(options.find((o) => o[optionValue] === v) ?? null)}
+        onValueChange={(v) =>
+          onChange(options.find((o) => o[optionValue] === v) ?? null)
+        }
       >
         <SelectTrigger>
           <SelectValue placeholder="Par défaut" />
         </SelectTrigger>
+
         <SelectContent className="w-full">
           <div className="p-2">
             <Input
@@ -86,9 +123,14 @@ export default function BeneficiaireFiltersDialog({
               className="w-full text-sm"
             />
           </div>
+
           <div className="max-h-60 overflow-auto">
             {options
-              .filter((o) => o[optionLabel].toLowerCase().includes(searchValue.toLowerCase()))
+              .filter((o) =>
+                o[optionLabel]
+                  ?.toLowerCase()
+                  .includes(searchValue.toLowerCase())
+              )
               .map((o) => (
                 <SelectItem key={o[optionValue]} value={o[optionValue]}>
                   {o[optionLabel]}
@@ -109,7 +151,10 @@ export default function BeneficiaireFiltersDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent
+        className="sm:max-w-lg"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Filtres</DialogTitle>
         </DialogHeader>
@@ -125,16 +170,32 @@ export default function BeneficiaireFiltersDialog({
             searchType,
             setSearchType
           )}
+
+          {renderSelect(
+            "Fonction",
+            tempFonction,
+            setTempFonction,
+            fonctions,
+            "FON_LIBELLE",
+            "FON_CODE",
+            searchFonction,
+            setSearchFonction
+          )}
+
+          {renderSelect(
+            "Position",
+            tempPosition,
+            setTempPosition,
+            positions,
+            "POS_LIBELLE",
+            "POS_CODE",
+            searchPosition,
+            setSearchPosition
+          )}
         </div>
 
         <DialogFooter className="flex justify-between">
-          <Button
-            variant="ghost"
-            onClick={() => {
-              onReset();
-              setTempType(null);
-            }}
-          >
+          <Button variant="ghost" onClick={handleResetLocal}>
             <X className="h-4 w-4 mr-1" />
             Réinitialiser
           </Button>

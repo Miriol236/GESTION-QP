@@ -34,6 +34,8 @@ export default function Beneficiaires() {
   const [selectedRowsForStatus, setSelectedRowsForStatus] = useState<any[]>([]);
   const [isValidateStatusDialogOpen, setIsValidateStatusDialogOpen] = useState(false);
   const [selectedTypeBen, setSelectedTypeBen] = useState<any | null>(null);
+  const [selectedFonction, setSelectedFonction] = useState<any | null>(null);
+  const [selectedPosition, setSelectedPosition] = useState<any | null>(null);
   const [openExportModal, setOpenExportModal] = useState(false);
   const [selectedType, setSelectedType] = useState<any | null>(null);
 
@@ -113,7 +115,16 @@ export default function Beneficiaires() {
     // Filtre Type bénéficiaire
     const matchesTypeBen = !selectedTypeBen || p.TYP_CODE === selectedTypeBen.TYP_CODE;
 
-    return matchesSearch && matchesTypeBen;
+    // Filtre Fonction
+    const matchesFonction =
+      !selectedFonction || p.FON_CODE === selectedFonction.FON_CODE;
+
+    // Filtre Position
+    const matchesPosition =
+      !selectedPosition || p.POS_CODE === selectedPosition.POS_CODE;
+
+    return matchesSearch && matchesTypeBen && matchesFonction && matchesPosition;
+
   });
 
   useEffect(() => {
@@ -414,9 +425,21 @@ export default function Beneficiaires() {
       <div className="flex gap-4 mb-4 bg-sky-100 p-3 rounded-lg shadow-sm">
         <BeneficiaireFiltersDialog
           types={types}
+          fonctions={fonctions}
+          positions={positions}
           selectedType={selectedTypeBen}
-          onApply={({ type }) => setSelectedTypeBen(type)}
-          onReset={() => setSelectedTypeBen(null)}
+          selectedFonction={selectedFonction}
+          selectedPosition={selectedPosition}
+          onApply={({ type, fonction, position }) => {
+            setSelectedTypeBen(type);
+            setSelectedFonction(fonction);
+            setSelectedPosition(position);
+          }}
+          onReset={() => {
+            setSelectedTypeBen(null);
+            setSelectedFonction(null);
+            setSelectedPosition(null);
+          }}
         />
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
@@ -433,19 +456,79 @@ export default function Beneficiaires() {
       <DataTable
         title={`Effectif (${displayed.length})`}
         appliedFilter={
-          selectedTypeBen && (
-            <span className="flex items-center gap-1 text-xs font-medium text-black bg-sky-100 px-2 py-0.5 rounded-full">
-              {selectedTypeBen.TYP_LIBELLE}
-              <button
-                type="button"
-                title={`Supprimer le filtre ${selectedTypeBen.TYP_LIBELLE}`}
-                className="ml-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-md p-1 transition-colors"
-                onClick={() => setSelectedTypeBen(null)}
-              >
-                <X className="h-3.5 w-3.5"/>
-              </button>
-            </span>
-          )
+          (selectedTypeBen || selectedFonction || selectedPosition) && (() => {
+            const activeCount = [selectedTypeBen, selectedFonction, selectedPosition].filter(Boolean).length;
+
+            return (
+              <div className="flex items-center gap-2 flex-wrap">
+
+                {/* Compteur */}
+                <span className="text-xs font-semibold text-gray-600 mr-1">
+                  Filtres ({activeCount})
+                </span>
+
+                {/* Type */}
+                {selectedTypeBen && (
+                  <span className="flex items-center gap-1 text-xs font-medium text-black bg-sky-100 px-2 py-0.5 rounded-full">
+                    {selectedTypeBen.TYP_LIBELLE}
+                    <button
+                      type="button"
+                      title={`Supprimer le filtre ${selectedTypeBen.TYP_LIBELLE}`}
+                      className="ml-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-md p-1 transition-colors"
+                      onClick={() => setSelectedTypeBen(null)}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
+                )}
+
+                {/* Fonction */}
+                {selectedFonction && (
+                  <span className="flex items-center gap-1 text-xs font-medium text-black bg-sky-100 px-2 py-0.5 rounded-full">
+                    {selectedFonction.FON_LIBELLE}
+                    <button
+                      type="button"
+                      title={`Supprimer le filtre ${selectedFonction.FON_LIBELLE}`}
+                      className="ml-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-md p-1 transition-colors"
+                      onClick={() => setSelectedFonction(null)}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
+                )}
+
+                {/* Position */}
+                {selectedPosition && (
+                  <span className="flex items-center gap-1 text-xs font-medium text-black bg-sky-100 px-2 py-0.5 rounded-full">
+                    {selectedPosition.POS_LIBELLE}
+                    <button
+                      type="button"
+                      title={`Supprimer le filtre ${selectedPosition.POS_LIBELLE}`}
+                      className="ml-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-md p-1 transition-colors"
+                      onClick={() => setSelectedPosition(null)}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
+                )}
+
+                {/* Tout effacer → seulement si ≥ 2 */}
+                {activeCount >= 2 && (
+                  <button
+                    type="button"
+                    className="ml-2 text-xs text-red-600 hover:text-red-700 underline"
+                    onClick={() => {
+                      setSelectedTypeBen(null);
+                      setSelectedFonction(null);
+                      setSelectedPosition(null);
+                    }}
+                  >
+                    Tout effacer
+                  </button>
+                )}
+              </div>
+            );
+          })()
         }
         columns={columns}
         data={displayed}
