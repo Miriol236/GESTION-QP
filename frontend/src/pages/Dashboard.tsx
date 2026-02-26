@@ -458,22 +458,33 @@ export default function Dashboard() {
 
       {/* GRAPHIQUE */}
       {showGraphs && (
-        <div
-          className="grid gap-2 
-            grid-cols-1 
-            sm:grid-cols-2 
-            md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]"
-        >
+        <div className="grid gap-5 grid-cols-1 lg:grid-cols-2">
           {/* PIE – Total gain par régie */}
           {hasPieRegieData && (
-            <Card className="bg-sky-100 h-[500px]">
-              <CardHeader>
-                <CardTitle className="text-center w-full">
-                  Répartition Montants bruts et nets par Régie
-                </CardTitle>
-              </CardHeader>
+            <div className="backdrop-blur-sm bg-sky-100 rounded-2xl border border-white/20 shadow-xl shadow-gray-200/50 hover:shadow-2xl transition-all duration-300">
+              <div className="p-5 pb-2 border-b border-gray-100/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-sky-500 rounded-full animate-pulse"></div>
+                    <h3 className="text-[14px] font-semibold text-gray-800">
+                      Répartition par Régie
+                    </h3>
+                  </div>
+                  {/* Badge avec le nombre de régies */}
+                  <span className="text-[12px] bg-white text-primary px-2 py-1 rounded-full font-medium">
+                    {user?.regie
+                      ? user.regie.REG_SIGLE
+                      : `${pieRegieData?.labels?.length || 0} régie${
+                          (pieRegieData?.labels?.length || 0) > 1 ? "s" : ""
+                        }`}
+                  </span>
+                </div>
+                <p className="text-[12px] text-gray-500 mt-1 ml-4">
+                  Montants bruts et nets
+                </p>
+              </div>
 
-              <CardContent className="h-[calc(100%-60px)] flex items-center justify-center">
+              <div className="p-4 h-[380px]">
                 {pieRegieData && (
                   <Pie
                     data={pieRegieData}
@@ -482,10 +493,11 @@ export default function Dashboard() {
                       maintainAspectRatio: false,
                       plugins: {
                         legend: {
-                          position: "right",
+                          position: "bottom",
                           labels: {
-                            boxWidth: 14,
-                            padding: 14,
+                            boxWidth: 10,
+                            padding: 10,
+                            font: { size: 10 },
                             generateLabels: (chart) => {
                               const { data } = chart;
                               if (!data.labels || data.datasets.length < 2) return [];
@@ -500,19 +512,20 @@ export default function Dashboard() {
                                     0
                                   );
                                   const percent = total
-                                    ? ((value / total) * 100).toFixed(2)
-                                    : "0.00";
+                                    ? ((value / total) * 100).toFixed(1)
+                                    : "0.0";
 
-                                  const formatted = `${value.toLocaleString(
-                                    "fr-FR"
-                                  )} F CFA (${percent}%)`;
+                                  // Formatage du montant avec séparateur de milliers
+                                  const formattedValue = value.toLocaleString('fr-FR');
 
                                   labels.push({
-                                    text: `${regie} – ${dataset.label} : ${formatted}`,
+                                    text: `${regie} – ${dataset.label} : ${formattedValue} F CFA (${percent}%)`,
                                     fillStyle: dataset.backgroundColor[i],
                                     strokeStyle: "#fff",
-                                    lineWidth: 2,
+                                    lineWidth: 1,
                                     hidden: false,
+                                    datasetIndex: 0,
+                                    index: i,
                                   });
                                 });
                               });
@@ -520,50 +533,53 @@ export default function Dashboard() {
                               return labels;
                             },
                           },
-                          title: {
-                            display: true,
-                            text: "Légendes",
-                            color: "#374151",
-                            font: {
-                              size: 14,
-                              weight: "bold",
-                            },
-                          },
                         },
                         tooltip: {
                           callbacks: {
-                            label: (ctx) => {
-                              const value = Number(ctx.raw).toLocaleString("fr-FR");
-                              const total = ctx.dataset.data.reduce(
-                                (acc: number, v: number) => acc + v,
-                                0
-                              );
-                              const percent = total
-                                ? ((Number(ctx.raw) / total) * 100).toFixed(2)
-                                : "0.00";
-
-                              return `${ctx.dataset.label} – ${ctx.label} : ${value} F CFA (${percent} %)`;
-                            },
-                          },
-                        },
+                            label: (context) => {
+                              const value = context.raw as number;
+                              const formattedValue = value.toLocaleString('fr-FR');
+                              const datasetLabel = context.dataset.label || '';
+                              const regie = context.label || '';
+                              
+                              return `${regie} – ${datasetLabel} : ${formattedValue} F CFA`;
+                            }
+                          }
+                        }
                       },
                     }}
                   />
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* PIE – Paiements */}
           {hasChartData && (
-            <Card className="bg-sky-100 h-[500px]">
-              <CardHeader>
-                <CardTitle className="text-center w-full">
-                  Situation Montants virés et non virés
-                </CardTitle>
-              </CardHeader>
+            <div className="backdrop-blur-sm bg-sky-100 rounded-2xl border border-white/20 shadow-xl shadow-gray-200/50 hover:shadow-2xl transition-all duration-300">
+              <div className="p-5 pb-2 border-b border-gray-100/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                    <h3 className="text-[14px] font-semibold text-gray-800">
+                      Situation des Paiements
+                    </h3>
+                  </div>
+                  {/* Badge avec le nombre de régies */}
+                  <span className="text-[12px] bg-white text-primary px-2 py-1 rounded-full font-medium">
+                    {user?.regie
+                      ? user.regie.REG_SIGLE
+                      : `${pieRegieData?.labels?.length || 0} régie${
+                          (pieRegieData?.labels?.length || 0) > 1 ? "s" : ""
+                        }`}
+                  </span>
+                </div>
+                <p className="text-[12px] text-gray-500 mt-1 ml-4">
+                  Montants virés et non virés
+                </p>
+              </div>
 
-              <CardContent className="h-[calc(100%-60px)]">
+              <div className="p-4 h-[380px]">
                 {chartData.datasets.length > 0 && (
                   <Pie
                     data={chartData}
@@ -572,30 +588,48 @@ export default function Dashboard() {
                       maintainAspectRatio: false,
                       plugins: {
                         legend: {
-                          position: "right",
-                          title: {
-                            display: true,
-                            text: "Légendes",
-                            color: "#374151",
-                            font: {
-                              size: 14,
-                              weight: "bold",
-                            },
-                            padding: {
-                              bottom: 10,
-                            },
-                          },
+                          position: "bottom",
                           labels: {
-                            boxWidth: 14,
-                            padding: 12,
+                            boxWidth: 10,
+                            padding: 10,
+                            font: { size: 10 },
+                            generateLabels: (chart) => {
+                              const { data } = chart;
+                              if (!data.labels) return [];
+                              
+                              return data.labels.map((label, i) => {
+                                const value = data.datasets[0]?.data[i] as number || 0;
+                                const formattedValue = value.toLocaleString('fr-FR');
+                                const total = (data.datasets[0]?.data as number[]).reduce((a, b) => a + b, 0);
+                                const percent = total ? ((value / total) * 100).toFixed(1) : "0.0";
+                                
+                                return {
+                                  text: `${label}`,
+                                  fillStyle: data.datasets[0]?.backgroundColor[i],
+                                  strokeStyle: "#fff",
+                                  lineWidth: 1,
+                                  hidden: false,
+                                  index: i,
+                                };
+                              });
+                            },
                           },
                         },
+                        tooltip: {
+                          callbacks: {
+                            label: (context) => {
+                              const value = context.raw as number;
+                              const formattedValue = value.toLocaleString('fr-FR');
+                              return `${context.label}`;
+                            }
+                          }
+                        }
                       },
                     }}
                   />
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </div>
       )}

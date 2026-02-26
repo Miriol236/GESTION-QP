@@ -126,7 +126,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
       });
       setBeneficiairesList(response.data);
     } catch (error) {
-      console.error("Erreur recherche bénéficiaires:", error);
       toast({
         title: "Erreur",
         description: "Erreur lors de la recherche",
@@ -259,7 +258,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
           headers: { Authorization: `Bearer ${token}` }
         });
         
-        console.log("Données reçues:", response.data);
+        // console.log("Données reçues:", response.data);
         
         // Pour la Solution 1 ou 2
         setSelectedBenef(response.data);
