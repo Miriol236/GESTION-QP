@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Lock, User, Eye, EyeOff } from "lucide-react";
+import { Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
 import axios from "axios";
 import { API_URL } from "@/config/api";
 
@@ -76,12 +76,20 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300 relative overflow-hidden">
+    <div
+      className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-cover bg-center"
+      style={{
+        backgroundImage: `
+          linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)),
+          url(${import.meta.env.BASE_URL}bg_login.png)
+        `,
+      }}
+    >
 
       {/* Texte défilant */}
-      <div className="absolute top-16 w-full overflow-hidden">
-        <div className="text-2xl font-bold text-center text-primary">
-          BIENVENUE SUR LA PLATEFORME DE GESTION DIGITALISEE DES QUOTES-PARTS
+      <div className="absolute top-16 w-full overflow-hidden z-10">
+        <div className="text-2xl font-bold text-center text-white">
+          BIENVENUE SUR LA PLATEFORME DE GESTION DIGITALISÉE DES QUOTES-PARTS
         </div>
       </div>
 
@@ -143,9 +151,10 @@ export default function Login() {
               {/* Submit */}
               <Button
                 type="submit"
-                className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
+                className="w-full bg-gradient-primary hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
                 disabled={isLoading}
               >
+                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                 {isLoading ? "Connexion..." : "Se connecter"}
               </Button>
             </form>
@@ -154,14 +163,14 @@ export default function Login() {
       </div>
 
       {/* Footer */}
-      <footer className="absolute bottom-4 text-sm text-muted-foreground text-center flex items-center justify-center gap-2">
+      <footer className="absolute bottom-4 text-sm text-white text-center flex items-center justify-center gap-2 z-10">
         © 2025 - {new Date().getFullYear()} Développé par l’Office National d’Informatique
         <img
           src={`${import.meta.env.BASE_URL}logo.jpg`}
           alt="ONI"
           className="inline-block w-5 h-5 object-contain"
-        /> 
-          Tous droits réservés.
+        />
+        Tous droits réservés.
       </footer>
 
       {/* Animation texte */}

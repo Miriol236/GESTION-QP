@@ -1085,88 +1085,6 @@ export default function BeneficiaireWizard({
                       className="h-9 text-sm uppercase text-gray-900 caret-blue-600 w-full bg-white"
                     />
                   </div>
-
-                  {/* Suggestions doublons */}
-                  {!beneficiaireData && (benefSuggestions.length > 0 || searchLoading) && (
-                    <div className="mt-2 col-span-full rounded-md border border-amber-200 bg-amber-50 p-3">
-
-                      {/* Titre dynamique */}
-                      <div className="text-xs font-semibold text-amber-800 mb-2">
-                        {benefSuggestions.some(
-                          (b) =>
-                            b.BEN_NOM.toUpperCase() === beneficiaire.BEN_NOM.toUpperCase() &&
-                            b.BEN_PRENOM.toUpperCase() === beneficiaire.BEN_PRENOM.toUpperCase()
-                        )
-                          ? <span className="text-red-600">
-                              Attention : un bénéficiaire avec ce nom et prénom existe déjà. 
-                              Veuillez vérifier les autres informations pour être sûr !
-                            </span>
-                          : "Correspondances sur nom/prénom"}
-                      </div>
-
-                      {/* Indicateur de recherche */}
-                      {searchLoading && (
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Recherche...
-                        </div>
-                      )}
-
-                      {/* Tableau des suggestions */}
-                      <div className="flex flex-col gap-1 max-h-40 overflow-y-auto text-xs">
-
-                        {/* Header */}
-                        <div className="grid grid-cols-6 gap-2 font-semibold text-gray-700 border-b pb-1 mb-1">
-                          <div>Nom / Prénom</div>
-                          <div>Date naissance</div>
-                          <div>Position</div>
-                          <div>Banque</div>
-                          <div>Guichet</div>
-                          <div>N° Compte - clé RIB</div>
-                        </div>
-
-                        {/* Lignes */}
-                        {benefSuggestions.map((b) => (
-                          <div
-                            key={b.BEN_CODE}
-                            className="grid grid-cols-6 gap-2 border-b last:border-0 py-1 px-2 hover:bg-amber-100 rounded"
-                          >
-                            <div className="font-medium">
-                              {b.BEN_NOM} {b.BEN_PRENOM}
-                            </div>
-
-                            <div className="text-gray-500">
-                              {b.BEN_DATE_NAISSANCE || "-"}
-                            </div>
-
-                            {/* Position */}
-                            <div className="text-gray-600">
-                              {b.POS_LIBELLE || "-"}
-                            </div>
-
-                            {/* Banque */}
-                            <div className="text-gray-600">
-                              {b.domiciliations?.[0]?.BNQ_LIBELLE || "-"}
-                            </div>
-
-                            {/* Guichet */}
-                            <div className="text-gray-600">
-                              {b.domiciliations?.[0]?.GUI_CODE || "-"}
-                            </div>
-
-                            {/* Compte + RIB */}
-                            <div className="text-gray-600">
-                              {b.domiciliations?.[0]
-                                ? b.domiciliations[0].DOM_RIB
-                                  ? `${b.domiciliations[0].DOM_NUMCPT}-${b.domiciliations[0].DOM_RIB}`
-                                  : b.domiciliations[0].DOM_NUMCPT
-                                : "-"}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2">
@@ -1255,6 +1173,88 @@ export default function BeneficiaireWizard({
                     display={(p: any) => p.POS_LIBELLE}
                   />
                 </div>
+
+                {/* Suggestions doublons */}
+                  {!beneficiaireData && (benefSuggestions.length > 0 || searchLoading) && (
+                    <div className="mt-2 col-span-full rounded-md border border-amber-200 bg-amber-50 p-3">
+
+                      {/* Titre dynamique */}
+                      <div className="text-xs font-semibold text-amber-800 mb-2">
+                        {benefSuggestions.some(
+                          (b) =>
+                            b.BEN_NOM.toUpperCase() === beneficiaire.BEN_NOM.toUpperCase() &&
+                            b.BEN_PRENOM.toUpperCase() === beneficiaire.BEN_PRENOM.toUpperCase()
+                        )
+                          ? <span className="text-red-600">
+                              Attention : un bénéficiaire avec ce nom et prénom existe déjà. 
+                              Veuillez vérifier les autres informations pour être sûr !
+                            </span>
+                          : "Liste des potentiels doublons sur nom/prénom"}
+                      </div>
+
+                      {/* Indicateur de recherche */}
+                      {searchLoading && (
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Recherche...
+                        </div>
+                      )}
+
+                      {/* Tableau des suggestions */}
+                      <div className="flex flex-col gap-1 max-h-40 overflow-y-auto text-xs">
+
+                        {/* Header */}
+                        <div className="grid grid-cols-6 gap-2 font-semibold text-gray-700 border-b pb-1 mb-1">
+                          <div>Nom / Prénom</div>
+                          <div>Date naissance</div>
+                          <div>Position</div>
+                          <div>Banque</div>
+                          <div>Guichet</div>
+                          <div>N° Compte - clé RIB</div>
+                        </div>
+
+                        {/* Lignes */}
+                        {benefSuggestions.map((b) => (
+                          <div
+                            key={b.BEN_CODE}
+                            className="grid grid-cols-6 gap-2 border-b last:border-0 py-1 px-2 hover:bg-amber-100 rounded"
+                          >
+                            <div className="font-medium">
+                              {b.BEN_NOM} {b.BEN_PRENOM}
+                            </div>
+
+                            <div className="text-gray-500">
+                              {b.BEN_DATE_NAISSANCE || "-"}
+                            </div>
+
+                            {/* Position */}
+                            <div className="text-gray-600">
+                              {b.POS_LIBELLE || "-"}
+                            </div>
+
+                            {/* Banque */}
+                            <div className="text-gray-600">
+                              {b.domiciliations?.[0]?.BNQ_LIBELLE || "-"}
+                            </div>
+
+                            {/* Guichet */}
+                            <div className="text-gray-600">
+                              {b.domiciliations?.[0]?.GUI_CODE || "-"}
+                            </div>
+
+                            {/* Compte + RIB */}
+                            <div className="text-gray-600">
+                              {b.domiciliations?.[0]
+                                ? b.domiciliations[0].DOM_RIB
+                                  ? `${b.domiciliations[0].DOM_NUMCPT}-${b.domiciliations[0].DOM_RIB}`
+                                  : b.domiciliations[0].DOM_NUMCPT
+                                : "-"}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                 {/* Boutons */}
                 <div className="flex flex-col sm:flex-row justify-end mt-5 space-y-2 sm:space-y-0 sm:space-x-4">
@@ -1749,19 +1749,26 @@ export default function BeneficiaireWizard({
 
               {/* Boutons de navigation (desktop) */}
               <div className="flex flex-col md:flex-row justify-between mt-6 gap-2">
-                <Button
-                  className="bg-blue-600 hover:bg-blue-700 text-white w-full md:w-auto"
-                  onClick={() => setStep(1)}
-                >
-                  <motion.div
-                    animate={{ x: [0, -3, 0] }}
-                    transition={{ repeat: Infinity, duration: 1 }}
-                    className="mr-2"
+                
+                {/* Précédent : seulement en modification */}
+                {beneficiaireData ? (
+                  <Button
+                    className="bg-blue-600 hover:bg-blue-700 text-white w-full md:w-auto"
+                    onClick={() => setStep(1)}
                   >
-                    <ArrowLeft className="w-4 h-4" />
-                  </motion.div>
-                  Précédent
-                </Button>
+                    <motion.div
+                      animate={{ x: [0, -3, 0] }}
+                      transition={{ repeat: Infinity, duration: 1 }}
+                      className="mr-2"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                    </motion.div>
+                    Précédent
+                  </Button>
+                ) : (
+                  <div />   // garde l’alignement du bouton Terminer à droite
+                )}
+
                 <Button
                   onClick={handleFinishValidation}
                   disabled={loading}

@@ -103,28 +103,40 @@ export default function Beneficiaires() {
 
   const [searchTerm, setSearchTerm] = useState("");
 
+  const normalize = (s: any) =>
+    String(s || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+
   const displayed = beneficiaires.filter((p) => {
-    // Recherche
+    const search = normalize(searchTerm);
+    const words = search.split(" ").filter(Boolean);
+
+    const full = normalize(`${p.BEN_NOM} ${p.BEN_PRENOM}`);
+
     const matchesSearch =
-      !searchTerm ||
-      String(p.BEN_CODE).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(p.BEN_MATRICULE).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(p.BEN_NOM).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(p.BEN_PRENOM).toLowerCase().includes(searchTerm.toLowerCase());
+      !search ||
+      normalize(p.BEN_CODE).includes(search) ||
+      normalize(p.BEN_MATRICULE).includes(search) ||
+      words.every((w) => full.includes(w));
 
-    // Filtre Type bénéficiaire
-    const matchesTypeBen = !selectedTypeBen || p.TYP_CODE === selectedTypeBen.TYP_CODE;
+    const matchesTypeBen =
+      !selectedTypeBen || p.TYP_CODE === selectedTypeBen.TYP_CODE;
 
-    // Filtre Fonction
     const matchesFonction =
       !selectedFonction || p.FON_CODE === selectedFonction.FON_CODE;
 
-    // Filtre Position
     const matchesPosition =
       !selectedPosition || p.POS_CODE === selectedPosition.POS_CODE;
 
-    return matchesSearch && matchesTypeBen && matchesFonction && matchesPosition;
-
+    return (
+      matchesSearch &&
+      matchesTypeBen &&
+      matchesFonction &&
+      matchesPosition
+    );
   });
 
   useEffect(() => {

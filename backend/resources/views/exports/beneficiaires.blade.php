@@ -123,13 +123,13 @@ th {
 <div class="first-page-header" style="display:flex; justify-content: space-between;">
 
     <div class="header-block header-left">
-        MINISTERE DES FINANCES ET DU BUDGET<br>
+        MINISTÈRE DES FINANCES ET DU BUDGET<br>
         <span class="separator">_-_-_-_-_-_-_-_</span><br>
         DIRECTION DE CABINET
     </div>
 
     <div class="header-block header-right">
-        REPUBLIQUE CENTRAFRICAINE<br>
+        RÉPUBLIQUE CENTRAFRICAINE<br>
         <span class="separator">_-_-_-_-_-_-_-_</span><br>
         Unité – Dignité – Travail
     </div>
@@ -147,7 +147,7 @@ th {
  TITRE
 =============================-->
 <div class="title-box">
-    LISTE DES BENEFICIAIRES DES QUOTES-PARTS
+    LISTE DES BÉNÉFICIAIRES DES QUOTES-PARTS
 </div>
 
 <!-- =============================
@@ -200,7 +200,7 @@ th {
     </div>
     
     <div class="footer-block footer-center">
-        LISTE DES BENEFICIAIRES DES QUOTES-PARTS
+        LISTE DES BÉNÉFICIAIRES DES QUOTES-PARTS
     </div>
 
 

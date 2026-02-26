@@ -161,6 +161,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Routes paiements
     Route::get('/paiements', [PaiementController::class, 'index'])->middleware('fonctionnalite:0014');
     Route::get('/beneficiaires-rib', [PaiementController::class, 'getBenStatus']);
+    Route::get('/beneficiaires-recherche', [PaiementController::class, 'rechercheBeneficiaires']);
+    Route::get('/beneficiaires-qp/{code}', [PaiementController::class, 'getBeneficiaireDetails']);
     Route::get('/info-beneficiaires', [PaiementController::class, 'getAll']);
     Route::get('/search-beneficiaires', [BeneficiaireController::class, 'searchBeneficiaires']);
     Route::get('/paiements/{id}', [PaiementController::class, 'show'])->middleware('fonctionnalite:0014');

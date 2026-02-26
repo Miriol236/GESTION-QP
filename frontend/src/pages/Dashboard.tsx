@@ -268,27 +268,6 @@ export default function Dashboard() {
     return <DashboardSkeleton />;
   }
 
-  // const typCodeMap: Record<string, string> = {
-  //   "Bénéficiaires": "20250001",
-  //   "Paiements QP": "20250002",
-  //   "Domiciliations (RIB)": "20250003",
-  // };
-
-  // // Construire les titres dynamiques
-  // const mouvementsAvecTotaux = [
-  //   "Bénéficiaires",
-  //   "Paiements QP",
-  //   "Domiciliations (RIB)"
-  // ].map((titre) => {
-  //   const code = typCodeMap[titre];
-  //   const total = code ? totaux.par_type[code]?.total : 0;
-  //   return {
-  //     titre,
-  //     total,
-  //     affichage: `${titre}${total && total > 0 ? ` (${total})` : ""}`,
-  //   };
-  // });
-
   // Vérifie si le Pie par régie contient des données > 0
   const hasPieRegieData =
     pieRegieData &&
@@ -476,21 +455,6 @@ export default function Dashboard() {
           );
         })}
       </div>
-
-      {/* <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-        {mouvementsAvecTotaux.map((mvt) => (
-          <Card key={mvt.titre} className="rounded-xl hover:shadow-sm transition-shadow">
-            <CardHeader className="p-2">
-              <CardTitle className="text-xs font-semibold text-center">
-                {mvt.affichage}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-2 pb-2">
-              <div className="text-lg font-bold text-right">{mvt.total}</div>
-            </CardContent>
-          </Card>
-        ))}
-      </div> */}
 
       {/* GRAPHIQUE */}
       {showGraphs && (

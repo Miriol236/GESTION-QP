@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>
-    Etat des paiements
+    État des paiements
     @if(isset($echLibelle))
         — {{ $echLibelle }}
     @endif
@@ -135,13 +135,13 @@ th {
 <div class="first-page-header" style="display:flex; justify-content: space-between;">
 
     <div class="header-block header-left">
-        MINISTERE DES FINANCES ET DU BUDGET<br>
+        MINISTÈRE DES FINANCES ET DU BUDGET<br>
         <span class="separator">_-_-_-_-_-_-_-_</span><br>
         DIRECTION DE CABINET
     </div>
 
     <div class="header-block header-right">
-        REPUBLIQUE CENTRAFRICAINE<br>
+        RÉPUBLIQUE CENTRAFRICAINE<br>
         <span class="separator">_-_-_-_-_-_-_-_</span><br>
         Unité – Dignité – Travail
     </div>
@@ -160,7 +160,7 @@ th {
 =============================-->
 <div class="title-box">
 
-    ETAT DES PAIEMENTS DES QUOTES-PARTS
+    ÉTAT DES PAIEMENTS DES QUOTES-PARTS
 
     <br>
 
@@ -237,7 +237,7 @@ th {
 
 <table>
     <tr class="total-row">
-        <td style="font-weight:bold; border: 1px solid #444; padding: 4px;">EFFECTIF TOTAL DES BENEFICIAIRES</td>
+        <td style="font-weight:bold; border: 1px solid #444; padding: 4px;">EFFECTIF TOTAL DES BÉNÉFICIAIRES</td>
         <td style="font-weight:bold; text-align:right; border: 1px solid #444; padding: 4px;">{{ $totauxGlobaux['effectif'] }}</td>
     </tr>
     <tr class="total-row">
@@ -257,7 +257,7 @@ th {
 <!-- QR Code après le total général -->
 <div style="margin-top:15px; text-align:left;">
     <barcode code="
-        ETAT DES PAIEMENTS DES QUOTES-PARTS
+        ÉTAT DES PAIEMENTS DES QUOTES-PARTS
         Échéance : {{ $echLibelle ?? '-' }}
         Régie : {{ $regieLibelle ?? 'TOUTES' }}
         Total général ({{ $totauxGlobaux['effectif'] }} bénéficiaire(s))
@@ -277,7 +277,7 @@ th {
     </div>
 
     <div class="footer-block2 footer-center">
-        ETAT DES PAIEMENTS DES QUOTES-PARTS
+        ÉTAT DES PAIEMENTS DES QUOTES-PARTS
 
         @if(isset($echLibelle))
             — {{ $echLibelle }}

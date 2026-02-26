@@ -38,7 +38,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   const [editId, setEditId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [listsLoaded, setListsLoaded] = useState(false);
-  const [dataReady, setDataReady] = useState(true); // true par défaut
+  const [dataReady, setDataReady] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedDetailsPaiement, setSelectedDetailsPaiement] = useState<any>(null);
   const [selectedRib, setSelectedRib] = useState<any | null>(null);
@@ -47,8 +47,13 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   const [loadingValidation, setLoadingValidation] = useState(false);
   const [eltSens, setEltSens] = useState<number | null>(null);
   const [items, setItems] = useState<any[]>([]);
-  const [search, setSearch] = useState("");
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [benefSearch, setBenefSearch] = useState("");
+  const [benefLoading, setBenefLoading] = useState(false);
+  const [beneficiairesList, setBeneficiairesList] = useState<any[]>([]);
+  const [benefOpen, setBenefOpen] = useState(false);
+  const [benefSearchTimeout, setBenefSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [loadingBenefDetails, setLoadingBenefDetails] = useState(false);
   const { toast } = useToast();
 
   const stepTitles = ["Informations du bénéficiaire", "Détails de la quote-part"];
@@ -74,9 +79,8 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
   useEffect(() => {
     const loadPaiementData = async () => {
-      // Mode édition uniquement
       if (paiementData) {
-        setDataReady(false); // Active le chargement uniquement ici
+        setDataReady(false);
 
         if (!listsLoaded) return;
 
@@ -99,7 +103,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
           });
         }
 
-        // Une fois tout prêt — enlever délai artificiel pour accélérer l'affichage
         setDataReady(true);
       }
     };
@@ -107,17 +110,63 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     loadPaiementData();
   }, [paiementData, listsLoaded]);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
+  // Fonction de recherche des bénéficiaires
+  const searchBeneficiaires = async (searchTerm: string) => {
+    if (!searchTerm || searchTerm.length < 2) {
+      setBeneficiairesList([]);
+      return;
+    }
 
-    axios.get(`${API_URL}/beneficiaires-rib`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => setItems(res.data))
-    .catch(() => {});
-  }, []);
+    setBenefLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${API_URL}/beneficiaires-recherche`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { search: searchTerm, limit: 20 }
+      });
+      setBeneficiairesList(response.data);
+    } catch (error) {
+      console.error("Erreur recherche bénéficiaires:", error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la recherche",
+        variant: "destructive",
+      });
+    } finally {
+      setBenefLoading(false);
+    }
+  };
 
-  // Charger les listes initiales
+  // Gestionnaire de changement de recherche
+  const handleBenefSearchChange = (value: string) => {
+    setBenefSearch(value);
+    
+    // Débounce pour éviter trop d'appels API
+    if (benefSearchTimeout) {
+      clearTimeout(benefSearchTimeout);
+    }
+    
+    const timeout = setTimeout(() => {
+      if (value.length >= 2) {
+        searchBeneficiaires(value);
+      } else if (value.length === 0) {
+        setBeneficiairesList([]);
+      }
+    }, 500);
+    
+    setBenefSearchTimeout(timeout);
+  };
+
+  // useEffect(() => {
+  //   const token = localStorage.getItem("token");
+
+  //   axios.get(`${API_URL}/beneficiaires-rib`, {
+  //     headers: { Authorization: `Bearer ${token}` }
+  //   })
+  //   .then(res => setItems(res.data))
+  //   .catch(() => {});
+  // }, []);
+
   useEffect(() => {
     const loadData = async () => {
       setDataReady(false);
@@ -125,7 +174,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
       const headers = { Authorization: `Bearer ${token}` };
 
       try {
-        // Charger les listes (bénéficiaires + éléments + échéances + labels utiles)
         const [l, t, f, g] = await Promise.all([
           axios.get(`${API_URL}/elements-publics`, { headers }),
           axios.get(`${API_URL}/typeBeneficiaires-public`, { headers }),
@@ -136,10 +184,8 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         setTypes(t.data);
         setFonctions(f.data);
         setGrades(g.data);
-        // Indiquer que les listes sont chargées pour permettre le remplissage en mode édition
         setListsLoaded(true);
 
-        // Si mode édition
         if (paiementData) {
           setPaiement({
             BEN_CODE: paiementData.BEN_CODE || "",
@@ -163,7 +209,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     loadData();
   }, [paiementData]);
 
-  // Charger les détails après création du paiement
   useEffect(() => {
     if (paieCode) {
       const token = localStorage.getItem("token");
@@ -179,7 +224,26 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     }
   }, [paieCode]);
 
-  // Remplir les infos du bénéficiaire sélectionné (sexe / type / fonction / grade)
+  // useEffect(() => {
+  //   if (!paiement.BEN_CODE) {
+  //     setSelectedBenef(null);
+  //     setSelectedRib(null);
+  //     return;
+  //   }
+
+  //   const found = items.find(
+  //     (b) => String(b.BEN_CODE) === String(paiement.BEN_CODE)
+  //   );
+
+  //   setSelectedBenef(found || null);
+
+  //   const rib = found?.domiciliations?.find(d => d.DOM_STATUT) || null;
+  //   setSelectedRib(rib);
+
+  // }, [paiement.BEN_CODE, items]);
+
+  // Modifiez l'effet qui met à jour selectedBenef
+  
   useEffect(() => {
     if (!paiement.BEN_CODE) {
       setSelectedBenef(null);
@@ -187,24 +251,48 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
       return;
     }
 
-    const found = items.find(
-      (b) => String(b.BEN_CODE) === String(paiement.BEN_CODE)
-    );
+    const loadBenefDetails = async () => {
+      setLoadingBenefDetails(true);
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(`${API_URL}/beneficiaires-qp/${paiement.BEN_CODE}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        console.log("Données reçues:", response.data);
+        
+        // Pour la Solution 1 ou 2
+        setSelectedBenef(response.data);
+        
+        // Pour la Solution 3 (structure différente)
+        // setSelectedBenef(response.data.beneficiaire);
+        // const rib = response.data.domiciliations.find(...);
+        
+        // Adaptation pour la Solution 1 ou 2
+        if (response.data.domiciliations && response.data.domiciliations.length > 0) {
+          const rib = response.data.domiciliations.find((d: any) => d.DOM_STATUT === 3) || 
+                    response.data.domiciliations.find((d: any) => d.DOM_STATUT === 2) ||
+                    response.data.domiciliations[0];
+          setSelectedRib(rib);
+        } else {
+          setSelectedRib(null);
+        }
+        
+      } catch (error) {
+        console.error("Erreur:", error);
+      } finally {
+        setLoadingBenefDetails(false);
+      }
+    };
 
-    setSelectedBenef(found || null);
-
-    const rib = found?.domiciliations?.find(d => d.DOM_STATUT) || null;
-    setSelectedRib(rib);
-
-  }, [paiement.BEN_CODE, items]);
-
-  // Utilitaires d'affichage
+    loadBenefDetails();
+  }, [paiement.BEN_CODE]);
+  
   const getElementInfo = (code: string) => {
     const e = elements.find((ech) => String(ech.ELT_CODE).trim() === String(code).trim());
     return e ? `${e.ELT_LIBELLE || "_"}` : code;
   };
 
-  // Enregistrement bénéficiaire (étape 1)
   const handleNext = async () => {
     if (!paiement.BEN_CODE) {
       toast({
@@ -221,7 +309,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
     try {
       if (paiementData) {
-        // Mode modification
         await axios.put(`${API_URL}/paiements/${paiementData.PAI_CODE}`, paiement, { headers });
         toast({
           title: "Succès",
@@ -230,7 +317,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         });
         setStep(2);
       } else {
-        // Mode création
         const { data } = await axios.post(`${API_URL}/paiements`, paiement, { headers });
         toast({
           title: "Succès",
@@ -246,7 +332,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     } catch (error: any) {
       toast({
         title: "Erreur",
-        description: error.response?.data?.message || "Erreur lors de l’enregistrement.",
+        description: error.response?.data?.message || "Erreur lors de l'enregistrement.",
         variant: "destructive",
       });
     } finally {
@@ -254,7 +340,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     }
   };
 
-  // Met à jour le paiement avant de passer à l'étape 2
   const handleNextWithUpdate = async () => {
     if (!paieCode) 
       return toast({
@@ -294,8 +379,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     }
   };
 
-
-  // Ajouter ou modifier un paiement
   const handleAddDetailsPaiement = async () => {
     if (!paieCode) 
       return toast({
@@ -325,11 +408,9 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         { headers }
       );
 
-      // Rafraîchir la liste
       const list = await axios.get(`${API_URL}/details-paiement/${paieCode}`, { headers });
       setDetailsPaiements(list.data);
 
-      // Réinitialiser le formulaire
       setCurrentDetailsPaiements({
         DET_CODE: "",
         ELT_CODE: "",
@@ -345,7 +426,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     } catch (error: any) {
       toast({
         title: "Erreur",
-        description: error?.response?.data?.message || "Erreur lors de l’ajout.",
+        description: error?.response?.data?.message || "Erreur lors de l'ajout.",
         variant: "destructive",
       });
     } finally {
@@ -353,7 +434,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     }
   };
 
-  // Modifier un détail de paiement
   const handleEdit = (d: any) => {
     if (!d || !d.ELT_CODE) {
       toast({
@@ -380,7 +460,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     setEditId(d.DET_CODE);
   };
 
-  // Supprimer un détail de paiement
   const handleDelete = async () => {
     if (!selectedDetailsPaiement) return;
 
@@ -446,14 +525,11 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         setIsEditing(false);
         setEditId(null);
 
-      // Rafraîchir la liste
       const res = await axios.get(`${API_URL}/details-paiement/${paieCode}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Update local list with fresh data
       setDetailsPaiements(res.data);
 
-      // Réinitialiser le formulaire
       setCurrentDetailsPaiements({
         DET_CODE: "",
         ELT_CODE: "",
@@ -504,21 +580,18 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
           }
         );
   
-        //  Le backend demande confirmation
         if (data?.requiresConfirmation) {
           setValidateMessage(data.message);
           setOpenValidateDialog(true);
           return;
         }
   
-        //  Succès direct
         toast({
           title: "Succès",
           description: data.message,
           variant: "success",
         });
   
-        //  on laisse ton handleFinish EXISTANT gérer la suite
         handleFinish();
   
       } catch (err: any) {
@@ -557,8 +630,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         });
   
         setOpenValidateDialog(false);
-  
-        //  on appelle ton handleFinish existant
         handleFinish();
   
       } catch (err: any) {
@@ -571,75 +642,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         setLoadingValidation(false);
       }
     };
-
-  // ComboBox réutilisable
-  // const ComboBox = ({ label, items, value, onSelect, display, disabled = false }: any) => {
-  //   const [open, setOpen] = useState(false);
-  //   const selected = useMemo(() => {
-  //     return items.find(
-  //       (i: any) =>
-  //         i.BEN_CODE === value ||
-  //         i.ELT_CODE === value
-  //     );
-  //   }, [items, value]);
-
-  //   return (
-  //     <div>
-  //       <Label>{label}</Label>
-  //       <Popover open={open} onOpenChange={setOpen}>
-  //         <PopoverTrigger asChild>
-  //           <Button variant="outline" className="w-full justify-between truncate text-left" disabled={disabled}>
-  //             {selected ? (
-  //               <span className="truncate max-w-[230px]">{display(selected)}</span>
-  //             ) : (
-  //               <span className="text-muted-foreground">-- Sélectionner --</span>
-  //             )}
-  //             <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
-  //           </Button>
-  //         </PopoverTrigger>
-  //         {!disabled && (
-  //           // Popover responsive : full width on very small screens, constrained on larger
-  //           <PopoverContent className="p-0 w-full sm:w-[300px]">
-  //             <Command>
-  //               <CommandInput placeholder={`Rechercher ${label.toLowerCase()}...`} />
-  //               <CommandList>
-  //                 <CommandEmpty>Aucun résultat</CommandEmpty>
-  //                 <CommandGroup>
-  //                   {items.map((item: any) => (
-  //                     <CommandItem
-  //                       key={
-  //                         item.BEN_CODE ||
-  //                         item.ELT_CODE
-  //                       }
-  //                       onSelect={() => {
-  //                         onSelect(
-  //                           item.ELT_CODE ??
-  //                           item.BEN_CODE
-  //                         );
-  //                         setTimeout(() => setOpen(false), 100);
-  //                       }}
-  //                     >
-  //                       <Check
-  //                         className={`mr-2 h-4 w-4 ${value ===
-  //                           (
-  //                             item.BEN_CODE ||
-  //                             item.ELT_CODE)
-  //                           ? "opacity-100 text-blue-600"
-  //                           : "opacity-0"
-  //                           }`}
-  //                       />
-  //                       {display(item)}
-  //                     </CommandItem>
-  //                   ))}
-  //                 </CommandGroup>
-  //               </CommandList>
-  //             </Command>
-  //           </PopoverContent>
-  //         )}
-  //       </Popover>
-  //     </div>
-  //   );
-  // };
 
   const ComboBox = ({
     label,
@@ -667,7 +669,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
               variant="outline"
               className="w-full justify-between truncate text-left"
               disabled={disabled}
-              onClick={() => setOpen(true)} // s'assure que le popover s'ouvre au clic
+              onClick={() => setOpen(true)}
             >
               {selected ? (
                 <span className="truncate max-w-[230px]">{display(selected)}</span>
@@ -686,7 +688,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                   value={localSearch}
                   onValueChange={(v) => {
                     setLocalSearch(v);
-                    setOpen(true); // 🔹 garde le popover ouvert pendant la saisie
+                    setOpen(true);
                   }}
                   autoFocus
                 />
@@ -702,8 +704,8 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                           key={item.BEN_CODE || item.ELT_CODE}
                           onSelect={() => {
                             onSelect(item.ELT_CODE ?? item.BEN_CODE);
-                            setLocalSearch(""); // reset search
-                            setOpen(false);     // fermer après sélection
+                            setLocalSearch("");
+                            setOpen(false);
                           }}
                         >
                           <Check
@@ -726,34 +728,120 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     );
   };
 
+  const BeneficiaireComboBox = () => {
+    return (
+      <div className="space-y-1">
+        <Label>Bénéficiaire *</Label>
+        <Popover open={benefOpen} onOpenChange={setBenefOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full justify-between truncate text-left h-9"
+            >
+              {selectedBenef ? (
+                <span className="truncate">
+                  {selectedBenef.BEN_NOM} {selectedBenef.BEN_PRENOM || ""} 
+                  {selectedBenef.FON_LIBELLE && ` (${selectedBenef.FON_LIBELLE})`}
+                </span>
+              ) : (
+                <span className="text-muted-foreground">-- Sélectionner --</span>
+              )}
+              <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+            </Button>
+          </PopoverTrigger>
+
+          <PopoverContent 
+            className="p-0" 
+            style={{ width: 'var(--radix-popover-trigger-width)' }}
+            align="start"
+          >
+            <Command shouldFilter={false}>
+              <CommandInput
+                placeholder="Rechercher un bénéficiaire..."
+                value={benefSearch}
+                onValueChange={handleBenefSearchChange}
+                autoFocus
+              />
+              <CommandList>
+                {benefLoading && (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                  </div>
+                )}
+                
+                {!benefLoading && beneficiairesList.length === 0 && benefSearch.length >= 2 && (
+                  <CommandEmpty>Aucun bénéficiaire trouvé</CommandEmpty>
+                )}
+                
+                {!benefLoading && benefSearch.length < 2 && (
+                  <div className="py-6 text-center text-sm text-gray-500">
+                    Saisissez au moins 2 caractères
+                  </div>
+                )}
+                
+                <CommandGroup>
+                  {beneficiairesList.map((benef: any) => (
+                    <CommandItem
+                      key={benef.BEN_CODE}
+                      onSelect={() => {
+                        setPaiement({ ...paiement, BEN_CODE: benef.BEN_CODE });
+                        setBenefOpen(false);
+                        setBenefSearch("");
+                        setBeneficiairesList([]);
+                      }}
+                    >
+                      <Check
+                        className={`mr-2 h-4 w-4 ${
+                          paiement.BEN_CODE === benef.BEN_CODE
+                            ? "opacity-100 text-blue-600"
+                            : "opacity-0"
+                        }`}
+                      />
+                      <div className="flex flex-col w-full">
+                        <span className="font-medium">
+                          {benef.BEN_NOM} {benef.BEN_PRENOM || ""}
+                        </span>
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <span>Code: {benef.BEN_CODE}</span>
+                          <span className="ml-2 px-1.5 py-0.5 bg-blue-50 rounded">
+                            {benef.FON_LIBELLE || benef.FON_CODE || "Sans fonction"}
+                          </span>
+                        </div>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      </div>
+    );
+  };
+
   if (!dataReady && paiementData) {
     return <TableSkeletonWizard />;
   }
 
   return (
-    // Structure principale moderne et responsive
     <div className="w-full max-w-4xl lg:max-w-6xl mx-auto p-0 sm:p-8 bg-white rounded-xl shadow-lg ring-1 ring-gray-100">
-      {/* Wrapper full-height on mobile so header/footer can be sticky */}
       <div className="flex flex-col h-screen md:h-auto">
         <div className="p-1 sm:p-1">
-          {/* Titre principal */}
           <div className="text-center mb-3">
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide">
               {paiementData
-                ? "MODIFICATION DE LA QUOTE-PART D’UN BÉNÉFICIAIRE"
-                : "ENRÔLEMENT DE LA QUOTE-PART D’UN BÉNÉFICIAIRE"}
+                ? "MODIFICATION DE LA QUOTE-PART D'UN BÉNÉFICIAIRE"
+                : "ENRÔLEMENT DE LA QUOTE-PART D'UN BÉNÉFICIAIRE"}
             </h1>
 
             <p className="text-xs sm:text-sm text-gray-500 mt-1">
               {paiementData
                 ? "Mise à jour des informations de la quote-part d'un bénéficiaire"
-                : "Saisie et enregistrement d’une nouvelle quote-part d'un bénéficiaire"}
+                : "Saisie et enregistrement d'une nouvelle quote-part d'un bénéficiaire"}
             </p>
           </div>
 
-          {/* Entête dynamique */}
           <div className="relative mb-1 md:mb-2 sticky top-0 bg-white z-30 py-1">
-            {/* Barre de progression */}
             <div className="absolute top-5 left-0 w-full h-2 bg-gray-100 rounded-full">
               <motion.div
                 className="h-1 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full"
@@ -763,7 +851,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
               />
             </div>
 
-            {/* Étapes avec icônes et textes */}
             <div className="flex justify-between items-center relative z-10 gap-2 px-1">
               {stepTitles.map((title, index) => {
                 const isActive = step === index + 1;
@@ -797,84 +884,73 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
         </div>
 
-        {/* Contenu scrollable (évite de perdre l'entête et le footer sur mobile) */}
         <div className="flex-1 overflow-auto px-1 sm:px-2 pb-1">
 
-          {/* Étape 1 */}
           {step === 1 && (
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3 }}
             >
-              {/* Top: selectors (Bénéficiaire) */}
               <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {listsLoaded ? (
-                    <ComboBox
-                      label="Bénéficiaire *"
-                      items={items}
-                      value={paiement.BEN_CODE}
-                      onSelect={(v: any) => setPaiement({ ...paiement, BEN_CODE: v })}
-                      display={(t: any) => `${t.BEN_NOM} ${t.BEN_PRENOM || " "}`}
-                      onSearchChange={setSearch}
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-12 w-full space-x-2">
-                      <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
-                      <span className="text-gray-500 font-medium">Veuillez patienter...</span>
+                <BeneficiaireComboBox />
+
+                 {loadingBenefDetails && (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                     </div>
                   )}
-                </div>
 
-                {/* Info inputs: hidden until a beneficiary is selected */}
                 <div className={`transition-all duration-200 ${selectedBenef ? 'opacity-100 max-h-screen' : 'opacity-0 max-h-0 overflow-hidden'}`}>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-                    <div>
-                      <Label>Sexe</Label>
-                      <Input
-                        value={selectedBenef ? (selectedBenef.BEN_SEXE === 'M' ? 'Masculin' : selectedBenef.BEN_SEXE === 'F' ? 'Féminin' : '') : ''}
-                        readOnly
-                        disabled
-                        className="bg-gray-100 font-bold text-black h-9"
-                      />
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                    {/* Sexe */}
+                    <div className="bg-gray-50/80 rounded-lg p-2.5 border border-gray-100">
+                      <p className="text-[12px] text-gray-500 mb-0.5">Sexe</p>
+                      <p className="text-[12px] font-medium text-gray-800">
+                        {selectedBenef ? (
+                          selectedBenef.BEN_SEXE === 'M' ? 'Masculin' : 
+                          selectedBenef.BEN_SEXE === 'F' ? 'Féminin' : '-'
+                        ) : '-'}
+                      </p>
                     </div>
 
-                    <div>
-                      <Label>Type</Label>
-                      <Input
-                        value={selectedBenef ? (types.find(t => t.TYP_CODE === selectedBenef.TYP_CODE)?.TYP_LIBELLE || selectedBenef.TYP_CODE || '') : ''}
-                        readOnly
-                        disabled
-                        className="bg-gray-100 font-bold text-black h-9"
-                      />
+                    {/* Type */}
+                    <div className="bg-gray-50/80 rounded-lg p-2.5 border border-gray-100">
+                      <p className="text-[12px] text-gray-500 mb-0.5">Type</p>
+                      <p className="text-[12px] font-medium text-gray-800 truncate">
+                        {selectedBenef ? (
+                          types.find(t => t.TYP_CODE === selectedBenef.TYP_CODE)?.TYP_LIBELLE || 
+                          <span className="text-gray-400">{selectedBenef.TYP_CODE}</span>
+                        ) : '-'}
+                      </p>
                     </div>
 
-                    <div>
-                      <Label>Fonction</Label>
-                      <Input
-                        value={selectedBenef ? (fonctions.find(f => f.FON_CODE === selectedBenef.FON_CODE)?.FON_LIBELLE || selectedBenef.FON_CODE || '') : ''}
-                        readOnly
-                        disabled
-                        className="bg-gray-100 font-bold text-black h-9"
-                      />
+                    {/* Fonction */}
+                    <div className="bg-gray-50/80 rounded-lg p-2.5 border border-gray-100">
+                      <p className="text-[12px] text-gray-500 mb-0.5">Fonction</p>
+                      <p className="text-[12px] font-medium text-gray-800 truncate">
+                        {selectedBenef ? (
+                          fonctions.find(f => f.FON_CODE === selectedBenef.FON_CODE)?.FON_LIBELLE || 
+                          <span className="text-gray-400">{selectedBenef.FON_CODE}</span>
+                        ) : '-'}
+                      </p>
                     </div>
 
-                    <div>
-                      <Label>Grade</Label>
-                      <Input
-                        value={selectedBenef ? (grades.find(g => g.GRD_CODE === selectedBenef.GRD_CODE)?.GRD_LIBELLE || selectedBenef.GRD_CODE || '') : ''}
-                        readOnly
-                        disabled
-                        className="bg-gray-100 font-bold text-black h-9"
-                      />
+                    {/* Grade */}
+                    <div className="bg-gray-50/80 rounded-lg p-2.5 border border-gray-100">
+                      <p className="text-[12px] text-gray-500 mb-0.5">Grade</p>
+                      <p className="text-[12px] font-medium text-gray-800 truncate">
+                        {selectedBenef ? (
+                          grades.find(g => g.GRD_CODE === selectedBenef.GRD_CODE)?.GRD_LIBELLE || 
+                          <span className="text-gray-400">{selectedBenef.GRD_CODE}</span>
+                        ) : '-'}
+                      </p>
                     </div>
                   </div>
                     {selectedBenef && (
                       <div className="mt-4 rounded-lg border bg-gray-50 p-4">
                         <div className="flex flex-wrap items-start justify-start gap-10 text-sm">
 
-                          {/* Banque */}
                           <div className="flex flex-col items-start min-w-[100px]">
                             <span className="font-semibold text-gray-500">Banque</span>
                             <span className="mt-2 font-medium">
@@ -882,7 +958,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                             </span>
                           </div>
 
-                          {/* Guichet */}
                           <div className="flex flex-col items-start min-w-[100px]">
                             <span className="font-semibold text-gray-500">Guichet</span>
                             <span className="mt-2 font-medium">
@@ -890,7 +965,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                             </span>
                           </div>
 
-                          {/* N° Compte */}
                           <div className="flex flex-col items-start min-w-[120px]">
                             <span className="font-semibold text-gray-500">N° Compte</span>
                             <span className="mt-2 font-medium">
@@ -898,7 +972,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                             </span>
                           </div>
 
-                          {/* Clé RIB */}
                           <div className="flex flex-col items-start min-w-[80px]">
                             <span className="font-semibold text-gray-500">Clé RIB</span>
                             <span className="mt-2 font-medium">
@@ -906,17 +979,16 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                             </span>
                           </div>
 
-                         {/* RIB statut */}
                           <div className="flex flex-col items-start min-w-[80px]">
                             <span className="font-semibold text-gray-500">Statut</span>
                             <span
                               className={`mt-2 font-medium px-2 py-0.5 rounded-full text-xs
                                 ${
                                   selectedRib?.DOM_STATUT === 2
-                                    ? "bg-orange-100 text-orange-700"   // en cours d'approbation
+                                    ? "bg-orange-100 text-orange-700"
                                     : selectedRib?.DOM_STATUT === 3
-                                    ? "bg-green-100 text-green-700"    // approuvé
-                                    : "bg-gray-100 text-gray-500"      // aucun ou autre
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-gray-100 text-gray-500"
                                 }`}
                             >
                               {selectedRib?.DOM_STATUT === 2
@@ -926,28 +998,8 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                                 : "_"}
                             </span>
                           </div>
-
-                          {/* Bouton ajouter / modifier RIB (TOUJOURS visible) */}
-                          {/* <div className="ml-auto mt-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="
-                                rounded-full
-                                text-blue-600
-                                hover:bg-blue-100 hover:text-blue-700
-                                transition
-                              "
-                              onClick={() => {   }}
-                              title={selectedRib ? "Modifier le RIB" : "Ajouter un RIB"}
-                            >
-                              <PlusCircle className="w-5 h-5" />
-                            </Button>
-                          </div> */}
-
                         </div>
 
-                        {/* Message informatif si aucun RIB */}
                         {!selectedRib && (
                           <div className="mt-3 text-xs text-orange-600 italic">
                             Aucun RIB enregistré pour ce bénéficiaire.
@@ -957,7 +1009,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                     )}
                 </div>
 
-                {/* Buttons placed at the bottom of the block */}
                 <div className="mt-6 flex justify-end">
                   {paiementData ? (
                     <Button 
@@ -991,14 +1042,12 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
             </motion.div>
           )}
 
-          {/* Étape 2 */}
           {step === 2 && (
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3 }}
             >
-              {/* Formulaire d'ajout/modification : responsive (1 / 2 / 3 colonnes) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-3">
 
                 <ComboBox
@@ -1030,7 +1079,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                     step={1}
                     value={currentDetailsPaiements.PAI_MONTANT}
                     onChange={(e) => {
-                      // keep only digits (integers in F CFA). Store as string to avoid controlled/uncontrolled issues
                       const raw = e.target.value;
                       const sanitized = raw.replace(/[^0-9.-]/g, "");
                       setCurrentDetailsPaiements({ ...currentDetailsPaiements, PAI_MONTANT: sanitized });
@@ -1056,7 +1104,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                   </div>
                 )}
 
-                {/* actions */}
                 <div className="md:col-span-3 mt-1 flex flex-col sm:flex-row items-start sm:items-center gap-3">
 
                   <div className="flex-1" />
@@ -1114,9 +1161,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                 </div>
               </div>
 
-              {/* Scrollable details container: only this area scrolls so header and buttons stay visible */}
               <div className="overflow-auto max-h-[48vh] md:max-h-[36vh] mb-3 touch-pan-y">
-                {/* Controls: rows per page + simple pagination */}
                 <div className="flex items-center justify-between mb-2">
                   <div />
                   <div className="flex items-center gap-3">
@@ -1156,12 +1201,10 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                     </div>
                   </div>
                 </div>
-                {/* Vue mobile (cards) */}
                 <div className="flex flex-col gap-2 md:hidden">
                   {detailsPaiement.length === 0 ? (
                       <div className="p-4 bg-gray-50 rounded-md text-center text-gray-500">Aucun détail ajouté.</div>
                     ) : (
-                      // simple paging for mobile cards
                       detailsPaiement
                         .slice((page - 1) * rowsPerPage, page * rowsPerPage)
                         .map((d, i) => (
@@ -1186,13 +1229,12 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                   )}
                 </div>
 
-                {/* Tableau desktop */}
                 <div className="hidden md:block rounded-xl border bg-white shadow-sm">
                   <div className="overflow-auto max-h-[36vh]">
                     <table className="min-w-full divide-y divide-gray-100 text-sm">
                       <thead className="bg-gray-50 sticky top-0 z-10">
                         <tr>
-                          <th className="px-3 py-2 text-left">Elémet</th>
+                          <th className="px-3 py-2 text-left">Elément</th>
                           <th className="px-3 py-2 text-left">Montant en F CFA</th>
                           <th className="px-3 py-2 text-left">Sens</th>
                           <th className="px-3 py-2 text-right">Actions</th>
@@ -1204,7 +1246,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                             <td colSpan={6} className="text-center text-gray-500 py-4">Aucun détail ajouté.</td>
                           </tr>
                         ) : (
-                          // simple paging for desktop table
                           detailsPaiement
                             .slice((page - 1) * rowsPerPage, page * rowsPerPage)
                             .map((d, i) => (
@@ -1244,7 +1285,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                 </div>
               </div>
 
-              {/* Boutons de navigation (desktop) */}
               <div className="flex flex-col md:flex-row justify-between mt-6 gap-2">
                 <Button
                   className="bg-blue-600 hover:bg-blue-700 text-white w-full md:w-auto"

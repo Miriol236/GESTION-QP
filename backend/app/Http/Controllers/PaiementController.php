@@ -119,6 +119,7 @@ class PaiementController extends Controller
     public function getBenStatus(Request $request)
     {
         $search = $request->search;
+        $limit = $request->limit ?? 20;
 
         $beneficiaires = Beneficiaire::with([
             'domiciliations' => function ($query) {
@@ -142,38 +143,80 @@ class PaiementController extends Controller
             });
         })
         ->orderBy('BEN_CODE', 'desc')
-        // ->limit($search ? 1000 : 20)
+        ->limit($limit)
         ->get();
 
         return response()->json($beneficiaires);
     }
-    // public function getBenStatus()
-    // {
-    //     $user = auth()->user();
 
-    //     if (!$user) {
-    //         return response()->json(['message' => 'Utilisateur non authentifié.'], 401);
-    //     }
+    public function rechercheBeneficiaires(Request $request)
+    {
+        $search = $request->search;
+        $limit = $request->limit ?? 20;
 
-    //     $beneficiaires = Beneficiaire::with([
-    //         'domiciliations' => function ($query) {
-    //             $query->whereIn('DOM_STATUT', [2, 3])
-    //                 ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
-    //                 ->leftJoin('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
-    //                 ->select(
-    //                     't_domiciliers.*',
-    //                     't_banques.BNQ_LIBELLE',
-    //                     't_guichets.GUI_NOM',
-    //                     't_guichets.GUI_CODE'
-    //                 );
-    //         }
-    //     ])
-    //     ->where('POS_CODE', '01') // Position spécifique
-    //     ->orderBy('BEN_CODE', 'desc')
-    //     ->get();
+        $beneficiaires = Beneficiaire::where('t_beneficiaires.POS_CODE', '01')
+            ->leftJoin('t_fonctions', 't_fonctions.FON_CODE', '=', 't_beneficiaires.FON_CODE')
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->whereRaw('LOWER(t_beneficiaires.BEN_CODE) LIKE ?', ['%' . strtolower($search) . '%'])
+                    ->orWhereRaw('LOWER(t_beneficiaires.BEN_NOM) LIKE ?', ['%' . strtolower($search) . '%'])
+                    ->orWhereRaw('LOWER(t_beneficiaires.BEN_PRENOM) LIKE ?', ['%' . strtolower($search) . '%'])
+                    ->orWhereRaw('LOWER(CONCAT(t_beneficiaires.BEN_NOM, " ", t_beneficiaires.BEN_PRENOM)) LIKE ?', ['%' . strtolower($search) . '%']);
+                });
+            })
+            ->orderBy('t_beneficiaires.BEN_CODE', 'desc')
+            ->limit($limit)
+            ->select(
+                't_beneficiaires.BEN_CODE', 
+                't_beneficiaires.BEN_NOM', 
+                't_beneficiaires.BEN_PRENOM', 
+                't_beneficiaires.BEN_SEXE', 
+                't_beneficiaires.TYP_CODE', 
+                't_beneficiaires.FON_CODE', 
+                't_beneficiaires.GRD_CODE',
+                't_fonctions.FON_LIBELLE'
+            )
+            ->get();
 
-    //     return response()->json($beneficiaires);
-    // }
+        return response()->json($beneficiaires);
+    }
+
+    public function getBeneficiaireDetails($code)
+    {
+        try {
+            // Récupérer le bénéficiaire
+            $beneficiaire = Beneficiaire::where('BEN_CODE', $code)
+                ->where('POS_CODE', '01')
+                ->first();
+
+            if (!$beneficiaire) {
+                return response()->json(['message' => 'Bénéficiaire non trouvé'], 404);
+            }
+
+            // Récupérer les domiciliations avec jointures
+            $domiciliations = DB::table('t_domiciliers')
+                ->where('t_domiciliers.BEN_CODE', $code)
+                ->whereIn('t_domiciliers.DOM_STATUT', [2, 3])
+                ->leftJoin('t_banques', 't_banques.BNQ_CODE', '=', 't_domiciliers.BNQ_CODE')
+                ->leftJoin('t_guichets', 't_guichets.GUI_ID', '=', 't_domiciliers.GUI_ID')
+                ->select(
+                    't_domiciliers.*',
+                    't_banques.BNQ_LIBELLE',
+                    't_guichets.GUI_NOM',
+                    't_guichets.GUI_CODE'
+                )
+                ->get();
+
+            // Convertir le bénéficiaire en tableau et ajouter les domiciliations
+            $result = $beneficiaire->toArray();
+            $result['domiciliations'] = $domiciliations;
+
+            return response()->json($result);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 
     /**
      * @OA\Get(
