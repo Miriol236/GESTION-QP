@@ -1715,19 +1715,6 @@ export default function BeneficiaireWizard({
                                   <FileDown className="w-4 h-4 text-green-500" />
                                 </Button>
                               )}
-                              {/* {d.DOM_FICHIER && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDownloadRib(d.DOM_CODE);
-                                  }}
-                                  title="Télécharger le fichier"
-                                >
-                                  <FileDown className="w-4 h-4 text-green-500" />
-                                </Button>
-                              )} */}
                               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleEdit(d)}} title="Modifier le RIB">
                                 <Edit className="w-4 h-4 text-blue-500" />
                               </Button>

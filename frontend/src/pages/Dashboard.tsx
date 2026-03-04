@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Filter, Check, ChevronDown, DollarSign, CheckCheck, Users } from "lucide-react";
+import { Filter, Check, ChevronDown, DollarSign, CheckCheck, Users, PieChart, BarChart3, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { API_URL } from "@/config/api";
 import axios from "axios";
@@ -290,104 +290,160 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* FILTRES */}
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div className="flex flex-col sm:flex-row gap-3">
         {/* Échéances */}
         {echeances.length > 0 && (
           <Popover open={echeanceOpen} onOpenChange={setEcheanceOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                size="sm"
-                className="px-2 py-1 flex items-center gap-2 justify-between w-full sm:w-auto"
+                className="group relative overflow-hidden bg-white/90 backdrop-blur-sm border-gray-200 hover:border-blue-300 hover:bg-white transition-all duration-300 px-4 py-2 h-auto shadow-sm hover:shadow-md"
               >
-                <Filter className="h-4 w-4 text-gray-500" />
-
-                <span className="text-gray-600 text-xs font-medium">
-                  Filtre :
-                </span>
-
-                <span className="font-semibold truncate">
-                  {selectedEcheance
-                    ? echeances.find((e) => e.ECH_CODE === selectedEcheance)?.ECH_LIBELLE
-                    : "Échéance en cours..."}
-                </span>
-
-                <ChevronDown className="h-4 w-4" />
+                {/* Effet de brillance au survol */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                
+                {/* Contenu */}
+                <div className="relative flex items-center gap-3">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 group-hover:bg-blue-100 transition-colors">
+                    <Filter className="h-3.5 w-3.5 text-blue-600" />
+                  </div>
+                  
+                  <span className="text-gray-600 text-sm font-medium">Filtre</span>
+                  
+                  <div className="h-4 w-px bg-gray-200 group-hover:bg-blue-200 transition-colors"></div>
+                  
+                  <span className="font-semibold text-sm text-gray-800 max-w-[150px] truncate">
+                    {selectedEcheance
+                      ? echeances.find((e) => e.ECH_CODE === selectedEcheance)?.ECH_LIBELLE
+                      : "Échéance en cours"}
+                  </span>
+                  
+                  <ChevronDown className="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors duration-300" />
+                </div>
               </Button>
             </PopoverTrigger>
 
-            <PopoverContent className="p-0 w-[220px] sm:w-[250px]">
-              <Command className="min-w-[230px] sm:min-w-[260px] max-w-[380px]">
-                <CommandInput placeholder="Rechercher..." />
-                <CommandList>
+            <PopoverContent className="p-0 w-[280px] overflow-hidden rounded-xl border-0 shadow-xl" align="start">
+              <Command className="rounded-xl">
+                <div className="relative">
+                  <CommandInput 
+                    placeholder="Rechercher une échéance..." 
+                    className="border-0 focus:ring-0 h-11 px-3 text-sm"
+                  />
+                </div>
+                <CommandList className="max-h-[300px]">
                   <CommandGroup>
                     <CommandItem
                       onSelect={() => {
                         setSelectedEcheance(null);
-                        setEcheanceOpen(false); // ferme le Popover
+                        setEcheanceOpen(false);
                       }}
+                      className="cursor-pointer hover:bg-blue-50 transition-colors px-3 py-2.5 group"
                     >
-                      <Check className={`${!selectedEcheance ? "opacity-100" : "opacity-0"} mr-2`} />
-                      Par défaut
+                      <div className="flex items-center w-full">
+                        <Check 
+                          className={`${!selectedEcheance ? "opacity-100 text-blue-600" : "opacity-0"} mr-3 h-4 w-4 transition-opacity`} 
+                        />
+                        <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700 transition-colors">
+                          Par défaut
+                        </span>
+                      </div>
                     </CommandItem>
+                    
                     {echeances.map((e, idx) => (
                       <CommandItem
                         key={idx}
                         onSelect={() => {
                           setSelectedEcheance(e.ECH_CODE);
-                          setEcheanceOpen(false); // ferme le Popover
+                          setEcheanceOpen(false);
                         }}
+                        className="cursor-pointer hover:bg-blue-50 transition-colors px-3 py-2.5 group"
                       >
-                        <Check
-                          className={`${selectedEcheance === e.ECH_CODE ? "opacity-100" : "opacity-0"} mr-2`}
-                        />
-                        {e.ECH_LIBELLE}
+                        <div className="flex items-center w-full">
+                          <Check
+                            className={`${selectedEcheance === e.ECH_CODE ? "opacity-100 text-blue-600" : "opacity-0"} mr-3 h-4 w-4 transition-opacity`}
+                          />
+                          <div className="flex-1">
+                            <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700 transition-colors">
+                              {e.ECH_LIBELLE}
+                            </span>
+                          </div>
+                        </div>
                       </CommandItem>
                     ))}
                   </CommandGroup>
                 </CommandList>
+                
+                {/* Pied de liste avec compteur */}
+                <div className="border-t border-gray-100 px-3 py-2">
+                  <p className="text-xs text-gray-400">
+                    {echeances.length} échéance{echeances.length > 1 ? 's' : ''} disponible{echeances.length > 1 ? 's' : ''}
+                  </p>
+                </div>
               </Command>
             </PopoverContent>
           </Popover>
         )}
 
-        {/* Régies */}        
-        {/* Filtre Régie : visible uniquement pour les utilisateurs sans régie */}
+        {/* Régies */}
         {showRegieFilter && regies.length > 0 && (
           <Popover open={regieOpen} onOpenChange={setRegieOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                size="sm"
-                className="px-2 py-1 flex justify-between w-full sm:w-auto"
+                className="group relative overflow-hidden bg-white/90 backdrop-blur-sm border-gray-200 hover:border-purple-300 hover:bg-white transition-all duration-300 px-4 py-2 h-auto shadow-sm hover:shadow-md"
               >
-                <Filter className="h-4 w-4 text-gray-500" />
-
-                <span className="text-gray-600 text-xs font-medium">
-                  Filtre :
-                </span>
-
-                {selectedRegie
-                  ? regies.find((r) => r.REG_CODE === selectedRegie)?.REG_SIGLE
-                  : "Toutes les Régies"}
-                <ChevronDown className="ml-2 h-4 w-4" />
+                {/* Effet de brillance au survol */}
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                
+                {/* Contenu */}
+                <div className="relative flex items-center gap-3">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-50 group-hover:bg-purple-100 transition-colors">
+                    <Filter className="h-3.5 w-3.5 text-purple-600" />
+                  </div>
+                  
+                  <span className="text-gray-600 text-sm font-medium">Filtre</span>
+                  
+                  <div className="h-4 w-px bg-gray-200 group-hover:bg-purple-200 transition-colors"></div>
+                  
+                  <span className="font-semibold text-sm text-gray-800 max-w-[150px] truncate">
+                    {selectedRegie
+                      ? regies.find((r) => r.REG_CODE === selectedRegie)?.REG_SIGLE
+                      : "Toutes les régies"}
+                  </span>
+                  
+                  <ChevronDown className="h-4 w-4 text-gray-400 group-hover:text-purple-600 transition-colors duration-300" />
+                </div>
               </Button>
             </PopoverTrigger>
 
-            <PopoverContent className="p-0 w-[220px] sm:w-[250px]">
-              <Command className="min-w-[230px] sm:min-w-[260px] max-w-[380px]">
-                <CommandInput placeholder="Rechercher..." />
-                <CommandList>
+            <PopoverContent className="p-0 w-[280px] overflow-hidden rounded-xl border-0 shadow-xl" align="start">
+              <Command className="rounded-xl">
+                <div className="relative">
+                  <CommandInput 
+                    placeholder="Rechercher une régie..." 
+                    className="border-0 focus:ring-0 h-11 px-3 text-sm"
+                  />
+                </div>
+                <CommandList className="max-h-[300px]">
                   <CommandGroup>
                     <CommandItem
                       onSelect={() => {
                         setSelectedRegie(null);
                         setRegieOpen(false);
                       }}
+                      className="cursor-pointer hover:bg-purple-50 transition-colors px-3 py-2.5 group"
                     >
-                      <Check className={`${!selectedRegie ? "opacity-100" : "opacity-0"} mr-2`} />
-                      Par défaut
+                      <div className="flex items-center w-full">
+                        <Check 
+                          className={`${!selectedRegie ? "opacity-100 text-purple-600" : "opacity-0"} mr-3 h-4 w-4 transition-opacity`} 
+                        />
+                        <span className="text-sm font-medium text-gray-700 group-hover:text-purple-700 transition-colors">
+                          Toutes les régies
+                        </span>
+                      </div>
                     </CommandItem>
+                    
                     {regies.map((r, idx) => (
                       <CommandItem
                         key={idx}
@@ -395,20 +451,39 @@ export default function Dashboard() {
                           setSelectedRegie(r.REG_CODE);
                           setRegieOpen(false);
                         }}
+                        className="cursor-pointer hover:bg-purple-50 transition-colors px-3 py-2.5 group"
                       >
-                        <Check
-                          className={`${selectedRegie === r.REG_CODE ? "opacity-100" : "opacity-0"} mr-2`}
-                        />
-                        {r.REG_SIGLE}
+                        <div className="flex items-center w-full">
+                          <Check
+                            className={`${selectedRegie === r.REG_CODE ? "opacity-100 text-purple-600" : "opacity-0"} mr-3 h-4 w-4 transition-opacity`}
+                          />
+                          <div className="flex-1">
+                            <span className="text-sm font-medium text-gray-700 group-hover:text-purple-700 transition-colors">
+                              {r.REG_SIGLE}
+                            </span>
+                            {r.REG_LIBELLE && (
+                              <span className="ml-2 text-xs text-gray-400">
+                                {r.REG_LIBELLE}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </CommandItem>
                     ))}
                   </CommandGroup>
                 </CommandList>
+                
+                {/* Pied de liste avec compteur */}
+                <div className="border-t border-gray-100 px-3 py-2">
+                  <p className="text-xs text-gray-400">
+                    {regies.length} régie{regies.length > 1 ? 's' : ''} disponible{regies.length > 1 ? 's' : ''}
+                  </p>
+                </div>
               </Command>
             </PopoverContent>
           </Popover>
         )}
-      </div>     
+      </div> 
 
       {/* CARDS STATISTIQUES */}
       <div className="grid gap-2 
@@ -462,26 +537,45 @@ export default function Dashboard() {
           {/* PIE – Total gain par régie */}
           {hasPieRegieData && (
             <div className="backdrop-blur-sm bg-sky-100 rounded-2xl border border-white/20 shadow-xl shadow-gray-200/50 hover:shadow-2xl transition-all duration-300">
-              <div className="p-5 pb-2 border-b border-gray-100/50">
+              {/* En-tête modernisé */}
+              <div className="relative p-6 pb-3 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-sky-500 rounded-full animate-pulse"></div>
-                    <h3 className="text-[14px] font-semibold text-gray-800">
-                      Répartition par Régie
-                    </h3>
+                  <div className="flex items-center gap-3">
+                    {/* Icône moderne avec fond dégradé */}
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-sky-500/20 rounded-xl blur-md group-hover:blur-lg transition-all"></div>
+                      <div className="relative w-10 h-10 bg-gradient-to-br from-sky-500 to-sky-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                        <PieChart className="h-5 w-5 text-white" />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+                        Répartition par Régie
+                        <span className="px-2 py-0.5 bg-sky-100 text-sky-700 rounded-full text-[10px] font-medium">
+                          Détail
+                        </span>
+                      </h3>
+                      <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                        <span className="w-1 h-1 bg-sky-500 rounded-full"></span>
+                        Montants bruts et nets
+                      </p>
+                    </div>
                   </div>
-                  {/* Badge avec le nombre de régies */}
-                  <span className="text-[12px] bg-white text-primary px-2 py-1 rounded-full font-medium">
-                    {user?.regie
-                      ? user.regie.REG_SIGLE
-                      : `${pieRegieData?.labels?.length || 0} régie${
-                          (pieRegieData?.labels?.length || 0) > 1 ? "s" : ""
-                        }`}
-                  </span>
+                  
+                  {/* Badge amélioré */}
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-white/50 rounded-full blur-sm"></div>
+                    <span className="relative px-4 py-2 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full text-xs font-semibold text-gray-700 shadow-sm flex items-center gap-2">
+                      <Users className="h-3.5 w-3.5 text-sky-600" />
+                      {user?.regie
+                        ? user.regie.REG_SIGLE
+                        : `${pieRegieData?.labels?.length || 0} régie${
+                            (pieRegieData?.labels?.length || 0) > 1 ? "s" : ""
+                          }`}
+                    </span>
+                  </div>
                 </div>
-                <p className="text-[12px] text-gray-500 mt-1 ml-4">
-                  Montants bruts et nets
-                </p>
               </div>
 
               <div className="p-4 h-[380px]">
@@ -557,26 +651,43 @@ export default function Dashboard() {
           {/* PIE – Paiements */}
           {hasChartData && (
             <div className="backdrop-blur-sm bg-sky-100 rounded-2xl border border-white/20 shadow-xl shadow-gray-200/50 hover:shadow-2xl transition-all duration-300">
-              <div className="p-5 pb-2 border-b border-gray-100/50">
+              {/* En-tête modernisé */}
+              <div className="relative p-6 pb-3 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                    <h3 className="text-[14px] font-semibold text-gray-800">
-                      Situation des Paiements
-                    </h3>
+                  <div className="flex items-center gap-3">
+                    {/* Icône moderne avec fond dégradé */}
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-emerald-500/20 rounded-xl blur-md group-hover:blur-lg transition-all"></div>
+                      <div className="relative w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                        <BarChart3 className="h-5 w-5 text-white" />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+                        Situation des Paiements
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-medium">
+                          Synthèse
+                        </span>
+                      </h3>
+                      <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                        <span className="w-1 h-1 bg-emerald-500 rounded-full"></span>
+                        Montants virés et non virés
+                      </p>
+                    </div>
                   </div>
-                  {/* Badge avec le nombre de régies */}
-                  <span className="text-[12px] bg-white text-primary px-2 py-1 rounded-full font-medium">
-                    {user?.regie
-                      ? user.regie.REG_SIGLE
-                      : `${pieRegieData?.labels?.length || 0} régie${
-                          (pieRegieData?.labels?.length || 0) > 1 ? "s" : ""
-                        }`}
-                  </span>
+                  
+                  {/* Badge amélioré */}
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-white/50 rounded-full blur-sm"></div>
+                    <span className="relative px-4 py-2 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full text-xs font-semibold text-gray-700 shadow-sm flex items-center gap-2">
+                      <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                      {user?.regie
+                        ? user.regie.REG_SIGLE
+                        : "Global"}
+                    </span>
+                  </div>
                 </div>
-                <p className="text-[12px] text-gray-500 mt-1 ml-4">
-                  Montants virés et non virés
-                </p>
               </div>
 
               <div className="p-4 h-[380px]">

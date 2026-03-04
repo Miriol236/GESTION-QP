@@ -10,7 +10,7 @@ import PaiementWizard from "./PaiementWizard";
 import GenerateFromOldEcheanceModal from "./GenerateFromOldEcheanceModal";
 import { API_URL } from "@/config/api";
 import { TableSkeleton } from "@/components/loaders/TableSkeleton";
-import { User, DollarSign, CheckCheck, Banknote, Search, X, Filter } from "lucide-react";
+import { User, DollarSign, CheckCheck, Banknote, Search, X, Filter, Square, SquareSigma, DollarSignIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import PaiementPreviewModal from "./PaiementPreviewModal";
 import PaiementExportModal from "./PaiementExportModal";
@@ -694,8 +694,22 @@ export default function Paiements() {
       {/* En-tête */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-xl font-bold text-primary">
-            Gestion des paiements des quotes-parts</h1>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200">
+              <DollarSignIcon className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold text-gray-800">
+                  Gestion des paiements des quotes-parts
+                </h1>
+              </div>
+              <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                <span className="w-1 h-1 bg-emerald-500 rounded-full"></span>
+                Suivi et validation des paiements
+              </p>
+            </div>
+          </div>
 
             <div className="flex gap-2">
               <PaiementExportModal

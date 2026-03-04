@@ -1285,7 +1285,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
               </div>
 
               <div className="flex flex-col md:flex-row justify-between mt-6 gap-2">
-                <Button
+                {/* <Button
                   className="bg-blue-600 hover:bg-blue-700 text-white w-full md:w-auto"
                   onClick={() => setStep(1)}
                 >
@@ -1297,7 +1297,25 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                     <ArrowLeft className="w-4 h-4" />
                   </motion.div>
                   Précédent
-                </Button>
+                </Button> */}
+                {/* Précédent : seulement en modification */}
+                {paiementData ? (
+                  <Button
+                    className="bg-blue-600 hover:bg-blue-700 text-white w-full md:w-auto"
+                    onClick={() => setStep(1)}
+                  >
+                    <motion.div
+                      animate={{ x: [0, -3, 0] }}
+                      transition={{ repeat: Infinity, duration: 1 }}
+                      className="mr-2"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                    </motion.div>
+                    Précédent
+                  </Button>
+                ) : (
+                  <div />   // garde l’alignement du bouton Terminer à droite
+                )}
                 <Button
                   onClick={handleFinishValidation}
                   disabled={loading}

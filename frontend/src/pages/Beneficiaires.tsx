@@ -283,12 +283,16 @@ export default function Beneficiaires() {
     },
     {
       key: "BEN_NOM",
-      title: "BENEFICIAIRE",
+      title: "BÉNÉFICIAIRE",
       render: (_, row) => (
-        <div>
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-primary" />
-            <span>{row.BEN_NOM} {row.BEN_PRENOM}</span>
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col">
+            <span className="font-semibold text-gray-800 text-sm">
+              {row.BEN_NOM} {row.BEN_PRENOM}
+            </span>
+            <span className="text-xs text-gray-500">
+              {row.BEN_MATRICULE || "Sans matricule"}
+            </span>
           </div>
         </div>
       ),
@@ -392,8 +396,17 @@ export default function Beneficiaires() {
       {/* En-tête */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-xl font-bold text-primary">
-            Gestion des bénéficiaires et leurs informations bancaires</h1>
+          <div className="space-y-1 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-1 h-7 bg-blue-600 rounded-full"></div>
+              <h1 className="text-2xl font-family tracking-wide text-gray-800">
+                Gestion des bénéficiaires des quotes-parts
+              </h1>
+            </div>
+            <p className="text-sm text-gray-500 pl-4">
+              Informations personnelles et bancaires
+            </p>
+          </div>
 
             <div className="flex gap-2">
               <BeneficiaireExportModal
