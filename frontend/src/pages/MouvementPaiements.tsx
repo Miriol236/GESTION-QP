@@ -282,35 +282,35 @@ const handleConfirmRejetStatus = async (motif: string) => {
       key: "BENEFICIAIRE",
       title: "BÉNÉFICIAIRE",
       render: (value: string) => (
-        <span className="font-medium text-gray-800">{value}</span>
+        <span className="font-medium text-foreground dark:text-foreground">{value}</span>
       ),
     },
     {
       key: "BANQUE",
       title: "BANQUE",
         render: (value: string) => (
-            <span className="font-medium text-gray-800">{value || "_"}</span>
+            <span className="font-medium text-foreground dark:text-foreground">{value || "_"}</span>
         ),
     },
     {
       key: "GUICHET",
       title: "GUICHET",
       render: (value: string) => (
-        <span className="font-medium text-gray-800">{value || "_"}</span>
+        <span className="font-medium text-foreground dark:text-foreground">{value || "_"}</span>
       ),
     },
     {
       key: "NUMCPT",
       title: "N° COMPTE",
       render: (value: string) => (
-        <span className="font-medium text-gray-800">{value || "_"}</span>
+        <span className="font-medium text-foreground dark:text-foreground">{value || "_"}</span>
       ),
     },
     {
       key: "RIB",
       title: "CLE RIB",
       render: (value: string) => (
-        <span className="font-medium text-gray-800">{value || "_"}</span>
+        <span className="font-medium text-foreground dark:text-foreground">{value || "_"}</span>
       ),
     },
     {
@@ -318,7 +318,7 @@ const handleConfirmRejetStatus = async (motif: string) => {
       title: "NET A PAYER",
       render: (value) => (
         <div className="text-right">
-          <span className="font-medium">
+          <span className="font-medium text-foreground dark:text-foreground">
             {value != null ? Number(value).toLocaleString("fr-FR") : "—"}
           </span>
         </div>
@@ -328,14 +328,14 @@ const handleConfirmRejetStatus = async (motif: string) => {
       key: "MVT_DATE",
       title: "DATE MOUVEMENT",
       render: (value: string) => (
-        <span className="font-medium text-gray-800">{value || "_"}</span>
+        <span className="font-medium text-foreground dark:text-foreground">{value || "_"}</span>
       ),
     },
     {
       key: "MVT_CREER_PAR",
       title: "GESTIONNAIRE",
       render: (value: string) => (
-        <span className="font-semibold text-gray-700">{value || "—"}</span>
+        <span className="font-semibold text-foreground dark:text-foreground">{value || "—"}</span>
       ),
     },
   ];
@@ -343,18 +343,18 @@ const handleConfirmRejetStatus = async (motif: string) => {
   if (isLoading) return <TableSkeleton />;
 
   return (
-  <div className="space-y-6 overflow-hidden h-full">
+  <div className="space-y-6 overflow-hidden h-full bg-background dark:bg-background">
     {/* En-tête */}
     <div className="flex justify-between items-start">
       <div>
-        <h1 className="text-xl font-bold text-primary">
-          Liste  des paiements des bénéficiaires en attente d'approbaton
+        <h1 className="text-xl font-bold text-foreground dark:text-foreground">
+          Liste des paiements des bénéficiaires en attente d'approbation
         </h1>
       </div>
     </div>
 
     {/* Liste des bénéficiaires */}
-    <Card > 
+    <Card className="bg-card dark:bg-card border-border dark:border-border"> 
       <DataTable
         title={`Effectif (${displayedPaiements.length ?? []})`}
         columns={columns}
@@ -366,7 +366,6 @@ const handleConfirmRejetStatus = async (motif: string) => {
         });
         }}
         onValidate2={nivCode === '02' ? handleStatusUpdate : undefined} 
-
         rowKey2="PAI_CODE"
           filterItems2={showRegieFilter ? regies.map((e) => ({
           ...e,

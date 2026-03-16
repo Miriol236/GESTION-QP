@@ -1,4 +1,4 @@
-import { Children, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
@@ -99,7 +99,10 @@ export function AppSidebar() {
   const location = useLocation();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const [allowedFonctionnalites, setAllowedFonctionnalites] = useState<string[]>([]);
-  const [localMenu, setLocalMenu] = useState(menuItems);
+  const [totaux, setTotaux] = useState<{ total_general: number; par_type: Record<string, { total: number }> }>({
+    total_general: 0,
+    par_type: {},
+  });
 
   // Récupérer les fonctionnalités autorisées
   const fetchPermissions = async () => {
@@ -115,7 +118,6 @@ export function AppSidebar() {
   };
 
   useEffect(() => {
-    // Chargement initial
     fetchPermissions();
 
     const handleDroitUpdate = () => {
@@ -130,15 +132,9 @@ export function AppSidebar() {
   }, []);
 
   // Totaux des mouvements
-  const [totaux, setTotaux] = useState<{ total_general: number; par_type: Record<string, { total: number }> }>({
-    total_general: 0,
-    par_type: {},
-  });
-
   useEffect(() => {
     const fetchTotaux = async () => {
       try {
-        // Réinitialiser immédiatement pour le nouvel utilisateur
         setTotaux({ total_general: 0, par_type: {} });
 
         const token = localStorage.getItem("token");
@@ -148,7 +144,7 @@ export function AppSidebar() {
         setTotaux(res.data);
       } catch (err) {
         console.error("Erreur récupération totaux mouvements :", err);
-        setTotaux({ total_general: 0, par_type: {} }); // Sécuriser en cas d'erreur
+        setTotaux({ total_general: 0, par_type: {} });
       }
     };
 
@@ -160,47 +156,48 @@ export function AppSidebar() {
     return () => window.removeEventListener("mouvementsUpdated", handleUpdate);
   }, []);
   
+  // Créer une copie profonde du menu pour éviter les mutations
+  const getUpdatedMenu = () => {
+    return menuItems.map(menu => {
+      if (menu.title === "Mouvements") {
+        const updatedMenu = { ...menu };
+        updatedMenu.title = `Mouvements${totaux.total_general > 0 ? ` (${totaux.total_general})` : ""}`;
+        
+        updatedMenu.children = menu.children.map((child) => {
+          const typCodeMap: Record<string, string> = {
+            "Validation Bénéficiaires": "20250001",
+            "Validation Paiements": "20250002",
+            "Validation RIB": "20250003",
+          };
 
-  //  Mettre à jour dynamiquement les titres des mouvements avec totaux
-  menuItems.forEach((menu) => {
-    if (menu.title === "Mouvements") {
-      // titre parent avec total général
-      menu.title = `Mouvements${totaux.total_general > 0 ? ` (${totaux.total_general})` : ""}`;
+          const baseTitle = child.title.replace(/\s*\(\d+\)/, "");
+          const code = typCodeMap[baseTitle];
+          const total = code ? totaux.par_type[code]?.total : 0;
 
-      // titre des sous-menus
-      menu.children = menu.children.map((child) => {
-        const typCodeMap: Record<string, string> = {
-          "Validation Bénéficiaires": "20250001",
-          "Validation Paiements": "20250002",
-          "Validation RIB": "20250003",
-        };
-
-        const code = typCodeMap[child.title.replace(/\s*\(\d+\)/, "")]; // enlever ancien total s'il existe
-        const total = code ? totaux.par_type[code]?.total : 0;
-
-        return {
-          ...child,
-          title: `${child.title.replace(/\s*\(\d+\)/, "")}${total && total > 0 ? ` (${total})` : ""}`,
-        };
-      });
-    }
-  });
+          return {
+            ...child,
+            title: `${baseTitle}${total && total > 0 ? ` (${total})` : ""}`,
+          };
+        });
+        
+        return updatedMenu;
+      }
+      return menu;
+    });
+  };
 
   // Filtrer le menu selon les droits
   const filterMenuItems = (items: any[]): any[] => {
     return items
       .map((item) => {
-        // --- Dashboard : visible pour tous ---
         if (!item.children) {
           return item;
         }
 
-        // Filtrer les enfants autorisés
         const allowedChildren = item.children.filter((child: any) =>
           allowedFonctionnalites.includes(String(child.foncCode))
         );
 
-        // Si aucun enfant autorisé → retirer le menu
         if (allowedChildren.length === 0) return null;
 
         return { ...item, children: allowedChildren };
@@ -208,7 +205,8 @@ export function AppSidebar() {
       .filter(Boolean);
   };
 
-  const filteredMenu = filterMenuItems(menuItems);
+  const updatedMenu = getUpdatedMenu();
+  const filteredMenu = filterMenuItems(updatedMenu);
 
   // Toggle submenu
   const toggleSubmenu = (title: string) => {
@@ -216,18 +214,18 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border dark:border-gray-800 bg-sidebar dark:bg-gray-900 text-sidebar-foreground dark:text-gray-200">
       <SidebarContent>
         {/* Logo */}
-        <div className="flex items-center justify-center h-16 border-b border-sidebar-border">
+        <div className="flex items-center justify-center h-16 border-b border-sidebar-border dark:border-gray-800">
           {!isCollapsed ? (
             <div className="flex items-center gap-2">
-              <span className="font-bold text-sidebar-foreground">
+              <span className="font-bold text-sidebar-foreground dark:text-white">
                 Quotes-Parts
               </span>
             </div>
           ) : (
-            <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 rounded-lg flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-sm">QP</span>
             </div>
           )}
@@ -235,7 +233,9 @@ export function AppSidebar() {
 
         {/* Menu principal */}
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sidebar-foreground/70 dark:text-gray-400">
+            Navigation
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {filteredMenu.map((item) => {
@@ -250,18 +250,18 @@ export function AppSidebar() {
                       <>
                         <SidebarMenuButton
                           onClick={() => toggleSubmenu(item.title)}
-                          className={`flex items-center justify-between transition-all w-full ${
+                          className={`w-full ${
                             isActiveParent
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                              : "hover:bg-sidebar-accent/50"
+                              ? "bg-sidebar-accent dark:bg-gray-800 text-sidebar-accent-foreground dark:text-white font-semibold"
+                              : "hover:bg-sidebar-accent/50 dark:hover:bg-gray-800/50 text-sidebar-foreground dark:text-gray-300"
                           }`}
                         >
-                          <div className="flex items-center gap-2">
-                            <item.icon className="h-4 w-4" />
-                            {!isCollapsed && <span>{item.title}</span>}
+                          <div className="flex items-center gap-2 flex-1">
+                            <item.icon className="h-4 w-4 shrink-0" />
+                            {!isCollapsed && <span className="truncate">{item.title}</span>}
                           </div>
                           {!isCollapsed && (
-                            <span className="text-xs">
+                            <span className="ml-auto shrink-0">
                               {openMenus[item.title] ? (
                                 <ChevronDown className="h-4 w-4" />
                               ) : (
@@ -278,28 +278,29 @@ export function AppSidebar() {
                               animate={{ opacity: 1, height: "auto" }}
                               exit={{ opacity: 0, height: 0 }}
                               transition={{ duration: 0.2 }}
-                              className="ml-6 mt-1 space-y-1"
+                              className="ml-6 mt-1 space-y-1 overflow-hidden"
                             >
                               {item.children.map((subItem) => (
                                 <NavLink
                                   key={subItem.title}
                                   to={subItem.url}
                                   className={({ isActive }) =>
-                                    `block px-2 py-1 rounded-md text-sm transition-all ${
+                                    `block px-2 py-1.5 rounded-md text-sm transition-all ${
                                       isActive
-                                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                                        : "hover:bg-sidebar-accent/40"
+                                        ? "bg-sidebar-accent dark:bg-gray-800 text-sidebar-accent-foreground dark:text-white font-medium"
+                                        : "hover:bg-sidebar-accent/40 dark:hover:bg-gray-800/40 text-sidebar-foreground/80 dark:text-gray-400"
                                     }`
                                   }
                                   onClick={() => {
-                                    // Fermeture sur mobile seulement
                                     if (isMobile) {
                                       setOpenMobile(false);
                                     }
                                   }}
                                 >
-                                  <subItem.icon className="inline-block h-3 w-3 mr-2" />
-                                  {subItem.title}
+                                  <div className="flex items-center gap-2">
+                                    <subItem.icon className="h-3.5 w-3.5 shrink-0" />
+                                    <span className="truncate">{subItem.title}</span>
+                                  </div>
                                 </NavLink>
                               ))}
                             </motion.div>
@@ -310,15 +311,19 @@ export function AppSidebar() {
                       <NavLink
                         to={item.url || "#"}
                         className={({ isActive }) =>
-                          `flex items-center gap-2 px-2 py-1 rounded-md text-sm transition-all ${
+                          `block ${
                             isActive
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                              : "hover:bg-sidebar-accent/40"
+                              ? "bg-sidebar-accent dark:bg-gray-800 text-sidebar-accent-foreground dark:text-white font-medium"
+                              : "hover:bg-sidebar-accent/40 dark:hover:bg-gray-800/40 text-sidebar-foreground dark:text-gray-300"
                           }`
                         }
                       >
-                        <item.icon className="h-4 w-4" />
-                        {!isCollapsed && item.title}
+                        <SidebarMenuButton className="w-full">
+                          <div className="flex items-center gap-2 flex-1">
+                            <item.icon className="h-4 w-4 shrink-0" />
+                            {!isCollapsed && <span className="truncate">{item.title}</span>}
+                          </div>
+                        </SidebarMenuButton>
                       </NavLink>
                     )}
                   </SidebarMenuItem>

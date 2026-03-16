@@ -217,7 +217,7 @@ const handleConfirmRejetStatus = async (motif: string) => {
       key: "BENEFICIAIRE",
       title: "BÉNÉFICIAIRE",
       render: (value: string) => (
-        <span className="font-medium text-gray-800">{value}</span>
+        <span className="font-medium text-foreground dark:text-foreground">{value}</span>
       ),
     },
     {
@@ -226,25 +226,25 @@ const handleConfirmRejetStatus = async (motif: string) => {
       render: (value) => {
         if (value !== "M" && value !== "F") {
           return (
-            <div className="bg-gray-500/20 text-gray-700">
+            <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
               Non défini
-            </div>
+            </Badge>
           );
         }
 
         const isMale = value === "M";
 
         return (
-          <div
-            // variant={isMale ? "default" : "secondary"}
+          <Badge 
+            variant="outline"
             className={
               isMale
-                ? "bg-blue-500/20 text-blue-700"
-                : "bg-pink-500/20 text-pink-700"
+                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+                : "bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-200 dark:border-pink-800"
             }
           >
             {isMale ? "Masculin" : "Féminin"}
-          </div>
+          </Badge>
         );
       },
     },
@@ -252,14 +252,14 @@ const handleConfirmRejetStatus = async (motif: string) => {
       key: "TYPE_BENEFICIAIRE",
       title: "TYPE DE BENEFICIARE",
         render: (value: string) => (
-            <span className="font-medium text-gray-800">{value || "_"}</span>
+            <span className="font-medium text-foreground dark:text-foreground">{value || "_"}</span>
         ),
     },
     {
       key: "POSITION",
       title: "POSITION",
       render: (value: string) => (
-        <span className="font-medium text-gray-800">{value || "_"}</span>
+        <span className="font-medium text-foreground dark:text-foreground">{value || "_"}</span>
       ),
     },
     {
@@ -267,17 +267,15 @@ const handleConfirmRejetStatus = async (motif: string) => {
       title: "STATUT",
       render: (value) => {
         switch (value) {
-
           case 2:
             return (
-              <Badge className="bg-orange-500/20 text-orange-700">
+              <Badge className="bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800">
                 En attente d’approbation…
               </Badge>
             );
-
           default:
             return (
-              <Badge className="bg-gray-500/20 text-gray-700">
+              <Badge className="bg-muted text-muted-foreground border-border">
                 Statut inconnu
               </Badge>
             );
@@ -288,14 +286,14 @@ const handleConfirmRejetStatus = async (motif: string) => {
       key: "MVT_DATE",
       title: "DATE MOUVEMENT",
       render: (value: string) => (
-        <span className="font-medium text-gray-800">{value || "_"}</span>
+        <span className="font-medium text-foreground dark:text-foreground">{value || "_"}</span>
       ),
     },
     {
       key: "MVT_CREER_PAR",
       title: "GESTIONNAIRE",
       render: (value: string) => (
-        <span className="font-semibold text-gray-700">{value || "—"}</span>
+        <span className="font-semibold text-foreground dark:text-foreground">{value || "—"}</span>
       ),
     },
   ];
@@ -303,25 +301,25 @@ const handleConfirmRejetStatus = async (motif: string) => {
   if (isLoading) return <TableSkeleton />;
 
   return (
-  <div className="space-y-6 overflow-hidden h-full">
+  <div className="space-y-6 overflow-hidden h-full bg-background dark:bg-background">
     {/* En-tête */}
     <div className="flex justify-between items-start">
       <div>
-        <h1 className="text-xl font-bold text-primary">
-          Liste des bénéficiaires en attente d'approbaton
+        <h1 className="text-xl font-bold text-foreground dark:text-foreground">
+          Liste des bénéficiaires en attente d'approbation
         </h1>
       </div>
     </div>
 
     {/* Liste des bénéficiaires */}
-    <Card > 
+    <Card className="bg-card dark:bg-card border-border dark:border-border shadow-sm"> 
       <DataTable
         title={`Effectif (${beneficiaires.length})`}
         columns={columns}
         data={beneficiaires ?? []}
         onView={(b) => {
           setSelectedBeneficiaire(b);
-          setTimeout(() => setOpenPreview(true), 0); // laisse le temps à selectedBeneficiaire d'être défini
+          setTimeout(() => setOpenPreview(true), 0);
         }}
         onValidate2={handleStatusUpdate}
         onRejet={handleRejetStatusUpdate}

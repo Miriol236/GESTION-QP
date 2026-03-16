@@ -70,7 +70,6 @@ useEffect(() => {
     }
   }, [open, paiement]);
 
-  // Bloquer la fermeture via la touche Échap lorsqu'on affiche le modal
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -92,37 +91,37 @@ useEffect(() => {
     switch (statut) {
       case 0:
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-destructive/10 text-destructive">
             Rejeté
           </span>
         );
       case 1:
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground">
             Non approuvé
           </span>
         );
       case 2:
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-orange-100 text-orange-700">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-orange-500/10 text-orange-600 dark:text-orange-400">
             En cours d’approbation...
           </span>
         );
       case 3:
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground">
             Non payé
           </span>
         );
         case 4:
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-500/10 text-green-600 dark:text-green-400">
             Payé
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground">
             Inconnu
           </span>
         );
@@ -131,8 +130,7 @@ useEffect(() => {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center"
-      // Empêcher tout comportement par défaut sur le backdrop (clic hors modal)
+      className="fixed inset-0 z-50 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center"
       onPointerDown={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -142,29 +140,26 @@ useEffect(() => {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
-        // Empêcher la propagation des events vers le backdrop
+        className="bg-card dark:bg-card rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-border dark:border-border"
         onPointerDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-center p-1 border-b bg-gradient-to-r from-blue-600 to-blue-500 text-white">
+        <div className="flex justify-between items-center p-2 border-b border-border bg-gradient-to-r from-primary to-primary-dark text-primary-foreground">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Eye className="w-5 h-5" />
             Aperçu du paiement du {getEcheancesInfo(paiement.ECH_CODE || "—")}
           </h2>
-          <Button variant="ghost" className="text-white hover:bg-white/20" onClick={onClose}>
+          <Button variant="ghost" className="text-primary-foreground hover:bg-white/20 dark:hover:bg-white/10" onClick={onClose}>
             <X className="w-5 h-5" />
           </Button>
         </div>
 
         {/* Contenu */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-gray-300">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
           {/* Informations du bénéficiaire */}
           <div>
-            <h3 className="text-blue-600 font-semibold mb-3 border-b pb-1">Informations du bénéficiaire</h3>
+            <h3 className="text-primary font-semibold mb-3 border-b border-border pb-1">Informations du bénéficiaire</h3>
             <div className="grid grid-cols-4 gap-4 text-sm">
-              {/* <Info label="Code paiement" value={paiement.PAI_CODE} />
-              <Info label="Code bénéficiaire" value={getBeneficiairesInfo(paiement.BEN_CODE)?.code} /> */}
               <Info label="Matricule solde :" value={getBeneficiairesInfo(paiement.BEN_CODE)?.matricule} />
               <Info label="Bénéficiaire :" value={getBeneficiairesInfo(paiement.BEN_CODE)?.nomComplet} />
               <Info label="Sexe :" value={paiement.BEN_SEXE === "M" ? "Masculin" : paiement.BEN_SEXE === "F" ? "Féminin" : "_"} />
@@ -176,14 +171,14 @@ useEffect(() => {
                 label="Statut :"
                 value={
                   <span
-                    className={
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${
                       (() => {
                         const stat = getBeneficiairesInfo(paiement.BEN_CODE)?.benefStatut;
-                        if (stat === 2) return "text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full";
-                        if (stat === 3) return "text-green-700 bg-green-100 px-2 py-0.5 rounded-full";
-                        return "text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full";
+                        if (stat === 2) return "bg-orange-500/10 text-orange-600 dark:text-orange-400";
+                        if (stat === 3) return "bg-green-500/10 text-green-600 dark:text-green-400";
+                        return "bg-muted text-muted-foreground";
                       })()
-                    }
+                    }`}
                   >
                     {(() => {
                       const stat = getBeneficiairesInfo(paiement.BEN_CODE)?.benefStatut;
@@ -196,34 +191,35 @@ useEffect(() => {
               />
             </div>
           </div>
+          
           <div>
-            <h3 className="text-blue-600 font-semibold mb-3 border-b pb-1">
+            <h3 className="text-primary font-semibold mb-3 border-b border-border pb-1">
               Informations du RIB
             </h3>
 
             <div className="grid grid-cols-5 gap-5 text-sm">
               {/* Titres */}
-              <div className="font-semibold text-gray-600">Banque :</div>
-              <div className="font-semibold text-gray-600">Guichet :</div>
-              <div className="font-semibold text-gray-600">N° Compte :</div>
-              <div className="font-semibold text-gray-600">Clé RIB :</div>
-              <div className="font-semibold text-gray-600">Statut :</div>
+              <div className="font-semibold text-muted-foreground">Banque :</div>
+              <div className="font-semibold text-muted-foreground">Guichet :</div>
+              <div className="font-semibold text-muted-foreground">N° Compte :</div>
+              <div className="font-semibold text-muted-foreground">Clé RIB :</div>
+              <div className="font-semibold text-muted-foreground">Statut :</div>
 
               {/* Valeurs */}
-              <div className="text-[12px] font-semibold">{getBeneficiairesInfo(paiement.BEN_CODE)?.banque || "—"}</div>
-              <div className="text-[12px] font-semibold">{getBeneficiairesInfo(paiement.BEN_CODE)?.guichet || "—"}</div>
-              <div className="text-[12px] font-semibold">{getBeneficiairesInfo(paiement.BEN_CODE)?.numeroCompte || "—"}</div>
-              <div className="text-[12px] font-semibold">{getBeneficiairesInfo(paiement.BEN_CODE)?.rib || "—"}</div>
+              <div className="text-[12px] font-semibold text-foreground">{getBeneficiairesInfo(paiement.BEN_CODE)?.banque || "—"}</div>
+              <div className="text-[12px] font-semibold text-foreground">{getBeneficiairesInfo(paiement.BEN_CODE)?.guichet || "—"}</div>
+              <div className="text-[12px] font-semibold text-foreground">{getBeneficiairesInfo(paiement.BEN_CODE)?.numeroCompte || "—"}</div>
+              <div className="text-[12px] font-semibold text-foreground">{getBeneficiairesInfo(paiement.BEN_CODE)?.rib || "—"}</div>
               <div className="text-[12px] font-semibold">
                 <span
-                  className={
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${
                     (() => {
                       const stat = getBeneficiairesInfo(paiement.BEN_CODE)?.domStatut;
-                      if (stat === 2) return "text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full";
-                      if (stat === 3) return "text-green-700 bg-green-100 px-2 py-0.5 rounded-full";
-                      return "text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full";
+                      if (stat === 2) return "bg-orange-500/10 text-orange-600 dark:text-orange-400";
+                      if (stat === 3) return "bg-green-500/10 text-green-600 dark:text-green-400";
+                      return "bg-muted text-muted-foreground";
                     })()
-                  }
+                  }`}
                 >
                   {(() => {
                     const stat = getBeneficiairesInfo(paiement.BEN_CODE)?.domStatut;
@@ -238,34 +234,34 @@ useEffect(() => {
 
           {/* Domiciliations bancaires */}
           <div>
-            <h3 className="text-blue-600 font-semibold mb-3 border-b pb-1">Détails du paiement</h3>
+            <h3 className="text-primary font-semibold mb-3 border-b border-border pb-1">Détails du paiement</h3>
             {loading ? (
               <p className="text-center text-muted-foreground py-6">Chargement des détails du paiement...</p>
             ) : detailsPaiement.length === 0 ? (
-              <p className="text-center text-gray-500">Aucun détail enregistré.</p>
+              <p className="text-center text-muted-foreground">Aucun détail enregistré.</p>
             ) : (
-              <div className="border rounded-md overflow-hidden">
+              <div className="border border-border rounded-md overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-100">
+                  <thead className="bg-muted">
                     <tr>
-                      <th className="px-4 py-2 text-left">Elément</th>
-                      <th className="px-4 py-2 text-left">Sens</th>
-                      <th className="px-4 py-2 text-right">Montant en F CFA</th>
+                      <th className="px-4 py-2 text-left text-muted-foreground">Elément</th>
+                      <th className="px-4 py-2 text-left text-muted-foreground">Sens</th>
+                      <th className="px-4 py-2 text-right text-muted-foreground">Montant en F CFA</th>
                     </tr>
                   </thead>
 
                   <tbody>
                     {detailsPaiement.map((d: any, i: number) => (
-                      <tr key={i} className="odd:bg-gray-50 border-t">
-                        <td className="px-4 py-2 text-[12px] font-semibold">{d.ELT_LIBELLE || "—"}</td>
+                      <tr key={i} className="odd:bg-muted/30 border-t border-border">
+                        <td className="px-4 py-2 text-[12px] font-semibold text-foreground">{d.ELT_LIBELLE || "—"}</td>
 
                         <td className="px-4 py-2">
                           {d.ELT_SENS === 1 ? (
-                            <span className="px-2 py-1 text-[12px] font-semibold rounded bg-green-100 text-green-800">
+                            <span className="px-2 py-1 text-[12px] font-semibold rounded bg-green-500/10 text-green-600 dark:text-green-400">
                               + Gain
                             </span>
                           ) : d.ELT_SENS === 2 ? (
-                            <span className="px-2 py-1 text-[12px] font-semibold rounded bg-red-100 text-red-800">
+                            <span className="px-2 py-1 text-[12px] font-semibold rounded bg-red-500/10 text-red-600 dark:text-red-400">
                               - Retenue
                             </span>
                           ) : (
@@ -273,7 +269,7 @@ useEffect(() => {
                           )}
                         </td>
 
-                        <td className="px-4 py-2 text-[12px] font-semibold text-right">
+                        <td className="px-4 py-2 text-[12px] font-semibold text-right text-foreground">
                           {d.PAI_MONTANT != null
                             ? Number(d.PAI_MONTANT).toLocaleString("fr-FR")
                             : "—"}
@@ -286,36 +282,36 @@ useEffect(() => {
             )}
           </div>
           {detailsPaiement.length > 0 && (
-            <div>
-              <div className="text-[12px] font-medium text-right"> 
-                <span className="font-semibold text-gray-600">Total gain :</span>{" "}
+            <div className="space-y-1">
+              <div className="text-[12px] font-medium text-right text-foreground"> 
+                <span className="font-semibold text-muted-foreground">Total gain :</span>{" "}
                 {detailsPaiement[0].TOTAL_GAIN != null
                   ? Number(detailsPaiement[0].TOTAL_GAIN).toLocaleString("fr-FR") : "—"}
               </div>
-              <div className="text-[12px] font-medium text-right"> 
-                <span className="font-semibold text-gray-600">Total retenu :</span>{" "}
+              <div className="text-[12px] font-medium text-right text-foreground"> 
+                <span className="font-semibold text-muted-foreground">Total retenu :</span>{" "}
                 {detailsPaiement[0].TOTAL_RETENU != null
                   ? Number(detailsPaiement[0].TOTAL_RETENU).toLocaleString("fr-FR") : "—"}
               </div>
-              <div className="text-[12px] font-medium text-right"> 
-                <span className="font-semibold text-gray-600">Total Net à payer :</span>{" "}
+              <div className="text-[12px] font-medium text-right text-foreground"> 
+                <span className="font-semibold text-muted-foreground">Total Net à payer :</span>{" "}
                 {detailsPaiement[0].MONTANT_NET != null
                   ? Number(detailsPaiement[0].MONTANT_NET).toLocaleString("fr-FR") : "—"}
               </div>
-              <div className="text-[12px] font-medium text-right">
-                <span className="font-semibold text-gray-600">Statut :</span>{" "}
+              <div className="text-[12px] font-medium text-right text-foreground">
+                <span className="font-semibold text-muted-foreground">Statut :</span>{" "}
                 {getPaiementBadge(paiement.PAI_STATUT)}
               </div>
               {/* Affichage du motif si rejeté */}
               {paiement.PAI_STATUT === 0 && paiement.PAI_MOTIF_REJET && (
-                <div className="text-[12px] font-medium text-red-600">
+                <div className="text-[12px] font-medium text-destructive text-right">
                   <span className="font-semibold">Motif du rejet :</span> {paiement.PAI_MOTIF_REJET}
                 </div>
               )}
             </div>
           )}
           <div>
-            <h3 className="text-blue-600 font-semibold mb-3 border-b pb-1"> </h3>
+            <h3 className="text-primary font-semibold mb-3 border-b border-border pb-1">Métadonnées</h3>
             <div className="grid grid-cols-4 gap-4 text-sm">
               <Info label="Date de saisie :" value={paiement.PAI_DATE_CREER ? new Date(paiement.PAI_DATE_CREER).toLocaleDateString("fr-FR", {
                     year: "numeric",
@@ -325,7 +321,7 @@ useEffect(() => {
                   : "_"
                 }
               />
-              <Info label="Saisir par :" value={paiement.PAI_CREER_PAR} />
+              <Info label="Saisi par :" value={paiement.PAI_CREER_PAR} />
               <Info label="Date de modification :" value={paiement.PAI_DATE_MODIFIER ? new Date(paiement.PAI_DATE_MODIFIER).toLocaleDateString("fr-FR", {
                     year: "numeric",
                     month: "numeric",
@@ -334,15 +330,15 @@ useEffect(() => {
                   : "_"
                 }
               />
-              <Info label="Modifier par :" value={paiement.PAI_MODIFIER_PAR} />
+              <Info label="Modifié par :" value={paiement.PAI_MODIFIER_PAR} />
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="p-1 border-t text-right bg-gray-50">
-          <Button variant="default" onClick={onClose}>
-            <X className="w-4 h-4" />
+        <div className="p-2 border-t border-border text-right bg-muted/30">
+          <Button variant="default" onClick={onClose} className="bg-primary hover:bg-primary-dark text-primary-foreground">
+            <X className="w-4 h-4 mr-2" />
             Fermer
           </Button>
         </div>
@@ -354,8 +350,8 @@ useEffect(() => {
 function Info({ label, value }: { label: string; value: any }) {
   return (
     <div>
-      <p className="text-sm font-semibold text-gray-500">{label}</p>
-      <p className="text-[12px] font-medium text-gray-800">{value || "—"}</p>
+      <p className="text-sm font-semibold text-muted-foreground">{label}</p>
+      <p className="text-[12px] font-medium text-foreground">{value || "—"}</p>
     </div>
   );
 }

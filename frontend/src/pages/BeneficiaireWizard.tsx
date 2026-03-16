@@ -52,7 +52,7 @@ export default function BeneficiaireWizard({
   const [editId, setEditId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [listsLoaded, setListsLoaded] = useState(false);
-  const [dataReady, setDataReady] = useState(true); // true par défaut
+  const [dataReady, setDataReady] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedDomiciliation, setSelectedDomiciliation] = useState<any>(null);
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
@@ -67,7 +67,7 @@ export default function BeneficiaireWizard({
   const [loadingDomiciliation, setLoadingDomiciliation] = useState(false);
   const [benefSuggestions, setBenefSuggestions] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [ageError, setAgeError] = useState(""); // message d'erreur si < 15 ans
+  const [ageError, setAgeError] = useState("");
   const today = new Date();
   const maxDate15 = new Date(
     today.getFullYear() - 15,
@@ -142,9 +142,8 @@ export default function BeneficiaireWizard({
 
   useEffect(() => {
     const loadBeneficiaireData = async () => {
-      // Mode édition uniquement
       if (beneficiaireData) {
-        setDataReady(false); // Active le chargement uniquement ici
+        setDataReady(false);
 
         if (!listsLoaded) return;
 
@@ -175,7 +174,6 @@ export default function BeneficiaireWizard({
           });
         }
 
-        // Une fois tout prêt — enlever délai artificiel pour accélérer l'affichage
         setDataReady(true);
       }
     };
@@ -183,7 +181,6 @@ export default function BeneficiaireWizard({
     loadBeneficiaireData();
   }, [beneficiaireData, listsLoaded]);
 
-  // Charger les listes initiales
   useEffect(() => {
     const loadData = async () => {
       setDataReady(false);
@@ -191,7 +188,6 @@ export default function BeneficiaireWizard({
       const headers = { Authorization: `Bearer ${token}` };
 
       try {
-        // Charger les listes
         const [t, f, g, p, b, q] = await Promise.all([
           axios.get(`${API_URL}/typeBeneficiaires-public`, { headers }),
           axios.get(`${API_URL}/fonctions-public`, { headers }),
@@ -206,10 +202,8 @@ export default function BeneficiaireWizard({
         setPositions(p.data);
         setBanques(b.data);
         setGuichets(q.data);
-        // Indiquer que les listes sont chargées pour permettre le remplissage en mode édition
         setListsLoaded(true);
 
-        // Si mode édition
         if (beneficiaireData) {
           setBeneficiaire({
             BEN_MATRICULE: beneficiaireData.BEN_MATRICULE || "",
@@ -241,7 +235,6 @@ export default function BeneficiaireWizard({
     loadData();
   }, [beneficiaireData]);
 
-  // Charger les domiciliations après création du bénéficiaire
   useEffect(() => {
     if (benefCode) {
       const token = localStorage.getItem("token");
@@ -298,7 +291,6 @@ export default function BeneficiaireWizard({
     return () => clearTimeout(timer);
   }, [beneficiaire.BEN_NOM, beneficiaire.BEN_PRENOM]);
 
-  // Utilitaires d'affichage
   const getBanqueInfo = (code: string) => {
     const b = banques.find((bnq) => String(bnq.BNQ_CODE).trim() === String(code).trim());
     return b ? `${b.BNQ_LIBELLE || "—"}` : code;
@@ -319,20 +311,15 @@ export default function BeneficiaireWizard({
 
     const numCompte = DOM_NUMCPT.toUpperCase().trim();
 
-    // Extrait uniquement les chiffres pour le calcul
     const onlyDigits = numCompte.replace(/\D/g, "");
-    // Lettres détectées ?
     const containsLetters = /[A-Z]/.test(numCompte);
 
-    // Conditions pour calcul de RIB
     if (onlyDigits.length < 11 || containsLetters) {
-      return ""; // pas de clé
+      return "";
     }
 
-    // Base RIB pour calcul
     const ribBase = codeBanque + codeGuichet + onlyDigits + "00";
 
-    // Calcul mod 97
     let reste = 0;
     for (let i = 0; i < ribBase.length; i++) {
       reste = (reste * 10 + Number(ribBase[i])) % 97;
@@ -342,7 +329,6 @@ export default function BeneficiaireWizard({
     return String(cle).padStart(2, "0");
   };
 
-  // Enregistrement bénéficiaire (étape 1)
   const handleNext = async () => {
     if (!beneficiaire.BEN_NOM || !beneficiaire.BEN_PRENOM || !beneficiaire.BEN_SEXE || !beneficiaire.BEN_DATE_NAISSANCE || !beneficiaire.TYP_CODE || !beneficiaire.FON_CODE || !beneficiaire.POS_CODE) {
       toast({
@@ -359,7 +345,6 @@ export default function BeneficiaireWizard({
 
     try {
       if (beneficiaireData) {
-        // Mode modification
         await axios.put(`${API_URL}/beneficiaires/${beneficiaireData.BEN_CODE}`, beneficiaire, { headers });
         toast({
           title: "Succès",
@@ -368,7 +353,6 @@ export default function BeneficiaireWizard({
         });
         setStep(2);
       } else {
-        // Mode création
         const { data } = await axios.post(`${API_URL}/beneficiaires`, beneficiaire, { headers });
         toast({
           title: "Succès",
@@ -392,7 +376,6 @@ export default function BeneficiaireWizard({
     }
   };
 
-  // Met à jour le bénéficiaire avant de passer à l'étape 2
   const handleNextWithUpdate = async () => {
     if (!benefCode) 
       return toast({
@@ -432,8 +415,6 @@ export default function BeneficiaireWizard({
     }
   };
 
-
-  // Ajouter ou modifier une domiciliation
   const handleAddDomiciliation = async () => {
     if (!benefCode) 
       return toast({
@@ -460,7 +441,6 @@ export default function BeneficiaireWizard({
       setLoadingDomiciliation(true)
       const token = localStorage.getItem("token");
 
-      // Utilisation de FormData pour inclure le fichier
       const formData = new FormData();
       Object.entries(currentDomiciliation).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -477,20 +457,18 @@ export default function BeneficiaireWizard({
         },
       });
 
-      // Rafraîchir la liste
       const list = await axios.get(`${API_URL}/domiciliations/${benefCode}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setDomiciliations(list.data);
 
-      // Réinitialiser le formulaire
       setCurrentDomiciliation({
         DOM_CODE: "",
         DOM_NUMCPT: "",
         BNQ_CODE: "",
         GUI_ID: "",
         DOM_RIB: "",
-        DOM_FICHIER: null, // penser à réinitialiser le fichier
+        DOM_FICHIER: null,
       });
 
       toast({
@@ -509,27 +487,22 @@ export default function BeneficiaireWizard({
     }
   };
 
-  // Modifier une domiciliation
   const handleEdit = (d: any) => {
     setIsEditing(true);
     setEditId(d.DOM_CODE);
     
-    // Charger toutes les infos dans le formulaire
     setCurrentDomiciliation({
       DOM_CODE: d.DOM_CODE,
       DOM_NUMCPT: d.DOM_NUMCPT,
       BNQ_CODE: d.BNQ_CODE,
       GUI_ID: d.GUI_ID,
       DOM_RIB: d.DOM_RIB,
-      // Charger le fichier si existant
       DOM_FICHIER: d.DOM_FICHIER || null,
     });
 
-    // Mettre à jour l’état local pour l’input file
     setRibFile(d.DOM_FICHIER || null);
   };
 
-  // Supprimer une domiciliation
   const handleDelete = async () => {
     if (!selectedDomiciliation) return;
 
@@ -580,7 +553,6 @@ export default function BeneficiaireWizard({
 
       const token = localStorage.getItem("token");
 
-      // FormData pour gérer le fichier
       const formData = new FormData();
       formData.append("BNQ_CODE", currentDomiciliation.BNQ_CODE);
       formData.append("GUI_ID", currentDomiciliation.GUI_ID);
@@ -588,7 +560,6 @@ export default function BeneficiaireWizard({
       if (currentDomiciliation.DOM_FICHIER instanceof File) {
         formData.append("DOM_FICHIER", currentDomiciliation.DOM_FICHIER);
       }
-      // Astuce pour PUT avec FormData
       formData.append("_method", "PUT");
 
       const { data } = await axios.post(
@@ -610,13 +581,11 @@ export default function BeneficiaireWizard({
       setIsEditing(false);
       setEditId(null);
 
-      // Rafraîchir la liste
       const res = await axios.get(`${API_URL}/domiciliations/${benefCode}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setDomiciliations(res.data);
 
-      // Réinitialiser le formulaire
       setCurrentDomiciliation({
         DOM_CODE: "",
         DOM_NUMCPT: "",
@@ -641,22 +610,19 @@ export default function BeneficiaireWizard({
       const token = localStorage.getItem("token");
 
       const response = await axios.get(`${API_URL}/rib/preview/${DOM_CODE}`, {
-        responseType: "blob", // important pour récupérer le fichier
+        responseType: "blob",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      // Détecte automatiquement le type de fichier
       const contentType = response.headers["content-type"];
       const file = new Blob([response.data], { type: contentType });
 
       const fileURL = window.URL.createObjectURL(file);
 
-      // Ouvre dans un nouvel onglet
       window.open(fileURL, "_blank");
 
-      // Optionnel : libère l'objet après ouverture
       setTimeout(() => window.URL.revokeObjectURL(fileURL), 1000);
     } catch (error: any) {
       console.error(error);
@@ -682,7 +648,6 @@ export default function BeneficiaireWizard({
         }
       );
 
-      //  Récupérer le nom depuis Content-Disposition
       const contentDisposition = response.headers["content-disposition"];
       let filename = "RIB";
 
@@ -701,7 +666,7 @@ export default function BeneficiaireWizard({
 
       const link = document.createElement("a");
       link.href = url;
-      link.download = filename; // vrai nom du fichier
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -731,7 +696,7 @@ export default function BeneficiaireWizard({
 
     try {
       const token = localStorage.getItem("token");
-      const id = selectedRowsForStatus[0].DOM_CODE; // seule ligne
+      const id = selectedRowsForStatus[0].DOM_CODE;
       const { data } = await axios.put(`${API_URL}/domiciliations/valider/${id}`, {}, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -745,7 +710,6 @@ export default function BeneficiaireWizard({
         variant: "success",
       });
 
-       // Rafraîchir la liste
       const list = await axios.get(`${API_URL}/domiciliations/${benefCode}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -774,7 +738,6 @@ export default function BeneficiaireWizard({
       return;
     }
 
-    // On prend seulement la première ligne
     setSelectedRowsForStatus([rows[0]]);
     setIsValidateStatusDialogOpen(true);
   };
@@ -804,21 +767,18 @@ export default function BeneficiaireWizard({
         }
       );
 
-      //  Le backend demande confirmation
       if (data?.requiresConfirmation) {
         setValidateMessage(data.message);
         setOpenValidateDialog(true);
         return;
       }
 
-      //  Succès direct
       toast({
         title: "Succès",
         description: data.message,
         variant: "success",
       });
 
-      //  on laisse ton handleFinish EXISTANT gérer la suite
       handleFinish();
 
     } catch (err: any) {
@@ -858,7 +818,6 @@ export default function BeneficiaireWizard({
 
       setOpenValidateDialog(false);
 
-      //  on appelle ton handleFinish existant
       handleFinish();
 
     } catch (err: any) {
@@ -872,7 +831,6 @@ export default function BeneficiaireWizard({
     }
   };
 
-  // ComboBox réutilisable
   const ComboBox = ({ label, items, value, onSelect, display, disabled = false }: any) => {
     const [open, setOpen] = useState(false);
     const selected = items.find(
@@ -890,22 +848,28 @@ export default function BeneficiaireWizard({
         <Label>{label}</Label>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="w-full justify-between truncate text-left" disabled={disabled}>
+            <Button 
+              variant="outline" 
+              className="w-full justify-between truncate text-left bg-card dark:bg-card border-border dark:border-border hover:bg-muted/50 dark:hover:bg-muted/20" 
+              disabled={disabled}
+            >
               {selected ? (
-                <span className="truncate max-w-[230px]">{display(selected)}</span>
+                <span className="truncate max-w-[230px] text-foreground dark:text-foreground">{display(selected)}</span>
               ) : (
-                <span className="text-muted-foreground">-- Sélectionner --</span>
+                <span className="text-muted-foreground dark:text-muted-foreground">-- Sélectionner --</span>
               )}
               <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
             </Button>
           </PopoverTrigger>
           {!disabled && (
-            // Popover responsive : full width on very small screens, constrained on larger
-            <PopoverContent className="p-0 w-full sm:w-[300px]">
-              <Command>
-                <CommandInput placeholder={`Rechercher ${label.toLowerCase()}...`} />
+            <PopoverContent className="p-0 w-full sm:w-[300px] bg-popover dark:bg-popover border-border dark:border-border">
+              <Command className="bg-popover dark:bg-popover">
+                <CommandInput 
+                  placeholder={`Rechercher ${label.toLowerCase()}...`} 
+                  className="border-0 focus:ring-0 text-foreground dark:text-foreground"
+                />
                 <CommandList>
-                  <CommandEmpty>Aucun résultat</CommandEmpty>
+                  <CommandEmpty className="text-muted-foreground dark:text-muted-foreground">Aucun résultat</CommandEmpty>
                   <CommandGroup>
                     {items.map((item: any) => (
                       <CommandItem
@@ -928,6 +892,7 @@ export default function BeneficiaireWizard({
                           );
                           setTimeout(() => setOpen(false), 100);
                         }}
+                        className="cursor-pointer hover:bg-muted dark:hover:bg-muted/20 text-foreground dark:text-foreground"
                       >
                         <Check
                           className={`mr-2 h-4 w-4 ${value ===
@@ -937,7 +902,7 @@ export default function BeneficiaireWizard({
                               item.POS_CODE ||
                               item.BNQ_CODE ||
                               item.GUI_ID)
-                            ? "opacity-100 text-blue-600"
+                            ? "opacity-100 text-primary dark:text-primary"
                             : "opacity-0"
                             }`}
                         />
@@ -954,7 +919,7 @@ export default function BeneficiaireWizard({
     );
   };
 
-  const banquesPrimaires = ["20001", "20002", "20003", "20005"]; // numéros officiels des banques primaires
+  const banquesPrimaires = ["20001", "20002", "20003", "20005"];
 
   const stepTitles = ["Informations du bénéficiaire", "RIB du bénéficiaire"];
 
@@ -971,39 +936,33 @@ export default function BeneficiaireWizard({
   }
 
   return (
-    // Structure principale moderne et responsive
-    <div className="w-full max-w-4xl lg:max-w-6xl mx-auto p-0 sm:p-8 bg-gray-100 rounded-xl shadow-lg ring-1 ring-gray-100">
-      {/* Wrapper full-height on mobile so header/footer can be sticky */}
+    <div className="w-full max-w-4xl lg:max-w-6xl mx-auto p-0 sm:p-8 bg-card dark:bg-card rounded-xl shadow-lg ring-1 ring-border dark:ring-border">
       <div className="flex flex-col h-screen md:h-auto">
         <div className="p-1 sm:p-1">
-          {/* Titre principal */}
           <div className="text-center mb-3">
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground dark:text-foreground uppercase tracking-wide">
               {beneficiaireData
                 ? "MODIFICATION D'UN BÉNÉFICIAIRE"
                 : "ENRÔLEMENT D'UN BÉNÉFICIAIRE"}
             </h1>
 
-            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+            <p className="text-xs sm:text-sm text-muted-foreground dark:text-muted-foreground mt-1">
               {beneficiaireData
                 ? "Mise à jour des informations du bénéficiaire"
                 : "Saisie et enregistrement d’un nouveau bénéficiaire"}
             </p>
           </div>
 
-          {/* Entête dynamique */}
-          <div className="relative mb-1 md:mb-2 sticky top-0 bg-white z-30 py-1">
-            {/* Barre de progression */}
-            <div className="absolute top-5 left-0 w-full h-2 bg-gray-100 rounded-full">
+          <div className="relative mb-1 md:mb-2 sticky top-0 bg-card dark:bg-card z-30 py-1">
+            <div className="absolute top-5 left-0 w-full h-2 bg-muted dark:bg-muted/30 rounded-full">
               <motion.div
-                className="h-1 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full"
+                className="h-1 bg-gradient-to-r from-primary to-primary-dark rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${(step / stepTitles.length) * 100}%` }}
                 transition={{ duration: 0.4 }}
               />
             </div>
 
-            {/* Étapes avec icônes et textes */}
             <div className="flex justify-between items-center relative z-10 gap-2 px-1">
               {stepTitles.map((title, index) => {
                 const isActive = step === index + 1;
@@ -1013,10 +972,10 @@ export default function BeneficiaireWizard({
                     <motion.div
                       className={`flex items-center justify-center min-w-[44px] min-h-[44px] w-10 h-10 rounded-full border-2 transition-all
                         ${isActive
-                          ? "border-blue-600 bg-blue-600 text-white scale-105 shadow-lg"
+                          ? "border-primary bg-primary text-primary-foreground scale-105 shadow-lg"
                           : isCompleted
-                          ? "border-blue-600 bg-blue-100 text-blue-600"
-                          : "border-gray-300 bg-white text-gray-400"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-muted-foreground"
                         }`}
                       whileHover={{ scale: isActive ? 1.05 : 1 }}
                     >
@@ -1026,7 +985,7 @@ export default function BeneficiaireWizard({
                         <span className="text-sm font-semibold">{index + 1}</span>
                       )}
                     </motion.div>
-                    <span className={`mt-3 text-xs sm:text-sm font-medium text-center ${isActive ? "text-blue-600" : "text-gray-500"}`}>
+                    <span className={`mt-3 text-xs sm:text-sm font-medium text-center ${isActive ? "text-primary" : "text-muted-foreground"}`}>
                       {title}
                     </span>
                   </div>
@@ -1037,10 +996,8 @@ export default function BeneficiaireWizard({
 
         </div>
 
-        {/* Contenu scrollable (évite de perdre l'entête et le footer sur mobile) */}
         <div className="flex-1 overflow-auto px-1 sm:px-2 pb-1">
 
-          {/* Étape 1 */}
           {step === 1 && (
             <motion.div
               initial={{ opacity: 0, x: 50 }}
@@ -1048,51 +1005,46 @@ export default function BeneficiaireWizard({
               transition={{ duration: 0.3 }}
             >
               <div className="flex flex-col gap-4 md:gap-5">
-                {/* Matricule, nom et prénom en haut, pleine largeur sur mobile, 1/3 sur desktop */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                  {/* Matricule */}
                   <div>
-                    <Label>Matricule solde</Label>
+                    <Label className="text-foreground dark:text-foreground">Matricule solde</Label>
                     <Input
                       value={beneficiaire.BEN_MATRICULE}
                       onChange={(e) =>
                         setBeneficiaire({ ...beneficiaire, BEN_MATRICULE: e.target.value.toUpperCase() })
                       }
-                      className="h-9 text-sm text-gray-900 caret-blue-600 w-full bg-white"
+                      className="h-9 text-sm text-foreground dark:text-foreground caret-primary w-full bg-card dark:bg-card border-border dark:border-border"
                     />
                   </div>
 
-                  {/* Nom */}
                   <div>
-                    <Label>Nom <span className="text-red-500">*</span></Label>
+                    <Label className="text-foreground dark:text-foreground">Nom <span className="text-destructive">*</span></Label>
                     <Input
                       value={beneficiaire.BEN_NOM}
                       onChange={(e) =>
                         setBeneficiaire({ ...beneficiaire, BEN_NOM: e.target.value.toUpperCase() })
                       }
-                      className="h-9 text-sm uppercase text-gray-900 caret-blue-600 w-full bg-white"
+                      className="h-9 text-sm uppercase text-foreground dark:text-foreground caret-primary w-full bg-card dark:bg-card border-border dark:border-border"
                     />
                   </div>
 
-                  {/* Prénom */}
                   <div>
-                    <Label>Prénom <span className="text-red-500">*</span></Label>
+                    <Label className="text-foreground dark:text-foreground">Prénom <span className="text-destructive">*</span></Label>
                     <Input
                       value={beneficiaire.BEN_PRENOM}
                       onChange={(e) =>
                         setBeneficiaire({ ...beneficiaire, BEN_PRENOM: e.target.value.toUpperCase() })
                       }
-                      className="h-9 text-sm uppercase text-gray-900 caret-blue-600 w-full bg-white"
+                      className="h-9 text-sm uppercase text-foreground dark:text-foreground caret-primary w-full bg-card dark:bg-card border-border dark:border-border"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                  {/* Sexe */}
                   <div>
-                    <Label>Sexe <span className="text-red-500">*</span></Label>
+                    <Label className="text-foreground dark:text-foreground">Sexe <span className="text-destructive">*</span></Label>
                     <div className="flex items-center gap-2 mt-1">
-                      <label className="flex items-center gap-1">
+                      <label className="flex items-center gap-1 text-foreground dark:text-foreground">
                         <input
                           type="radio"
                           name="sexe"
@@ -1101,12 +1053,12 @@ export default function BeneficiaireWizard({
                           onChange={(e) =>
                             setBeneficiaire({ ...beneficiaire, BEN_SEXE: e.target.value })
                           }
-                          className="accent-blue-600 w-4 h-4"
+                          className="accent-primary w-4 h-4"
                         />
                         Masculin
                       </label>
 
-                      <label className="flex items-center gap-1">
+                      <label className="flex items-center gap-1 text-foreground dark:text-foreground">
                         <input
                           type="radio"
                           name="sexe"
@@ -1115,29 +1067,27 @@ export default function BeneficiaireWizard({
                           onChange={(e) =>
                             setBeneficiaire({ ...beneficiaire, BEN_SEXE: e.target.value })
                           }
-                          className="accent-pink-500 w-4 h-4"
+                          className="accent-primary w-4 h-4"
                         />
                         Féminin
                       </label>
                     </div>
                   </div>
 
-                  {/* Date de naissance */}
                   <div>
-                    <Label>Date de naissance <span className="text-red-500">*</span></Label>
+                    <Label className="text-foreground dark:text-foreground">Date de naissance <span className="text-destructive">*</span></Label>
                     <Input
                       type="date"
-                      max={maxDate15} // bloque le calendrier
+                      max={maxDate15}
                       value={beneficiaire.BEN_DATE_NAISSANCE}
                       onChange={handleDateChange}
-                      className={`h-9 text-sm text-gray-900 w-full bg-white ${ageError ? "border-red-500" : ""}`}
+                      className={`h-9 text-sm text-foreground dark:text-foreground w-full bg-card dark:bg-card border-border dark:border-border ${ageError ? "border-destructive" : ""}`}
                     />
                     {ageError && (
-                      <p className="text-red-500 text-xs mt-1">{ageError}</p>
+                      <p className="text-destructive text-xs mt-1">{ageError}</p>
                     )}
                   </div>
 
-                  {/* Type de bénéficiaire */}
                   <ComboBox
                     label="Type de bénéficiaire *"
                     items={types}
@@ -1146,7 +1096,6 @@ export default function BeneficiaireWizard({
                     display={(t: any) => t.TYP_LIBELLE}
                   />
 
-                  {/* Fonction */}
                   <ComboBox
                     label="Fonction *"
                     items={fonctions}
@@ -1155,7 +1104,6 @@ export default function BeneficiaireWizard({
                     display={(f: any) => f.FON_LIBELLE}
                   />
 
-                  {/* Grade */}
                   <ComboBox
                     label="Grade"
                     items={grades}
@@ -1164,7 +1112,6 @@ export default function BeneficiaireWizard({
                     display={(g: any) => g.GRD_LIBELLE}
                   />
 
-                  {/* Position */}
                   <ComboBox
                     label="Position *"
                     items={positions}
@@ -1174,89 +1121,78 @@ export default function BeneficiaireWizard({
                   />
                 </div>
 
-                {/* Suggestions doublons */}
-                  {!beneficiaireData && (benefSuggestions.length > 0 || searchLoading) && (
-                    <div className="mt-2 col-span-full rounded-md border border-amber-200 bg-amber-50 p-3">
+                {!beneficiaireData && (benefSuggestions.length > 0 || searchLoading) && (
+                  <div className="mt-2 col-span-full rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3">
 
-                      {/* Titre dynamique */}
-                      <div className="text-xs font-semibold text-amber-800 mb-2">
-                        {benefSuggestions.some(
-                          (b) =>
-                            b.BEN_NOM.toUpperCase() === beneficiaire.BEN_NOM.toUpperCase() &&
-                            b.BEN_PRENOM.toUpperCase() === beneficiaire.BEN_PRENOM.toUpperCase()
-                        )
-                          ? <span className="text-red-600">
-                              Attention : un bénéficiaire avec ce nom et prénom existe déjà. 
-                              Veuillez vérifier les autres informations pour être sûr !
-                            </span>
-                          : "Liste des potentiels doublons sur nom/prénom"}
-                      </div>
-
-                      {/* Indicateur de recherche */}
-                      {searchLoading && (
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Recherche...
-                        </div>
-                      )}
-
-                      {/* Tableau des suggestions */}
-                      <div className="flex flex-col gap-1 max-h-40 overflow-y-auto text-xs">
-
-                        {/* Header */}
-                        <div className="grid grid-cols-6 gap-2 font-semibold text-gray-700 border-b pb-1 mb-1">
-                          <div>Nom / Prénom</div>
-                          <div>Date naissance</div>
-                          <div>Position</div>
-                          <div>Banque</div>
-                          <div>Guichet</div>
-                          <div>N° Compte - clé RIB</div>
-                        </div>
-
-                        {/* Lignes */}
-                        {benefSuggestions.map((b) => (
-                          <div
-                            key={b.BEN_CODE}
-                            className="grid grid-cols-6 gap-2 border-b last:border-0 py-1 px-2 hover:bg-amber-100 rounded"
-                          >
-                            <div className="font-medium">
-                              {b.BEN_NOM} {b.BEN_PRENOM}
-                            </div>
-
-                            <div className="text-gray-500">
-                              {b.BEN_DATE_NAISSANCE || "-"}
-                            </div>
-
-                            {/* Position */}
-                            <div className="text-gray-600">
-                              {b.POS_LIBELLE || "-"}
-                            </div>
-
-                            {/* Banque */}
-                            <div className="text-gray-600">
-                              {b.domiciliations?.[0]?.BNQ_LIBELLE || "-"}
-                            </div>
-
-                            {/* Guichet */}
-                            <div className="text-gray-600">
-                              {b.domiciliations?.[0]?.GUI_CODE || "-"}
-                            </div>
-
-                            {/* Compte + RIB */}
-                            <div className="text-gray-600">
-                              {b.domiciliations?.[0]
-                                ? b.domiciliations[0].DOM_RIB
-                                  ? `${b.domiciliations[0].DOM_NUMCPT}-${b.domiciliations[0].DOM_RIB}`
-                                  : b.domiciliations[0].DOM_NUMCPT
-                                : "-"}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    <div className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-2">
+                      {benefSuggestions.some(
+                        (b) =>
+                          b.BEN_NOM.toUpperCase() === beneficiaire.BEN_NOM.toUpperCase() &&
+                          b.BEN_PRENOM.toUpperCase() === beneficiaire.BEN_PRENOM.toUpperCase()
+                      )
+                        ? <span className="text-destructive">
+                            Attention : un bénéficiaire avec ce nom et prénom existe déjà. 
+                            Veuillez vérifier les autres informations pour être sûr !
+                          </span>
+                        : "Liste des potentiels doublons sur nom/prénom"}
                     </div>
-                  )}
 
-                {/* Boutons */}
+                    {searchLoading && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Recherche...
+                      </div>
+                    )}
+
+                    <div className="flex flex-col gap-1 max-h-40 overflow-y-auto text-xs">
+
+                      <div className="grid grid-cols-6 gap-2 font-semibold text-foreground border-b border-border pb-1 mb-1">
+                        <div>Nom / Prénom</div>
+                        <div>Date naissance</div>
+                        <div>Position</div>
+                        <div>Banque</div>
+                        <div>Guichet</div>
+                        <div>N° Compte - clé RIB</div>
+                      </div>
+
+                      {benefSuggestions.map((b) => (
+                        <div
+                          key={b.BEN_CODE}
+                          className="grid grid-cols-6 gap-2 border-b border-border last:border-0 py-1 px-2 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded"
+                        >
+                          <div className="font-medium text-foreground">
+                            {b.BEN_NOM} {b.BEN_PRENOM}
+                          </div>
+
+                          <div className="text-muted-foreground">
+                            {b.BEN_DATE_NAISSANCE || "-"}
+                          </div>
+
+                          <div className="text-muted-foreground">
+                            {b.POS_LIBELLE || "-"}
+                          </div>
+
+                          <div className="text-muted-foreground">
+                            {b.domiciliations?.[0]?.BNQ_LIBELLE || "-"}
+                          </div>
+
+                          <div className="text-muted-foreground">
+                            {b.domiciliations?.[0]?.GUI_CODE || "-"}
+                          </div>
+
+                          <div className="text-muted-foreground">
+                            {b.domiciliations?.[0]
+                              ? b.domiciliations[0].DOM_RIB
+                                ? `${b.domiciliations[0].DOM_NUMCPT}-${b.domiciliations[0].DOM_RIB}`
+                                : b.domiciliations[0].DOM_NUMCPT
+                              : "-"}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-col sm:flex-row justify-end mt-5 space-y-2 sm:space-y-0 sm:space-x-4">
                   {beneficiaireData ? (
                     <Button onClick={handleNextWithUpdate} disabled={!dataReady || loading}>
@@ -1298,17 +1234,14 @@ export default function BeneficiaireWizard({
             </motion.div>
           )}
 
-          {/* Étape 2 */}
           {step === 2 && (
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3 }}
             >
-              {/* Formulaire d'ajout/modification : responsive (1 / 2 / 3 colonnes) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-3">
 
-                {/* Banque */}
                 <ComboBox
                   label="Banque *"
                   items={banques}
@@ -1317,7 +1250,6 @@ export default function BeneficiaireWizard({
                   display={(b: any) => `${b.BNQ_LIBELLE}`}
                 />
 
-                {/* Guichet */}
                 <ComboBox
                   label="Guichet *"
                   items={guichets.filter((g) => String(g.BNQ_CODE).trim() === String(currentDomiciliation.BNQ_CODE).trim())}
@@ -1327,48 +1259,41 @@ export default function BeneficiaireWizard({
                   disabled={!currentDomiciliation.BNQ_CODE}
                 />
 
-                {/* Numéro de compte */}
                 <div>
-                  <Label>Numéro de compte</Label>
+                  <Label className="text-foreground dark:text-foreground">Numéro de compte</Label>
                   <Input
                     value={currentDomiciliation.DOM_NUMCPT}
                     onChange={(e) => {
                       let num = e.target.value;
 
-                      // Si banque primaire, garder que les chiffres et max 11
                       if (isBanquePrimaire) {
                         num = num.replace(/\D/g, "").slice(0, 11);
                       }
 
-                      // Calcul de la clé RIB
                       const rib = calculerCleRib(currentDomiciliation.BNQ_CODE, currentDomiciliation.GUI_ID, num);
 
-                      // Met à jour l'état du formulaire
                       setCurrentDomiciliation({ ...currentDomiciliation, DOM_NUMCPT: num, DOM_RIB: rib });
 
-                      // Met à jour le compteur
                       setNumCompteLength(num.length);
                     }}
                     placeholder={isBanquePrimaire ? "11 chiffres uniquement" : ""}
-                    className="h-9 w-full"
+                    className="h-9 w-full bg-card dark:bg-card border-border dark:border-border text-foreground dark:text-foreground"
                   />
-                  <div className="text-right text-xs text-blue-600 mt-1">
+                  <div className="text-right text-xs text-primary mt-1">
                     {currentDomiciliation.DOM_NUMCPT.length}
                   </div>
                 </div>
 
-                {/* Clé RIB et actions */}
                 <div className="md:col-span-3 mt-1 flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <div className="flex items-center gap-4 w-full sm:w-auto">
                     <div className="flex items-center gap-3">
                       <span className="text-sm text-muted-foreground">Clé RIB :</span>
-                      <span className="font-semibold text-blue-600">
+                      <span className="font-semibold text-primary">
                         {currentDomiciliation.DOM_RIB || "—"}
                       </span>
                     </div>
 
-                    {/* Upload fichier RIB */}
-                    <label className="flex items-center gap-2 px-2 py-1 text-sm bg-blue-100 hover:bg-blue-200 rounded-md cursor-pointer max-w-[220px]">
+                    <label className="flex items-center gap-2 px-2 py-1 text-sm bg-primary/10 hover:bg-primary/20 rounded-md cursor-pointer max-w-[220px]">
                       <input
                         type="file"
                         className="hidden"
@@ -1381,7 +1306,7 @@ export default function BeneficiaireWizard({
                         }}
                       />
 
-                      <Upload className="w-4 h-4 text-gray-600 shrink-0" />
+                      <Upload className="w-4 h-4 text-muted-foreground shrink-0" />
 
                       <span
                         title={
@@ -1392,7 +1317,7 @@ export default function BeneficiaireWizard({
                               : ""
                         }
                         className={`text-xs truncate whitespace-nowrap overflow-hidden max-w-[150px]
-                          ${currentDomiciliation.DOM_FICHIER ? "text-gray-700" : "text-gray-500"}
+                          ${currentDomiciliation.DOM_FICHIER ? "text-foreground" : "text-muted-foreground"}
                         `}
                       >
                         {currentDomiciliation.DOM_FICHIER instanceof File
@@ -1403,7 +1328,6 @@ export default function BeneficiaireWizard({
                       </span>
                     </label>
 
-                    {/* Télécharger le fichier existant */}
                     {currentDomiciliation.DOM_FICHIER && !(currentDomiciliation.DOM_FICHIER instanceof File) && (
                       <Button
                         variant="ghost"
@@ -1422,7 +1346,7 @@ export default function BeneficiaireWizard({
                     {selectedRows.length > 0 && (
                       <div className="flex justify-end mb-4">
                         <Button
-                          className="bg-green-600 hover:bg-green-700 text-white"
+                          className="bg-primary hover:bg-primary-dark text-primary-foreground"
                           onClick={() => handleStatusUpdate([selectedRows[0]])}
                         >
                           <Send className="w-4 h-4 mr-2" />
@@ -1442,10 +1366,10 @@ export default function BeneficiaireWizard({
                         ${
                           !currentDomiciliation.BNQ_CODE ||
                           (isBanquePrimaire && currentDomiciliation.DOM_NUMCPT.length < 11)
-                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            ? "bg-muted text-muted-foreground cursor-not-allowed"
                             : isEditing
-                            ? "bg-green-600 hover:bg-green-700 text-white"
-                            : "bg-blue-600 hover:bg-blue-700 text-white"
+                            ? "bg-primary hover:bg-primary-dark text-primary-foreground"
+                            : "bg-primary hover:bg-primary-dark text-primary-foreground"
                         }
                       `}
                     >
@@ -1469,7 +1393,7 @@ export default function BeneficiaireWizard({
 
                     {isEditing && (
                       <Button
-                        className="px-3 py-1.5 rounded-md text-sm bg-red-600 hover:bg-red-700 text-white"
+                        className="px-3 py-1.5 rounded-md text-sm bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                         onClick={() => {
                           setIsEditing(false);
                           setEditId(null);
@@ -1491,57 +1415,54 @@ export default function BeneficiaireWizard({
                 </div>
               </div>
 
-              {/* Vue mobile (cards) */}
               {!dataReady ? (
                 <TableSkeletonWizard />
               ) : (
                 <div className="flex flex-col gap-2 md:hidden mb-3">
                   {domiciliations.length === 0 ? (
-                    <div className="p-4 bg-gray-50 rounded-md text-center text-gray-500">
+                    <div className="p-4 bg-muted rounded-md text-center text-muted-foreground">
                       Aucune domiciliation ajoutée.
                     </div>
                   ) : (
                     domiciliations.map((d, i) => {
-                      // Gestion des couleurs de statut comme desktop
                       let bgColor = "";
                       let textColor = "";
                       let label = "";
                       switch (d.DOM_STATUT) {
                         case 0:
-                          bgColor = "bg-red-100";
-                          textColor = "text-red-700";
+                          bgColor = "bg-destructive/10";
+                          textColor = "text-destructive";
                           label = "Rejeté";
                           break;
                         case 1:
-                          bgColor = "bg-gray-100";
-                          textColor = "text-gray-600";
+                          bgColor = "bg-muted";
+                          textColor = "text-muted-foreground";
                           label = "Non approuvé";
                           break;
                         case 2:
-                          bgColor = "bg-orange-100";
-                          textColor = "text-orange-700";
+                          bgColor = "bg-orange-500/10";
+                          textColor = "text-orange-600 dark:text-orange-400";
                           label = "En cours d'approbation...";
                           break;
                         case 3:
-                          bgColor = "bg-green-100";
-                          textColor = "text-green-700";
+                          bgColor = "bg-green-500/10";
+                          textColor = "text-green-600 dark:text-green-400";
                           label = "Approuvé";
                           break;
                         default:
-                          bgColor = "bg-gray-100";
-                          textColor = "text-gray-600";
+                          bgColor = "bg-muted";
+                          textColor = "text-muted-foreground";
                           label = "Inconnu";
                       }
 
                       return (
                         <div
                           key={i}
-                          className={`p-2 bg-white rounded-lg shadow-sm border flex flex-col gap-2 relative`}
+                          className={`p-2 bg-card rounded-lg shadow-sm border border-border flex flex-col gap-2 relative`}
                         >
-                          {/* Checkbox mobile */}
                           <input
                             type="checkbox"
-                            className="absolute top-2 left-2 w-4 h-4"
+                            className="absolute top-2 left-2 w-4 h-4 accent-primary"
                             checked={isSelected(d)}
                             onClick={(e) => e.stopPropagation()}
                             onChange={() => toggleRowSelection(d)}
@@ -1549,8 +1470,8 @@ export default function BeneficiaireWizard({
 
                           <div className="flex justify-between items-start ml-6">
                             <div>
-                              <div className="text-xs text-gray-500">Banque :</div>
-                              <div className="text-sm font-medium">{getBanqueInfo(d.BNQ_CODE)}</div>
+                              <div className="text-xs text-muted-foreground">Banque :</div>
+                              <div className="text-sm font-medium text-foreground">{getBanqueInfo(d.BNQ_CODE)}</div>
                             </div>
                             <div className="text-xs">
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${bgColor} ${textColor}`}>
@@ -1560,18 +1481,18 @@ export default function BeneficiaireWizard({
                           </div>
 
                           <div className="items-center ml-6">
-                            <div className="text-xs text-gray-500">Guichet :</div>
-                            <div className="text-sm font-medium">{getGuichetInfo(d.GUI_ID)}</div>
+                            <div className="text-xs text-muted-foreground">Guichet :</div>
+                            <div className="text-sm font-medium text-foreground">{getGuichetInfo(d.GUI_ID)}</div>
                           </div>
 
                           <div className="flex justify-between items-center ml-6">
                             <div>
-                              <div className="text-xs text-gray-500">N° Compte :</div>
-                              <div className="font-medium">{d.DOM_NUMCPT}</div>
+                              <div className="text-xs text-muted-foreground">N° Compte :</div>
+                              <div className="font-medium text-foreground">{d.DOM_NUMCPT}</div>
                             </div>
                             <div className="text-right">
-                              <div className="text-xs text-gray-500">Clé RIB :</div>
-                              <div className="text-blue-600 font-medium">{d.DOM_RIB || "—"}</div>
+                              <div className="text-xs text-muted-foreground">Clé RIB :</div>
+                              <div className="text-primary font-medium">{d.DOM_RIB || "—"}</div>
                             </div>
                           </div>
 
@@ -1596,7 +1517,7 @@ export default function BeneficiaireWizard({
                               onClick={() => handleEdit(d)}
                               title="Modifier le RIB"
                             >
-                              <Edit className="w-4 h-4 text-blue-500" />
+                              <Edit className="w-4 h-4 text-primary" />
                             </Button>
 
                             <Button
@@ -1608,7 +1529,7 @@ export default function BeneficiaireWizard({
                               }}
                               title="Supprimer le RIB"
                             >
-                              <Trash2 className="w-4 h-4 text-red-500" />
+                              <Trash2 className="w-4 h-4 text-destructive" />
                             </Button>
                           </div>
                         </div>
@@ -1618,49 +1539,49 @@ export default function BeneficiaireWizard({
                 </div>
               )}
 
-              {/* Tableau desktop */}
               {!dataReady ? (
                 <TableSkeletonWizard />
               ) : (
-                <div className="hidden md:block rounded-xl border bg-white overflow-auto max-h-[360px] shadow-sm">
-                  <table className="min-w-full divide-y divide-gray-100 text-sm">
-                    <thead className="bg-gray-50 sticky top-0 z-10">
+                <div className="hidden md:block rounded-xl border border-border bg-card overflow-auto max-h-[360px] shadow-sm">
+                  <table className="min-w-full divide-y divide-border text-sm">
+                    <thead className="bg-muted sticky top-0 z-10">
                       <tr>
-                        <th className="px-3 py-2 text-center">Choix</th>
-                        <th className="px-3 py-2 text-center">Banque</th>
-                        <th className="px-3 py-2 text-center">Guichet</th>
-                        <th className="px-3 py-2 text-center">N° Compte</th>
-                        <th className="px-3 py-2 text-center">Clé RIB</th>
-                        <th className="px-3 py-2 text-center">Statut</th>
-                        <th className="px-3 py-2 text-center">Actions</th>
+                        <th className="px-3 py-2 text-center text-muted-foreground">Choix</th>
+                        <th className="px-3 py-2 text-center text-muted-foreground">Banque</th>
+                        <th className="px-3 py-2 text-center text-muted-foreground">Guichet</th>
+                        <th className="px-3 py-2 text-center text-muted-foreground">N° Compte</th>
+                        <th className="px-3 py-2 text-center text-muted-foreground">Clé RIB</th>
+                        <th className="px-3 py-2 text-center text-muted-foreground">Statut</th>
+                        <th className="px-3 py-2 text-center text-muted-foreground">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-100">
+                    <tbody className="bg-card divide-y divide-border">
                       {domiciliations.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="text-center text-gray-500 py-4">Aucune domiciliation ajoutée.</td>
+                          <td colSpan={7} className="text-center text-muted-foreground py-4">Aucune domiciliation ajoutée.</td>
                         </tr>
                       ) : (
                         domiciliations.map((d, i) => (
                           <tr
                             key={i}
                             onClick={() => toggleRowSelection(d)}
-                            className={`hover:bg-gray-50 transition-colors cursor-pointer
-                              ${isSelected(d) ? "bg-green-50" : ""}
+                            className={`hover:bg-muted/50 transition-colors cursor-pointer
+                              ${isSelected(d) ? "bg-primary/5" : ""}
                             `}
                           >
                             <td className="px-3 py-2 text-center align-top">
                               <input
                                 type="checkbox"
                                 checked={isSelected(d)}
-                                onClick={(e) => e.stopPropagation()} // pour éviter que le clic déclenche la ligne entière
+                                onClick={(e) => e.stopPropagation()}
                                 onChange={() => toggleRowSelection(d)}
+                                className="accent-primary"
                               />
                             </td>
-                            <td className="px-3 py-2 align-top">{getBanqueInfo(d.BNQ_CODE)}</td>
-                            <td className="px-3 py-2 align-top">{getGuichetInfo(d.GUI_ID)}</td>
-                            <td className="px-3 py-2 font-medium align-top">{d.DOM_NUMCPT}</td>
-                            <td className="px-3 py-2 text-blue-600 font-medium align-top">{d.DOM_RIB || "—"}</td>
+                            <td className="px-3 py-2 align-top text-foreground">{getBanqueInfo(d.BNQ_CODE)}</td>
+                            <td className="px-3 py-2 align-top text-foreground">{getGuichetInfo(d.GUI_ID)}</td>
+                            <td className="px-3 py-2 font-medium align-top text-foreground">{d.DOM_NUMCPT}</td>
+                            <td className="px-3 py-2 text-primary font-medium align-top">{d.DOM_RIB || "—"}</td>
                             <td className="px-3 py-2 align-top">
                               {(() => {
                                 let bgColor = "";
@@ -1669,28 +1590,28 @@ export default function BeneficiaireWizard({
 
                                 switch (d.DOM_STATUT) {
                                   case 0:
-                                    bgColor = "bg-red-100";
-                                    textColor = "text-red-700";
+                                    bgColor = "bg-destructive/10";
+                                    textColor = "text-destructive";
                                     label = "Rejeté";
                                     break;
                                   case 1:
-                                    bgColor = "bg-gray-100";
-                                    textColor = "text-gray-600";
+                                    bgColor = "bg-muted";
+                                    textColor = "text-muted-foreground";
                                     label = "Non approuvé";
                                     break;
                                   case 2:
-                                    bgColor = "bg-orange-100";
-                                    textColor = "text-orange-700";
+                                    bgColor = "bg-orange-500/10";
+                                    textColor = "text-orange-600 dark:text-orange-400";
                                     label = "En cours d'approbation...";
                                     break;
                                   case 3:
-                                    bgColor = "bg-green-100";
-                                    textColor = "text-green-700";
+                                    bgColor = "bg-green-500/10";
+                                    textColor = "text-green-600 dark:text-green-400";
                                     label = "Approuvé";
                                     break;
                                   default:
-                                    bgColor = "bg-gray-100";
-                                    textColor = "text-gray-600";
+                                    bgColor = "bg-muted";
+                                    textColor = "text-muted-foreground";
                                     label = "Inconnu";
                                 }
 
@@ -1716,14 +1637,14 @@ export default function BeneficiaireWizard({
                                 </Button>
                               )}
                               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleEdit(d)}} title="Modifier le RIB">
-                                <Edit className="w-4 h-4 text-blue-500" />
+                                <Edit className="w-4 h-4 text-primary" />
                               </Button>
                               <Button variant="ghost" size="sm" onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedDomiciliation(d);
                                 setIsDeleteDialogOpen(true);
                               }} title="Supprimer le RIB">
-                                <Trash2 className="w-4 h-4 text-red-500" />
+                                <Trash2 className="w-4 h-4 text-destructive" />
                               </Button>
                             </td>
                           </tr>
@@ -1734,13 +1655,11 @@ export default function BeneficiaireWizard({
                 </div>
               )}
 
-              {/* Boutons de navigation (desktop) */}
               <div className="flex flex-col md:flex-row justify-between mt-6 gap-2">
                 
-                {/* Précédent : seulement en modification */}
                 {beneficiaireData ? (
                   <Button
-                    className="bg-blue-600 hover:bg-blue-700 text-white w-full md:w-auto"
+                    className="bg-primary hover:bg-primary-dark text-primary-foreground w-full md:w-auto"
                     onClick={() => setStep(1)}
                   >
                     <motion.div
@@ -1753,13 +1672,13 @@ export default function BeneficiaireWizard({
                     Précédent
                   </Button>
                 ) : (
-                  <div />   // garde l’alignement du bouton Terminer à droite
+                  <div />
                 )}
 
                 <Button
                   onClick={handleFinishValidation}
                   disabled={loading}
-                  className="w-full md:w-auto"
+                  className="w-full md:w-auto bg-primary hover:bg-primary-dark text-primary-foreground"
                 >
                   {loading ? (
                     "Enregistrement..."
@@ -1788,7 +1707,6 @@ export default function BeneficiaireWizard({
           }
         />
 
-        {/* Confirmation validation statut */}
         <ConfirmValidateDialog
           open={isValidateStatusDialogOpen}
           onClose={() => setIsValidateStatusDialogOpen(false)}

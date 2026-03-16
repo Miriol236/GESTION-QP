@@ -110,7 +110,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     loadPaiementData();
   }, [paiementData, listsLoaded]);
 
-  // Fonction de recherche des bénéficiaires
   const searchBeneficiaires = async (searchTerm: string) => {
     if (!searchTerm || searchTerm.length < 2) {
       setBeneficiairesList([]);
@@ -136,11 +135,9 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     }
   };
 
-  // Gestionnaire de changement de recherche
   const handleBenefSearchChange = (value: string) => {
     setBenefSearch(value);
     
-    // Débounce pour éviter trop d'appels API
     if (benefSearchTimeout) {
       clearTimeout(benefSearchTimeout);
     }
@@ -155,16 +152,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
     
     setBenefSearchTimeout(timeout);
   };
-
-  // useEffect(() => {
-  //   const token = localStorage.getItem("token");
-
-  //   axios.get(`${API_URL}/beneficiaires-rib`, {
-  //     headers: { Authorization: `Bearer ${token}` }
-  //   })
-  //   .then(res => setItems(res.data))
-  //   .catch(() => {});
-  // }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -222,26 +209,6 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
         }));
     }
   }, [paieCode]);
-
-  // useEffect(() => {
-  //   if (!paiement.BEN_CODE) {
-  //     setSelectedBenef(null);
-  //     setSelectedRib(null);
-  //     return;
-  //   }
-
-  //   const found = items.find(
-  //     (b) => String(b.BEN_CODE) === String(paiement.BEN_CODE)
-  //   );
-
-  //   setSelectedBenef(found || null);
-
-  //   const rib = found?.domiciliations?.find(d => d.DOM_STATUT) || null;
-  //   setSelectedRib(rib);
-
-  // }, [paiement.BEN_CODE, items]);
-
-  // Modifiez l'effet qui met à jour selectedBenef
   
   useEffect(() => {
     if (!paiement.BEN_CODE) {
@@ -258,16 +225,8 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
           headers: { Authorization: `Bearer ${token}` }
         });
         
-        // console.log("Données reçues:", response.data);
-        
-        // Pour la Solution 1 ou 2
         setSelectedBenef(response.data);
         
-        // Pour la Solution 3 (structure différente)
-        // setSelectedBenef(response.data.beneficiaire);
-        // const rib = response.data.domiciliations.find(...);
-        
-        // Adaptation pour la Solution 1 ou 2
         if (response.data.domiciliations && response.data.domiciliations.length > 0) {
           const rib = response.data.domiciliations.find((d: any) => d.DOM_STATUT === 3) || 
                     response.data.domiciliations.find((d: any) => d.DOM_STATUT === 2) ||
@@ -661,27 +620,27 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
     return (
       <div>
-        <Label>{label}</Label>
+        <Label className="text-foreground dark:text-foreground">{label}</Label>
         <Popover open={open} onOpenChange={(o) => setOpen(o)}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="w-full justify-between truncate text-left"
+              className="w-full justify-between truncate text-left bg-card dark:bg-card border-border dark:border-border hover:bg-muted/50 dark:hover:bg-muted/20"
               disabled={disabled}
               onClick={() => setOpen(true)}
             >
               {selected ? (
-                <span className="truncate max-w-[230px]">{display(selected)}</span>
+                <span className="truncate max-w-[230px] text-foreground dark:text-foreground">{display(selected)}</span>
               ) : (
-                <span className="text-muted-foreground">-- Sélectionner --</span>
+                <span className="text-muted-foreground dark:text-muted-foreground">-- Sélectionner --</span>
               )}
               <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
             </Button>
           </PopoverTrigger>
 
           {!disabled && (
-            <PopoverContent className="p-0 w-full sm:w-[300px]">
-              <Command shouldFilter={false}>
+            <PopoverContent className="p-0 w-full sm:w-[300px] bg-popover dark:bg-popover border-border dark:border-border">
+              <Command shouldFilter={false} className="bg-popover dark:bg-popover">
                 <CommandInput
                   placeholder={`Rechercher ${label.toLowerCase()}...`}
                   value={localSearch}
@@ -690,9 +649,10 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                     setOpen(true);
                   }}
                   autoFocus
+                  className="border-0 focus:ring-0 text-foreground dark:text-foreground"
                 />
                 <CommandList>
-                  <CommandEmpty>Aucun résultat</CommandEmpty>
+                  <CommandEmpty className="text-muted-foreground dark:text-muted-foreground">Aucun résultat</CommandEmpty>
                   <CommandGroup>
                     {items
                       .filter((item: any) =>
@@ -706,11 +666,12 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                             setLocalSearch("");
                             setOpen(false);
                           }}
+                          className="cursor-pointer hover:bg-muted dark:hover:bg-muted/20 text-foreground dark:text-foreground"
                         >
                           <Check
                             className={`mr-2 h-4 w-4 ${
                               value === (item.BEN_CODE || item.ELT_CODE)
-                                ? "opacity-100 text-blue-600"
+                                ? "opacity-100 text-primary dark:text-primary"
                                 : "opacity-0"
                             }`}
                           />
@@ -730,50 +691,51 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   const BeneficiaireComboBox = () => {
     return (
       <div className="space-y-1">
-        <Label>Bénéficiaire *</Label>
+        <Label className="text-foreground dark:text-foreground">Bénéficiaire *</Label>
         <Popover open={benefOpen} onOpenChange={setBenefOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="w-full justify-between truncate text-left h-9"
+              className="w-full justify-between truncate text-left h-9 bg-card dark:bg-card border-border dark:border-border hover:bg-muted/50 dark:hover:bg-muted/20"
             >
               {selectedBenef ? (
-                <span className="truncate">
+                <span className="truncate text-foreground dark:text-foreground">
                   {selectedBenef.BEN_NOM} {selectedBenef.BEN_PRENOM || ""} 
                   {selectedBenef.FON_LIBELLE && ` (${selectedBenef.FON_LIBELLE})`}
                 </span>
               ) : (
-                <span className="text-muted-foreground">-- Sélectionner --</span>
+                <span className="text-muted-foreground dark:text-muted-foreground">-- Sélectionner --</span>
               )}
               <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
             </Button>
           </PopoverTrigger>
 
           <PopoverContent 
-            className="p-0" 
+            className="p-0 bg-popover dark:bg-popover border-border dark:border-border" 
             style={{ width: 'var(--radix-popover-trigger-width)' }}
             align="start"
           >
-            <Command shouldFilter={false}>
+            <Command shouldFilter={false} className="bg-popover dark:bg-popover">
               <CommandInput
                 placeholder="Rechercher un bénéficiaire..."
                 value={benefSearch}
                 onValueChange={handleBenefSearchChange}
                 autoFocus
+                className="border-0 focus:ring-0 text-foreground dark:text-foreground"
               />
               <CommandList>
                 {benefLoading && (
                   <div className="flex items-center justify-center py-6">
-                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground dark:text-muted-foreground" />
                   </div>
                 )}
                 
                 {!benefLoading && beneficiairesList.length === 0 && benefSearch.length >= 2 && (
-                  <CommandEmpty>Aucun bénéficiaire trouvé</CommandEmpty>
+                  <CommandEmpty className="text-muted-foreground dark:text-muted-foreground">Aucun bénéficiaire trouvé</CommandEmpty>
                 )}
                 
                 {!benefLoading && benefSearch.length < 2 && (
-                  <div className="py-6 text-center text-sm text-gray-500">
+                  <div className="py-6 text-center text-sm text-muted-foreground dark:text-muted-foreground">
                     Saisissez au moins 2 caractères
                   </div>
                 )}
@@ -788,21 +750,22 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                         setBenefSearch("");
                         setBeneficiairesList([]);
                       }}
+                      className="cursor-pointer hover:bg-muted dark:hover:bg-muted/20 text-foreground dark:text-foreground"
                     >
                       <Check
                         className={`mr-2 h-4 w-4 ${
                           paiement.BEN_CODE === benef.BEN_CODE
-                            ? "opacity-100 text-blue-600"
+                            ? "opacity-100 text-primary dark:text-primary"
                             : "opacity-0"
                         }`}
                       />
                       <div className="flex flex-col w-full">
-                        <span className="font-medium">
+                        <span className="font-medium text-foreground dark:text-foreground">
                           {benef.BEN_NOM} {benef.BEN_PRENOM || ""}
                         </span>
-                        <div className="flex justify-between items-center text-xs text-gray-500">
-                          <span>Code: {benef.BEN_CODE}</span>
-                          <span className="ml-2 px-1.5 py-0.5 bg-blue-50 rounded">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-muted-foreground dark:text-muted-foreground">Code: {benef.BEN_CODE}</span>
+                          <span className="ml-2 px-1.5 py-0.5 bg-primary-light dark:bg-primary/20 text-primary dark:text-primary-light rounded">
                             {benef.FON_LIBELLE || benef.FON_CODE || "Sans fonction"}
                           </span>
                         </div>
@@ -823,27 +786,27 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
   }
 
   return (
-    <div className="w-full max-w-4xl lg:max-w-6xl mx-auto p-0 sm:p-8 bg-white rounded-xl shadow-lg ring-1 ring-gray-100">
+    <div className="w-full max-w-4xl lg:max-w-6xl mx-auto p-0 sm:p-8 bg-card dark:bg-card rounded-xl shadow-lg ring-1 ring-border dark:ring-border">
       <div className="flex flex-col h-screen md:h-auto">
         <div className="p-1 sm:p-1">
           <div className="text-center mb-3">
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground dark:text-foreground uppercase tracking-wide">
               {paiementData
                 ? "MODIFICATION DE LA QUOTE-PART D'UN BÉNÉFICIAIRE"
                 : "ENRÔLEMENT DE LA QUOTE-PART D'UN BÉNÉFICIAIRE"}
             </h1>
 
-            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+            <p className="text-xs sm:text-sm text-muted-foreground dark:text-muted-foreground mt-1">
               {paiementData
                 ? "Mise à jour des informations de la quote-part d'un bénéficiaire"
                 : "Saisie et enregistrement d'une nouvelle quote-part d'un bénéficiaire"}
             </p>
           </div>
 
-          <div className="relative mb-1 md:mb-2 sticky top-0 bg-white z-30 py-1">
-            <div className="absolute top-5 left-0 w-full h-2 bg-gray-100 rounded-full">
+          <div className="relative mb-1 md:mb-2 sticky top-0 bg-card dark:bg-card z-30 py-1">
+            <div className="absolute top-5 left-0 w-full h-2 bg-muted dark:bg-muted/30 rounded-full">
               <motion.div
-                className="h-1 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full"
+                className="h-1 bg-gradient-to-r from-primary to-primary-dark rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${(step / stepTitles.length) * 100}%` }}
                 transition={{ duration: 0.4 }}
@@ -859,10 +822,10 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                     <motion.div
                       className={`flex items-center justify-center min-w-[44px] min-h-[44px] w-10 h-10 rounded-full border-2 transition-all
                         ${isActive
-                          ? "border-blue-600 bg-blue-600 text-white scale-105 shadow-lg"
+                          ? "border-primary bg-primary text-primary-foreground scale-105 shadow-lg"
                           : isCompleted
-                          ? "border-blue-600 bg-blue-100 text-blue-600"
-                          : "border-gray-300 bg-white text-gray-400"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-muted-foreground"
                         }`}
                       whileHover={{ scale: isActive ? 1.05 : 1 }}
                     >
@@ -872,7 +835,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                         <span className="text-sm font-semibold">{index + 1}</span>
                       )}
                     </motion.div>
-                    <span className={`mt-3 text-xs sm:text-sm font-medium text-center ${isActive ? "text-blue-600" : "text-gray-500"}`}>
+                    <span className={`mt-3 text-xs sm:text-sm font-medium text-center ${isActive ? "text-primary" : "text-muted-foreground"}`}>
                       {title}
                     </span>
                   </div>
@@ -896,16 +859,16 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
                  {loadingBenefDetails && (
                     <div className="flex justify-center py-4">
-                      <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                      <Loader2 className="h-6 w-6 animate-spin text-primary dark:text-primary" />
                     </div>
                   )}
 
                 <div className={`transition-all duration-200 ${selectedBenef ? 'opacity-100 max-h-screen' : 'opacity-0 max-h-0 overflow-hidden'}`}>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
                     {/* Sexe */}
-                    <div className="bg-gray-50/80 rounded-lg p-2.5 border border-gray-100">
-                      <p className="text-[12px] text-gray-500 mb-0.5">Sexe</p>
-                      <p className="text-[12px] font-medium text-gray-800">
+                    <div className="bg-muted/50 dark:bg-muted/20 rounded-lg p-2.5 border border-border dark:border-border">
+                      <p className="text-[12px] text-muted-foreground dark:text-muted-foreground mb-0.5">Sexe</p>
+                      <p className="text-[12px] font-medium text-foreground dark:text-foreground">
                         {selectedBenef ? (
                           selectedBenef.BEN_SEXE === 'M' ? 'Masculin' : 
                           selectedBenef.BEN_SEXE === 'F' ? 'Féminin' : '-'
@@ -914,80 +877,80 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                     </div>
 
                     {/* Type */}
-                    <div className="bg-gray-50/80 rounded-lg p-2.5 border border-gray-100">
-                      <p className="text-[12px] text-gray-500 mb-0.5">Type</p>
-                      <p className="text-[12px] font-medium text-gray-800 truncate">
+                    <div className="bg-muted/50 dark:bg-muted/20 rounded-lg p-2.5 border border-border dark:border-border">
+                      <p className="text-[12px] text-muted-foreground dark:text-muted-foreground mb-0.5">Type</p>
+                      <p className="text-[12px] font-medium text-foreground dark:text-foreground truncate">
                         {selectedBenef ? (
                           types.find(t => t.TYP_CODE === selectedBenef.TYP_CODE)?.TYP_LIBELLE || 
-                          <span className="text-gray-400">{selectedBenef.TYP_CODE}</span>
+                          <span className="text-muted-foreground dark:text-muted-foreground">{selectedBenef.TYP_CODE}</span>
                         ) : '-'}
                       </p>
                     </div>
 
                     {/* Fonction */}
-                    <div className="bg-gray-50/80 rounded-lg p-2.5 border border-gray-100">
-                      <p className="text-[12px] text-gray-500 mb-0.5">Fonction</p>
-                      <p className="text-[12px] font-medium text-gray-800 truncate">
+                    <div className="bg-muted/50 dark:bg-muted/20 rounded-lg p-2.5 border border-border dark:border-border">
+                      <p className="text-[12px] text-muted-foreground dark:text-muted-foreground mb-0.5">Fonction</p>
+                      <p className="text-[12px] font-medium text-foreground dark:text-foreground truncate">
                         {selectedBenef ? (
                           fonctions.find(f => f.FON_CODE === selectedBenef.FON_CODE)?.FON_LIBELLE || 
-                          <span className="text-gray-400">{selectedBenef.FON_CODE}</span>
+                          <span className="text-muted-foreground dark:text-muted-foreground">{selectedBenef.FON_CODE}</span>
                         ) : '-'}
                       </p>
                     </div>
 
                     {/* Grade */}
-                    <div className="bg-gray-50/80 rounded-lg p-2.5 border border-gray-100">
-                      <p className="text-[12px] text-gray-500 mb-0.5">Grade</p>
-                      <p className="text-[12px] font-medium text-gray-800 truncate">
+                    <div className="bg-muted/50 dark:bg-muted/20 rounded-lg p-2.5 border border-border dark:border-border">
+                      <p className="text-[12px] text-muted-foreground dark:text-muted-foreground mb-0.5">Grade</p>
+                      <p className="text-[12px] font-medium text-foreground dark:text-foreground truncate">
                         {selectedBenef ? (
                           grades.find(g => g.GRD_CODE === selectedBenef.GRD_CODE)?.GRD_LIBELLE || 
-                          <span className="text-gray-400">{selectedBenef.GRD_CODE}</span>
+                          <span className="text-muted-foreground dark:text-muted-foreground">{selectedBenef.GRD_CODE}</span>
                         ) : '-'}
                       </p>
                     </div>
                   </div>
                     {selectedBenef && (
-                      <div className="mt-4 rounded-lg border bg-gray-50 p-4">
+                      <div className="mt-4 rounded-lg border border-border dark:border-border bg-muted/50 dark:bg-muted/20 p-4">
                         <div className="flex flex-wrap items-start justify-start gap-10 text-sm">
 
                           <div className="flex flex-col items-start min-w-[100px]">
-                            <span className="font-semibold text-gray-500">Banque</span>
-                            <span className="mt-2 font-medium">
+                            <span className="font-semibold text-muted-foreground dark:text-muted-foreground">Banque</span>
+                            <span className="mt-2 font-medium text-foreground dark:text-foreground">
                               {selectedRib?.BNQ_LIBELLE || "_"}
                             </span>
                           </div>
 
                           <div className="flex flex-col items-start min-w-[100px]">
-                            <span className="font-semibold text-gray-500">Guichet</span>
-                            <span className="mt-2 font-medium">
+                            <span className="font-semibold text-muted-foreground dark:text-muted-foreground">Guichet</span>
+                            <span className="mt-2 font-medium text-foreground dark:text-foreground">
                               {selectedRib?.GUI_CODE || "_"}
                             </span>
                           </div>
 
                           <div className="flex flex-col items-start min-w-[120px]">
-                            <span className="font-semibold text-gray-500">N° Compte</span>
-                            <span className="mt-2 font-medium">
+                            <span className="font-semibold text-muted-foreground dark:text-muted-foreground">N° Compte</span>
+                            <span className="mt-2 font-medium text-foreground dark:text-foreground">
                               {selectedRib?.DOM_NUMCPT || "_"}
                             </span>
                           </div>
 
                           <div className="flex flex-col items-start min-w-[80px]">
-                            <span className="font-semibold text-gray-500">Clé RIB</span>
-                            <span className="mt-2 font-medium">
+                            <span className="font-semibold text-muted-foreground dark:text-muted-foreground">Clé RIB</span>
+                            <span className="mt-2 font-medium text-foreground dark:text-foreground">
                               {selectedRib?.DOM_RIB || "_"}
                             </span>
                           </div>
 
                           <div className="flex flex-col items-start min-w-[80px]">
-                            <span className="font-semibold text-gray-500">Statut</span>
+                            <span className="font-semibold text-muted-foreground dark:text-muted-foreground">Statut</span>
                             <span
                               className={`mt-2 font-medium px-2 py-0.5 rounded-full text-xs
                                 ${
                                   selectedRib?.DOM_STATUT === 2
-                                    ? "bg-orange-100 text-orange-700"
+                                    ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
                                     : selectedRib?.DOM_STATUT === 3
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-gray-100 text-gray-500"
+                                    ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                                    : "bg-muted text-muted-foreground"
                                 }`}
                             >
                               {selectedRib?.DOM_STATUT === 2
@@ -1000,7 +963,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                         </div>
 
                         {!selectedRib && (
-                          <div className="mt-3 text-xs text-orange-600 italic">
+                          <div className="mt-3 text-xs text-destructive dark:text-destructive italic">
                             Aucun RIB enregistré pour ce bénéficiaire.
                           </div>
                         )}
@@ -1013,7 +976,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                     <Button 
                         onClick={handleNextWithUpdate}
                         disabled={!dataReady || loading} 
-                        className="px-4"
+                        className="px-4 bg-primary hover:bg-primary-dark text-primary-foreground"
                     >
                         {loading ? "Mise à jour..." : (
                             <>
@@ -1025,7 +988,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                         )}
                     </Button>
                   ) : (
-                    <Button onClick={handleNext} disabled={loading} className="px-4">
+                    <Button onClick={handleNext} disabled={loading} className="px-4 bg-primary hover:bg-primary-dark text-primary-foreground">
                       {loading ? 'Enregistrement...' : (
                         <>
                           Suivant
@@ -1069,7 +1032,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                 />
 
                 <div>
-                  <Label>Montant en F CFA</Label>
+                  <Label className="text-foreground dark:text-foreground">Montant en F CFA</Label>
                   <Input
                     type="number"
                     inputMode="numeric"
@@ -1083,20 +1046,20 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                       setCurrentDetailsPaiements({ ...currentDetailsPaiements, PAI_MONTANT: sanitized });
                     }}
                     placeholder="Veuillez saisir le montant"
-                    className="h-10 w-full"
+                    className="h-10 w-full bg-card dark:bg-card border-border dark:border-border text-foreground dark:text-foreground"
                   />
                 </div>
 
                 {eltSens !== null && (
                   <div className="mt-1">
                     {eltSens === 1 && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/10 text-green-600 dark:text-green-400">
                         + Gain
                       </span>
                     )}
 
                     {eltSens === 2 && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/10 text-red-600 dark:text-red-400">
                         − Retenue
                       </span>
                     )}
@@ -1112,11 +1075,12 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                       onClick={isEditing ? handleUpdateDetailsPaiement : handleAddDetailsPaiement}
                       disabled={loadingDetail || (!isEditing && !currentDetailsPaiements.ELT_CODE)}
                       className={`px-3 py-1.5 rounded-md text-sm flex items-center justify-center gap-2
-                        ${isEditing
-                          ? "bg-green-600 hover:bg-green-700 text-white"
-                          : currentDetailsPaiements.ELT_CODE
-                            ? "bg-blue-600 hover:bg-blue-700 text-white"
-                            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        ${
+                          !currentDetailsPaiements.ELT_CODE
+                            ? "bg-muted text-muted-foreground cursor-not-allowed"
+                            : isEditing
+                            ? "bg-primary hover:bg-primary-dark text-primary-foreground"
+                            : "bg-primary hover:bg-primary-dark text-primary-foreground"
                         }
                       `}
                     >
@@ -1140,7 +1104,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
                     {isEditing && (
                       <Button
-                        className="px-3 py-1.5 rounded-md text-sm bg-red-600 hover:bg-red-700 text-white"
+                        className="px-3 py-1.5 rounded-md text-sm bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                         onClick={() => {
                           setIsEditing(false);
                           setEditId(null);
@@ -1165,9 +1129,9 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                   <div />
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-muted-foreground">Lignes / page</span>
+                      <span className="text-muted-foreground dark:text-muted-foreground">Lignes / page</span>
                       <select
-                        className="border rounded px-2 py-1 bg-white"
+                        className="border rounded px-2 py-1 bg-card dark:bg-card border-border dark:border-border text-foreground dark:text-foreground"
                         value={rowsPerPage}
                         onChange={(e) => {
                           const v = Number(e.target.value) || 5;
@@ -1183,15 +1147,15 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
 
                     <div className="flex items-center gap-2">
                       <button
-                        className="px-2 py-1 rounded border bg-white disabled:opacity-50"
+                        className="px-2 py-1 rounded border bg-card dark:bg-card border-border dark:border-border text-foreground dark:text-foreground disabled:opacity-50"
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                         disabled={page <= 1}
                       >
                         Prev
                       </button>
-                      <span className="text-sm">{page} / {Math.max(1, Math.ceil(detailsPaiement.length / rowsPerPage))}</span>
+                      <span className="text-sm text-foreground dark:text-foreground">{page} / {Math.max(1, Math.ceil(detailsPaiement.length / rowsPerPage))}</span>
                       <button
-                        className="px-2 py-1 rounded border bg-white disabled:opacity-50"
+                        className="px-2 py-1 rounded border bg-card dark:bg-card border-border dark:border-border text-foreground dark:text-foreground disabled:opacity-50"
                         onClick={() => setPage((p) => Math.min(Math.max(1, Math.ceil(detailsPaiement.length / rowsPerPage)), p + 1))}
                         disabled={page >= Math.max(1, Math.ceil(detailsPaiement.length / rowsPerPage))}
                       >
@@ -1202,25 +1166,25 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                 </div>
                 <div className="flex flex-col gap-2 md:hidden">
                   {detailsPaiement.length === 0 ? (
-                      <div className="p-4 bg-gray-50 rounded-md text-center text-gray-500">Aucun détail ajouté.</div>
+                      <div className="p-4 bg-muted rounded-md text-center text-muted-foreground">Aucun détail ajouté.</div>
                     ) : (
                       detailsPaiement
                         .slice((page - 1) * rowsPerPage, page * rowsPerPage)
                         .map((d, i) => (
-                      <div key={i} className="p-2 bg-white rounded-lg shadow-sm border flex flex-col gap-2">
+                      <div key={i} className="p-2 bg-card dark:bg-card rounded-lg shadow-sm border border-border dark:border-border flex flex-col gap-2">
                         <div className="flex justify-between items-start">
-                          <div className="text-sm font-medium">{getElementInfo(d.ELT_CODE)}</div>
+                          <div className="text-sm font-medium text-foreground dark:text-foreground">{getElementInfo(d.ELT_CODE)}</div>
                         </div>
 
                         <div className="flex gap-2 pt-1">
-                          <Button variant="ghost" size="sm" onClick={() => handleEdit(d)}>
-                            <Edit className="w-4 h-4 text-blue-500" />
+                          <Button variant="ghost" size="sm" onClick={() => handleEdit(d)} className="dark:text-foreground dark:hover:bg-muted/20">
+                            <Edit className="w-4 h-4 text-primary dark:text-primary" />
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => {
                             setSelectedDetailsPaiement(d);
                             setIsDeleteDialogOpen(true);
-                          }}>
-                            <Trash2 className="w-4 h-4 text-red-500" />
+                          }} className="dark:text-foreground dark:hover:bg-muted/20">
+                            <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
                         </div>
                       </div>
@@ -1228,51 +1192,51 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                   )}
                 </div>
 
-                <div className="hidden md:block rounded-xl border bg-white shadow-sm">
+                <div className="hidden md:block rounded-xl border border-border dark:border-border bg-card dark:bg-card shadow-sm">
                   <div className="overflow-auto max-h-[36vh]">
-                    <table className="min-w-full divide-y divide-gray-100 text-sm">
-                      <thead className="bg-gray-50 sticky top-0 z-10">
+                    <table className="min-w-full divide-y divide-border text-sm">
+                      <thead className="bg-muted sticky top-0 z-10">
                         <tr>
-                          <th className="px-3 py-2 text-left">Elément</th>
-                          <th className="px-3 py-2 text-left">Montant en F CFA</th>
-                          <th className="px-3 py-2 text-left">Sens</th>
-                          <th className="px-3 py-2 text-right">Actions</th>
+                          <th className="px-3 py-2 text-left text-muted-foreground">Elément</th>
+                          <th className="px-3 py-2 text-left text-muted-foreground">Montant en F CFA</th>
+                          <th className="px-3 py-2 text-left text-muted-foreground">Sens</th>
+                          <th className="px-3 py-2 text-right text-muted-foreground">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-100">
+                      <tbody className="bg-card divide-y divide-border">
                         {detailsPaiement.length === 0 ? (
                           <tr>
-                            <td colSpan={6} className="text-center text-gray-500 py-4">Aucun détail ajouté.</td>
+                            <td colSpan={6} className="text-center text-muted-foreground py-4">Aucun détail ajouté.</td>
                           </tr>
                         ) : (
                           detailsPaiement
                             .slice((page - 1) * rowsPerPage, page * rowsPerPage)
                             .map((d, i) => (
-                              <tr key={i} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-3 py-2 align-top">{getElementInfo(d.ELT_CODE)}</td>
-                                <td className="px-3 py-2 font-medium align-top">{Number(d.PAI_MONTANT).toLocaleString("fr-FR")}</td>
+                              <tr key={i} className="hover:bg-muted/50 transition-colors">
+                                <td className="px-3 py-2 align-top text-foreground">{getElementInfo(d.ELT_CODE)}</td>
+                                <td className="px-3 py-2 font-medium align-top text-foreground">{Number(d.PAI_MONTANT).toLocaleString("fr-FR")}</td>
                                 <td className="px-3 py-2 align-top">
                                   {d.ELT_SENS === 1 && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/10 text-green-600 dark:text-green-400">
                                       + Gain
                                     </span>
                                   )}
 
                                   {d.ELT_SENS === 2 && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/10 text-red-600 dark:text-red-400">
                                       − Retenue
                                     </span>
                                   )}
                                 </td>
                                 <td className="px-3 py-2 text-right align-top space-x-1">
-                                  <Button variant="ghost" size="sm" onClick={() => handleEdit(d)}>
-                                    <Edit className="w-4 h-4 text-blue-500" />
+                                  <Button variant="ghost" size="sm" onClick={() => handleEdit(d)} className="dark:text-foreground dark:hover:bg-muted/20">
+                                    <Edit className="w-4 h-4 text-primary" />
                                   </Button>
                                   <Button variant="ghost" size="sm" onClick={() => {
                                     setSelectedDetailsPaiement(d);
                                     setIsDeleteDialogOpen(true);
-                                  }}>
-                                    <Trash2 className="w-4 h-4 text-red-500" />
+                                  }} className="dark:text-foreground dark:hover:bg-muted/20">
+                                    <Trash2 className="w-4 h-4 text-destructive" />
                                   </Button>
                                 </td>
                               </tr>
@@ -1285,23 +1249,9 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
               </div>
 
               <div className="flex flex-col md:flex-row justify-between mt-6 gap-2">
-                {/* <Button
-                  className="bg-blue-600 hover:bg-blue-700 text-white w-full md:w-auto"
-                  onClick={() => setStep(1)}
-                >
-                  <motion.div
-                    animate={{ x: [0, -3, 0] }}
-                    transition={{ repeat: Infinity, duration: 1 }}
-                    className="mr-2"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                  </motion.div>
-                  Précédent
-                </Button> */}
-                {/* Précédent : seulement en modification */}
                 {paiementData ? (
                   <Button
-                    className="bg-blue-600 hover:bg-blue-700 text-white w-full md:w-auto"
+                    className="bg-primary hover:bg-primary-dark text-primary-foreground w-full md:w-auto"
                     onClick={() => setStep(1)}
                   >
                     <motion.div
@@ -1314,12 +1264,12 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                     Précédent
                   </Button>
                 ) : (
-                  <div />   // garde l’alignement du bouton Terminer à droite
+                  <div />
                 )}
                 <Button
                   onClick={handleFinishValidation}
                   disabled={loading}
-                  className="w-full md:w-auto"
+                  className="w-full md:w-auto bg-primary hover:bg-primary-dark text-primary-foreground"
                 >
                   {loading ? (
                     "Enregistrement..."

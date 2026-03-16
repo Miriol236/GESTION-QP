@@ -219,7 +219,7 @@ const handleConfirmRejetStatus = async (motif: string) => {
       key: "BENEFICIAIRE",
       title: "BÉNÉFICIAIRE",
       render: (value: string) => (
-        <span className="font-medium text-gray-800">{value}</span>
+        <span className="font-medium text-foreground dark:text-foreground">{value}</span>
       ),
     },
     {
@@ -228,25 +228,24 @@ const handleConfirmRejetStatus = async (motif: string) => {
       render: (value) => {
         if (value !== "M" && value !== "F") {
           return (
-            <div className="bg-gray-500/20 text-gray-700">
+            <span className="bg-muted text-muted-foreground px-2 py-1 rounded-md text-xs">
               Non défini
-            </div>
+            </span>
           );
         }
 
         const isMale = value === "M";
 
         return (
-          <div
-            // variant={isMale ? "default" : "secondary"}
-            className={
+          <span
+            className={`px-2 py-1 rounded-md text-xs ${
               isMale
-                ? "bg-blue-500/20 text-blue-700"
-                : "bg-pink-500/20 text-pink-700"
-            }
+                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                : "bg-pink-500/10 text-pink-600 dark:text-pink-400"
+            }`}
           >
             {isMale ? "Masculin" : "Féminin"}
-          </div>
+          </span>
         );
       },
     },
@@ -254,42 +253,42 @@ const handleConfirmRejetStatus = async (motif: string) => {
       key: "BANQUE",
       title: "BANQUE",
         render: (value: string) => (
-            <span className="font-medium text-gray-800">{value || "_"}</span>
+            <span className="font-medium text-foreground dark:text-foreground">{value || "_"}</span>
         ),
     },
     {
       key: "GUICHET",
       title: "GUICHET",
       render: (value: string) => (
-        <span className="font-medium text-gray-800">{value || "_"}</span>
+        <span className="font-medium text-foreground dark:text-foreground">{value || "_"}</span>
       ),
     },
     {
       key: "NUMCPT",
       title: "N° COMPTE",
       render: (value: string) => (
-        <span className="font-medium text-gray-800">{value || "_"}</span>
+        <span className="font-medium text-foreground dark:text-foreground">{value || "_"}</span>
       ),
     },
     {
       key: "RIB",
       title: "CLE RIB",
       render: (value: string) => (
-        <span className="font-medium text-gray-800">{value || "_"}</span>
+        <span className="font-medium text-foreground dark:text-foreground">{value || "_"}</span>
       ),
     },
     {
       key: "MVT_DATE",
       title: "DATE MOUVEMENT",
       render: (value: string) => (
-        <span className="font-medium text-gray-800">{value || "_"}</span>
+        <span className="font-medium text-foreground dark:text-foreground">{value || "_"}</span>
       ),
     },
     {
       key: "MVT_CREER_PAR",
       title: "GESTIONNAIRE",
       render: (value: string) => (
-        <span className="font-semibold text-gray-700">{value || "—"}</span>
+        <span className="font-semibold text-foreground dark:text-foreground">{value || "—"}</span>
       ),
     },
   ];
@@ -297,18 +296,18 @@ const handleConfirmRejetStatus = async (motif: string) => {
   if (isLoading) return <TableSkeleton />;
 
   return (
-  <div className="space-y-6 overflow-hidden h-full">
+  <div className="space-y-6 overflow-hidden h-full bg-background dark:bg-background">
     {/* En-tête */}
     <div className="flex justify-between items-start">
       <div>
-        <h1 className="text-xl font-bold text-primary">
-          Liste  des RIB des bénéficiaires en attente d'approbaton
+        <h1 className="text-xl font-bold text-foreground dark:text-foreground">
+          Liste des RIB des bénéficiaires en attente d'approbation
         </h1>
       </div>
     </div>
 
     {/* Liste des bénéficiaires */}
-    <Card > 
+    <Card className="bg-card dark:bg-card border-border dark:border-border"> 
       <DataTable
         title={`Effectif (${domiciliers.length})`}
         columns={columns}

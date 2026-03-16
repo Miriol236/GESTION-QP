@@ -11,7 +11,7 @@ import { TableSkeleton } from "@/components/loaders/TableSkeleton";
 import BeneficiairePreviewModal from "./BeneficiairePreviewModal";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { User, ChartColumnIncreasing, CheckCheck, Search, X } from "lucide-react";
+import { User, ChartColumnIncreasing, CheckCheck, Search, X, Filter, Users } from "lucide-react";
 import BeneficiaireExportModal from "./BeneficiaireExportModal";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -38,26 +38,20 @@ export default function Beneficiaires() {
   const [selectedPosition, setSelectedPosition] = useState<any | null>(null);
   const [openExportModal, setOpenExportModal] = useState(false);
   const [selectedType, setSelectedType] = useState<any | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { toast } = useToast();
-
   const { user } = useAuth();
   const grpCodeUser = user?.GRP_CODE || null; 
-
-  // Récupérer NIV_CODE du groupe
   const nivCode = user?.groupe?.NIV_CODE || null;
 
-
-  // Permissions par groupe (si besoin on peut externaliser)
   const can = {
-    onAdd: grpCodeUser === "0003",       // seuls les bénéficiaire peuvent ajouter
-    onEdit: grpCodeUser === "0003",      // idem pour éditer
-    onDelete: grpCodeUser === "0003",    // idem pour supprimer
-    // onDeleteAll: regCodeUser != null, // idem pour suppression multiple
-    onViews: true,                     // tous peuvent voir leurs paiements
+    onAdd: grpCodeUser === "0003",
+    onEdit: grpCodeUser === "0003",
+    onDelete: grpCodeUser === "0003",
+    onViews: true,
   };
 
-    // Handlers réutilisables (passés au DataTable seulement si permitted)
   const handleAdd = () => {
     setIsEditing(false);
     setEditBeneficiaire(null);
@@ -75,15 +69,11 @@ export default function Beneficiaires() {
     setIsDeleteDialogOpen(true);
   };
 
-  // Fonction à passer au dialog
   const handleApplyFilter = ({ type }: { type: any | null }) => {
     setSelectedType(type);
-    // ici tu peux filtrer tes données selon le type si besoin
   };
 
-  //  Charger les bénéficiaires depuis l’API
   const fetchBeneficiaires = async () => {
-    // setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
       const { data } = await axios.get(`${API_URL}/beneficiaires`, {
@@ -101,8 +91,6 @@ export default function Beneficiaires() {
     }
   };
 
-  const [searchTerm, setSearchTerm] = useState("");
-
   const normalize = (s: any) =>
     String(s || "")
       .toLowerCase()
@@ -113,7 +101,6 @@ export default function Beneficiaires() {
   const displayed = beneficiaires.filter((p) => {
     const search = normalize(searchTerm);
     const words = search.split(" ").filter(Boolean);
-
     const full = normalize(`${p.BEN_NOM} ${p.BEN_PRENOM}`);
 
     const matchesSearch =
@@ -124,19 +111,12 @@ export default function Beneficiaires() {
 
     const matchesTypeBen =
       !selectedTypeBen || p.TYP_CODE === selectedTypeBen.TYP_CODE;
-
     const matchesFonction =
       !selectedFonction || p.FON_CODE === selectedFonction.FON_CODE;
-
     const matchesPosition =
       !selectedPosition || p.POS_CODE === selectedPosition.POS_CODE;
 
-    return (
-      matchesSearch &&
-      matchesTypeBen &&
-      matchesFonction &&
-      matchesPosition
-    );
+    return matchesSearch && matchesTypeBen && matchesFonction && matchesPosition;
   });
 
   useEffect(() => {
@@ -165,32 +145,30 @@ export default function Beneficiaires() {
       }));
   }, []);
 
-  // Suppression
-    const handleConfirmDelete = async () => {
-      if (!beneficiaireToDelete) return;
-      try {
-        const token = localStorage.getItem("token");
-        await axios.delete(`${API_URL}/beneficiaires/${beneficiaireToDelete.BEN_CODE}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        toast({
-          title: "Succès",
-          description: "Bénéficiaire supprimé avec succès !",
-          variant: "success",
-        });
-        fetchBeneficiaires();
-      } catch (err: any) {
-        toast({
-          title: "Erreur",
-          description: err?.response?.data?.message || "Suppression échouée",
-          variant: "destructive",
-        });
-      } finally {
-        setIsDeleteDialogOpen(false);
-      }
-    };
+  const handleConfirmDelete = async () => {
+    if (!beneficiaireToDelete) return;
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API_URL}/beneficiaires/${beneficiaireToDelete.BEN_CODE}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast({
+        title: "Succès",
+        description: "Bénéficiaire supprimé avec succès !",
+        variant: "success",
+      });
+      fetchBeneficiaires();
+    } catch (err: any) {
+      toast({
+        title: "Erreur",
+        description: err?.response?.data?.message || "Suppression échouée",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleteDialogOpen(false);
+    }
+  };
 
-  // Mettre à jour le statut pour les lignes sélectionnées (appelée depuis DataTable)
   const handleStatusUpdate = (rows: any[]) => {
     if (!rows || rows.length === 0) {
       toast({
@@ -200,7 +178,6 @@ export default function Beneficiaires() {
       });
       return;
     }
-
     setSelectedRowsForStatus(rows);
     setIsValidateStatusDialogOpen(true);
   };
@@ -215,9 +192,9 @@ export default function Beneficiaires() {
       let body = {};
 
       if (selectedRowsForStatus.length === 1) {
-        url += `/${selectedRowsForStatus[0].BEN_CODE}`; // route single
+        url += `/${selectedRowsForStatus[0].BEN_CODE}`;
       } else {
-        body = { ids: selectedRowsForStatus.map(r => r.BEN_CODE) }; // route multiple
+        body = { ids: selectedRowsForStatus.map(r => r.BEN_CODE) };
       }
 
       const { data } = await axios.put(url, body, {
@@ -227,7 +204,6 @@ export default function Beneficiaires() {
         }
       });
 
-      // Afficher un toast success pour chaque scénario
       if (selectedRowsForStatus.length === 1) {
         toast({
           title: "Succès",
@@ -242,7 +218,6 @@ export default function Beneficiaires() {
         });
       }
 
-      // Gestion des échecs
       if (data.failed && data.failed.length > 0) {
         const failedMessages = data.failed.map((f: any) => `${f.BEN_CODE}: ${f.reason}`).join(', ');
         toast({
@@ -267,7 +242,6 @@ export default function Beneficiaires() {
     }
   };
 
-  //  Colonnes du tableau
   const columns: Column[] = [
     {
       key: "BEN_CODE",
@@ -275,7 +249,7 @@ export default function Beneficiaires() {
       render: (value: string) => {
         const ben = beneficiaires.find(b => b.BEN_CODE === value);
         return (
-          <div  className="bg-primary/10">
+          <div className="bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary-light px-2 py-1 rounded-md font-mono text-xs">
             {ben ? ben.BEN_CODE : "—"}
           </div>
         );
@@ -287,10 +261,10 @@ export default function Beneficiaires() {
       render: (_, row) => (
         <div className="flex items-center gap-3">
           <div className="flex flex-col">
-            <span className="font-semibold text-gray-800 text-sm">
+            <span className="font-semibold text-gray-800 dark:text-gray-200 text-sm">
               {row.BEN_NOM} {row.BEN_PRENOM}
             </span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
               {row.BEN_MATRICULE || "Sans matricule"}
             </span>
           </div>
@@ -303,18 +277,14 @@ export default function Beneficiaires() {
       render: (value) => {
         if (value !== "M" && value !== "F") {
           return (
-            <div>
-              Non défini
-            </div>
+            <span className="text-gray-500 dark:text-gray-400 text-sm">Non défini</span>
           );
         }
-
         const isMale = value === "M";
-
         return (
-          <div>
+          <span className={`text-sm ${isMale ? "text-blue-600 dark:text-blue-400" : "text-pink-600 dark:text-pink-400"}`}>
             {isMale ? "Masculin" : "Féminin"}
-          </div>
+          </span>
         );
       },
     },
@@ -324,9 +294,9 @@ export default function Beneficiaires() {
       render: (value: string) => {
         const typ = types.find(t => t.TYP_CODE === value);
         return (
-          <div>
+          <span className="text-gray-700 dark:text-gray-300 text-sm">
             {typ ? typ.TYP_LIBELLE : "—"}
-          </div>
+          </span>
         );
       },
     },
@@ -336,9 +306,9 @@ export default function Beneficiaires() {
       render: (value: string) => {
         const pos = positions.find(p => p.POS_CODE === value);
         return (
-          <div>
+          <span className="text-gray-700 dark:text-gray-300 text-sm">
             {pos ? pos.POS_LIBELLE : "—"}
-          </div>
+          </span>
         );
       },
     },
@@ -346,43 +316,27 @@ export default function Beneficiaires() {
       key: "BEN_STATUT",
       title: "STATUT",
       render: (value) => {
-        switch (value) {
-
-          case 0:
-            return (
-              <Badge className="bg-red-500/20 text-red-700">
-                Rejeté
-              </Badge>
-            );
-
-          case 1:
-            return (
-              <Badge className="bg-blue-500/20 text-blue-700">
-                Non approuvé
-              </Badge>
-            );
-
-          case 2:
-            return (
-              <Badge className="bg-orange-500/20 text-orange-700">
-                En cours d’approbation…
-              </Badge>
-            );
-
-          case 3:
-            return (
-              <Badge className="bg-green-500/20 text-green-700">
-                Approuvé
-              </Badge>
-            );          
-
-          default:
-            return (
-              <Badge className="bg-gray-500/20 text-gray-700">
-                Statut inconnu
-              </Badge>
-            );
+        const statusConfig = {
+          0: { label: "Rejeté", className: "bg-red-500/20 dark:bg-red-500/30 text-red-700 dark:text-red-300" },
+          1: { label: "Non approuvé", className: "bg-blue-500/20 dark:bg-blue-500/30 text-blue-700 dark:text-blue-300" },
+          2: { label: "En cours d’approbation…", className: "bg-orange-500/20 dark:bg-orange-500/30 text-orange-700 dark:text-orange-300" },
+          3: { label: "Approuvé", className: "bg-green-500/20 dark:bg-green-500/30 text-green-700 dark:text-green-300" },
+        };
+        const config = statusConfig[value as keyof typeof statusConfig];
+        
+        if (!config) {
+          return (
+            <Badge className="bg-gray-500/20 dark:bg-gray-500/30 text-gray-700 dark:text-gray-300">
+              Statut inconnu
+            </Badge>
+          );
         }
+
+        return (
+          <Badge className={config.className}>
+            {config.label}
+          </Badge>
+        );
       },
     }
   ];
@@ -392,53 +346,44 @@ export default function Beneficiaires() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in bg-background dark:bg-background text-foreground dark:text-foreground">
       {/* En-tête */}
       <div className="flex justify-between items-start">
         <div>
           <div className="space-y-1 mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-1 h-7 bg-blue-600 rounded-full"></div>
-              <h1 className="text-2xl font-family tracking-wide text-gray-800">
+              <div className="w-1 h-7 bg-primary rounded-full"></div>
+              <h1 className="text-2xl font-family tracking-wide text-foreground dark:text-foreground">
                 Gestion des bénéficiaires des quotes-parts
               </h1>
             </div>
-            <p className="text-sm text-gray-500 pl-4">
+            <p className="text-sm text-muted-foreground dark:text-muted-foreground pl-4">
               Informations personnelles et bancaires
             </p>
           </div>
 
-            <div className="flex gap-2">
-              <BeneficiaireExportModal
-                selectedTypeBen={selectedTypeBen} // filtre parent
-                open={openExportModal}           // contrôle ouverture
-                onOpenChange={setOpenExportModal} // Radix Dialog appelle ça à la fermeture ou ouverture
-              />
-            </div>
+          <div className="flex gap-2">
+            <BeneficiaireExportModal
+              selectedTypeBen={selectedTypeBen}
+              open={openExportModal}
+              onOpenChange={setOpenExportModal}
+            />
+          </div>
         </div>
         <Dialog
           open={openModal}
           onOpenChange={(open) => {
-            // Toujours mettre à jour l'état local
             setOpenModal(open);
-            // Lorsqu'on ferme le dialog (via le bouton Close ou programmatique),
-            // rafraîchir la liste des bénéficiaires.
             if (!open) fetchBeneficiaires();
           }}
         >
-          {/*
-            Empêcher la fermeture par clic hors du modal ou par la touche Escape.
-            On utilise les handlers Radix `onPointerDownOutside` et `onEscapeKeyDown`
-            pour empêcher l'action par défaut qui fermerait le modal.
-          */}
           <DialogContent
-            className="max-w-4xl"
+            className="max-w-4xl bg-card dark:bg-card border-border dark:border-border"
             onPointerDownOutside={(e) => e.preventDefault()}
             onEscapeKeyDown={(e) => e.preventDefault()}
           >
             <BeneficiaireWizard
               beneficiaireData={isEditing ? editBeneficiaire : null}
-              // onSuccess ferme le modal ; le fetch est géré dans onOpenChange
               onSuccess={() => setOpenModal(false)}
               onFinish={() => fetchBeneficiaires()}
             />
@@ -447,7 +392,7 @@ export default function Beneficiaires() {
       </div>
 
       {/* Barre de recherche */}
-      <div className="flex gap-4 mb-4 bg-sky-100 p-3 rounded-lg shadow-sm">
+      <div className="flex gap-4 mb-4 bg-primary-light dark:bg-primary-light/10 p-3 rounded-lg shadow-sm border border-border dark:border-border">
         <BeneficiaireFiltersDialog
           types={types}
           fonctions={fonctions}
@@ -467,12 +412,12 @@ export default function Beneficiaires() {
           }}
         />
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground dark:text-muted-foreground" />
           <Input
             placeholder="Rechercher (Code, Matricule solde, Nom et Prénom)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-white border border-gray-300 focus:ring-2 focus:ring-blue-500"
+            className="pl-10 bg-card dark:bg-card border-border dark:border-border focus:ring-2 focus:ring-primary dark:focus:ring-primary"
           />
         </div>        
       </div>
@@ -485,63 +430,55 @@ export default function Beneficiaires() {
             const activeCount = [selectedTypeBen, selectedFonction, selectedPosition].filter(Boolean).length;
 
             return (
-              <div className="flex items-center gap-2 flex-wrap">
-
-                {/* Compteur */}
-                <span className="text-xs font-semibold text-gray-600 mr-1">
+              <div className="flex items-center gap-2 flex-wrap bg-muted/50 dark:bg-muted/20 p-2 rounded-lg border border-border dark:border-border">
+                <span className="text-xs font-semibold text-muted-foreground dark:text-muted-foreground mr-1">
+                  <Filter className="inline h-3 w-3 mr-1" />
                   Filtres ({activeCount})
                 </span>
 
-                {/* Type */}
                 {selectedTypeBen && (
-                  <span className="flex items-center gap-1 text-xs font-medium text-black bg-sky-100 px-2 py-0.5 rounded-full">
+                  <span className="flex items-center gap-1 text-xs font-medium bg-primary-light dark:bg-primary/20 text-primary dark:text-primary-light px-2 py-1 rounded-full border border-primary/20">
                     {selectedTypeBen.TYP_LIBELLE}
                     <button
                       type="button"
-                      title={`Supprimer le filtre ${selectedTypeBen.TYP_LIBELLE}`}
-                      className="ml-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-md p-1 transition-colors"
+                      className="ml-1 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-md p-1 transition-colors"
                       onClick={() => setSelectedTypeBen(null)}
                     >
-                      <X className="h-3.5 w-3.5" />
+                      <X className="h-3 w-3" />
                     </button>
                   </span>
                 )}
 
-                {/* Fonction */}
                 {selectedFonction && (
-                  <span className="flex items-center gap-1 text-xs font-medium text-black bg-sky-100 px-2 py-0.5 rounded-full">
+                  <span className="flex items-center gap-1 text-xs font-medium bg-primary-light dark:bg-primary/20 text-primary dark:text-primary-light px-2 py-1 rounded-full border border-primary/20">
                     {selectedFonction.FON_LIBELLE}
                     <button
                       type="button"
-                      title={`Supprimer le filtre ${selectedFonction.FON_LIBELLE}`}
-                      className="ml-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-md p-1 transition-colors"
+                      className="ml-1 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-md p-1 transition-colors"
                       onClick={() => setSelectedFonction(null)}
                     >
-                      <X className="h-3.5 w-3.5" />
+                      <X className="h-3 w-3" />
                     </button>
                   </span>
                 )}
 
-                {/* Position */}
                 {selectedPosition && (
-                  <span className="flex items-center gap-1 text-xs font-medium text-black bg-sky-100 px-2 py-0.5 rounded-full">
+                  <span className="flex items-center gap-1 text-xs font-medium bg-primary-light dark:bg-primary/20 text-primary dark:text-primary-light px-2 py-1 rounded-full border border-primary/20">
                     {selectedPosition.POS_LIBELLE}
                     <button
                       type="button"
-                      title={`Supprimer le filtre ${selectedPosition.POS_LIBELLE}`}
-                      className="ml-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-md p-1 transition-colors"
+                      className="ml-1 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-md p-1 transition-colors"
                       onClick={() => setSelectedPosition(null)}
                     >
-                      <X className="h-3.5 w-3.5" />
+                      <X className="h-3 w-3" />
                     </button>
                   </span>
                 )}
 
-                {/* Tout effacer → seulement si ≥ 2 */}
                 {activeCount >= 2 && (
                   <button
                     type="button"
-                    className="ml-2 text-xs text-red-600 hover:text-red-700 underline"
+                    className="ml-2 text-xs text-destructive hover:text-destructive/80 underline"
                     onClick={() => {
                       setSelectedTypeBen(null);
                       setSelectedFonction(null);
@@ -568,20 +505,16 @@ export default function Beneficiaires() {
         onEdit={can.onEdit ? handleEdit : undefined}
         onDelete={can.onDelete ? handleDelete : undefined}
         addButtonText="Nouveau"
-        // onDeleteAll={(rows) => (rows)}
         searchable={false}
-        // onPrint={handlePrint}
       />
 
-      {/* Confirmation suppression */}
       <ConfirmDeleteDialog
         open={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleConfirmDelete}
-        itemName={beneficiaireToDelete ? `bénéficiaire ${beneficiaireToDelete.BEN_NOM}  ${beneficiaireToDelete.BEN_PRENOM}` : ""}
+        itemName={beneficiaireToDelete ? `bénéficiaire ${beneficiaireToDelete.BEN_NOM} ${beneficiaireToDelete.BEN_PRENOM}` : ""}
       />
 
-      {/* Confirmation validation statut */}
       <ConfirmValidateDialog
         open={isValidateStatusDialogOpen}
         onClose={() => setIsValidateStatusDialogOpen(false)}
@@ -593,7 +526,6 @@ export default function Beneficiaires() {
         open={openPreview}
         onClose={() => {
           setOpenPreview(false);
-          // fetchBeneficiaires();
         }}
         beneficiaire={selectedBeneficiaire}
       />

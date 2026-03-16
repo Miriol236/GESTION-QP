@@ -6,27 +6,24 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { 
   Search, Plus, Power, Edit, Trash2, Eye, Tags, Check,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  ChevronUp, ChevronDown, ArrowUpDown, Printer, Filter, PowerOff, Send, // Ajouté ArrowUpDown pour l'icône de tri
+  ChevronUp, ChevronDown, ArrowUpDown, Printer, Filter, PowerOff, Send,
   CheckCheck, X,
   ZapIcon,
   Download
-} from "lucide-react"; // Import mis à jour
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MultiFilterSelect } from "@/components/ui/MultiFilterSelect";
 
-
-// Définition du type de direction de tri
 type SortDirection = "asc" | "desc";
 
 export interface Column {
   key: string;
   title: string;
-  sortable?: boolean; // Utilisé pour activer/désactiver le tri
+  sortable?: boolean;
   render?: (value: any, row: any) => React.ReactNode;
 }
 
 export interface DataTableProps {
-  // ... (DataTableProps reste inchangé)
   title?: string;
   columns: Column[];
   data: any[];
@@ -45,40 +42,32 @@ export interface DataTableProps {
   onSearchChange?: (value: string) => void;
   onSearchChange2?: (value: string) => void;
   onSearchChange3?: (value: string) => void;
-  // Callback when the user validates virement for selected rows (receives selected rows)
   onValidateVirement?: (rows: any[]) => void;
   onValidate?: (rows: any[]) => void;
   onValidate2?: (rows: any[]) => void;
   onRejet?: (rows: any[]) => void;
-  // Callback when the user requests a status update for selected rows (receives selected rows)
   onStatusUpdate?: (rows: any[]) => void;
-  // Callback to view selected rows in bulk
   onViews?: (rows: any[]) => void;
   loading?: boolean;
   addButtonText?: string;
   addButtonTextGenerate?: string;
-  // Optional filter items to show a small combo next to title
   filterItems?: any[];
   filterItems2?: any[];
   filterItems3?: any[];
   filterItems4?: any[];
-  // Optional function to get a display string for an item
   filterDisplay?: (item: any) => string;
   filterDisplay2?: (item: any) => string;
   filterDisplay3?: (item: any) => string;
   filterDisplay4?: (item: any) => string;
-  // Called when an item is selected (or null when cleared)
   onFilterSelect?: (item: any | null) => void;
   onFilterSelect2?: (item: any | null) => void;
   onFilterSelect3?: (item: any | null) => void;
   onFilterSelect4?: (item: any | null) => void;
-  // placeholder label for the filter combo
   filterPlaceholder?: string;
   filterPlaceholder2?: string;
   filterPlaceholder3?: string;
   filterPlaceholder4?: string;
   appliedFilter?: React.ReactNode;
-  // Key to use as stable row id for selection (defaults to first column key)
   rowKey?: string;
   rowKey2?: string;
   rowKey3?: string;
@@ -139,14 +128,11 @@ export function DataTable({
   const [selectedFilter3, setSelectedFilter3] = React.useState<any | null>(null);
   const [selectedFilter4, setSelectedFilter4] = React.useState<any | null>(null);
 
-  // stable key used to identify rows
   const stableRowKey = React.useMemo(() => rowKey ?? (columns && columns.length > 0 ? columns[0].key : "id"), [rowKey, columns]);
   
-  // Nouveaux états pour la gestion du tri
   const [sortKey, setSortKey] = React.useState<string | null>(null);
   const [sortDirection, setSortDirection] = React.useState<SortDirection>("asc");
 
-  // Logique de tri
   const handleSort = (key: string) => {
     if (sortKey === key) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -154,11 +140,9 @@ export function DataTable({
       setSortKey(key);
       setSortDirection("asc");
     }
-    // Remettre à la première page après un changement de tri
     setCurrentPage(1);
   };
 
-  // 1. Filtrage (Recherche globale)
   const filteredData = React.useMemo(() => {
     if (!searchTerm) return data;
     return data.filter((row) =>
@@ -168,7 +152,6 @@ export function DataTable({
     );
   }, [data, searchTerm]);
 
-  // 2. Tri des données filtrées
   const sortedData = React.useMemo(() => {
     if (!sortKey) return filteredData;
 
@@ -176,7 +159,6 @@ export function DataTable({
       const aValue = a[sortKey];
       const bValue = b[sortKey];
 
-      // Gestion des valeurs nulles/indéfinies et conversion en chaîne pour comparaison
       const valA = String(aValue ?? "").toLowerCase();
       const valB = String(bValue ?? "").toLowerCase();
 
@@ -194,11 +176,9 @@ export function DataTable({
   const [currentPage, setCurrentPage] = React.useState(1);
   const [rowsPerPage, setRowsPerPage] = React.useState(50);
 
-  // Calcul des données à afficher sur la page actuelle
   const paginatedData = React.useMemo(() => {
     const start = (currentPage - 1) * rowsPerPage;
     const end = start + rowsPerPage;
-    // Ajustement de la page si les données triées/filtrées changent
     const maxPage = Math.ceil(sortedData.length / rowsPerPage);
     if (currentPage > maxPage && maxPage > 0) {
       setCurrentPage(maxPage);
@@ -208,11 +188,9 @@ export function DataTable({
     return sortedData.slice(start, end);
   }, [sortedData, currentPage, rowsPerPage]);
 
-
-  // Fonction utilitaire pour choisir l'icône de tri
   const getSortIcon = (key: string) => {
     if (sortKey !== key) {
-      return <ArrowUpDown className="h-4 w-4 text-muted-foreground ml-1" />;
+      return <ArrowUpDown className="h-4 w-4 text-muted-foreground dark:text-gray-500 ml-1" />;
     }
     return sortDirection === "asc" ? (
       <ChevronUp className="h-4 w-4 ml-1" />
@@ -221,17 +199,9 @@ export function DataTable({
     );
   };
 
-  // Selected ids (strings) to track selection reliably across renders
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
 
-  // Fonction pour cocher/décocher une ligne (utilise stableRowKey)
   const toggleRowSelection = (row: any) => {
-    // Vérifie le statut des paiements et bénéficiaires
-    // if (row.PAI_STATUT > 1 || row.BEN_STATUT > 1) {
-    //   // console.warn("Cette ligne ne peut pas être sélectionnée (PAI_STATUT ou BEN_STATUT > 1)");
-    //   return;
-    // }
-
     const id = String(row?.[stableRowKey] ?? JSON.stringify(row));
     setSelectedIds((prev) => {
       if (prev.includes(id)) return prev.filter((p) => p !== id);
@@ -239,26 +209,21 @@ export function DataTable({
     });
   };
 
-  // Tout sélectionner / désélectionner sur la page courante
   const toggleSelectAll = () => {
     const pageIds = paginatedData.map((r) => String(r?.[stableRowKey] ?? JSON.stringify(r)));
     const allSelected = pageIds.every((id) => selectedIds.includes(id));
     if (allSelected) {
-      // remove page ids
       setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
     } else {
-      // add missing page ids
       setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
     }
   };
 
-  // Vérifie si une ligne est sélectionnée
   const isRowSelected = (row: any) => {
     const id = String(row?.[stableRowKey] ?? JSON.stringify(row));
     return selectedIds.includes(id);
   };
 
-  // Derived selected rows (full objects) from the full data set
   const selectedRows = React.useMemo(() => {
     const setIds = new Set(selectedIds);
     return data.filter((r) => setIds.has(String(r?.[stableRowKey] ?? JSON.stringify(r))));
@@ -270,25 +235,23 @@ export function DataTable({
   const [filterOpen4, setFilterOpen4] = React.useState(false);
 
   return (
-    <Card className="bg-sky-100 shadow-card hover-lift">
-      {/* CardHeader (inchangé) */}
+    <Card className="bg-sky-100 dark:bg-sky-950/20 shadow-card dark:shadow-gray-900/30 hover-lift">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           {title && (
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-              <span className="font-semibold">{title}</span>
+              <span className="font-semibold text-gray-800 dark:text-gray-200">{title}</span>
 
-              {/* Affichage du filtre appliqué si présent */}
               {appliedFilter && (
-                <span className="flex items-center gap-1 text-xs font-medium text-black bg-sky-100 px-2 py-0.5 rounded-full">
-                  <Filter className="h-3.5 w-3.5 text-sky-500" />
+                <span className="flex items-center gap-1 text-xs font-medium text-black dark:text-gray-200 bg-sky-100 dark:bg-sky-900/50 px-2 py-0.5 rounded-full">
+                  <Filter className="h-3.5 w-3.5 text-sky-500 dark:text-sky-400" />
                   {appliedFilter}
                 </span>
               )}
 
               {searchable && (
                 <div className="relative ml-auto w-full sm:w-[18rem]">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground dark:text-gray-500" />
                   <Input
                     placeholder={searchPlaceholder}
                     value={searchTerm}
@@ -297,7 +260,7 @@ export function DataTable({
                       setSearchTerm(value);
                       onSearchChange?.(value);
                     }}
-                    className="h-8 pl-8 text-sm"
+                    className="h-8 pl-8 text-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
                   />
                 </div>
               )}
@@ -305,34 +268,31 @@ export function DataTable({
           )}
           <div className="flex items-center gap-4">         
 
-            {/*  Bouton "Supprimer la sélection" */}
             {onDeleteAll && selectedRows.length >= 2 && (
               <Button
                 onClick={() => onDeleteAll(selectedRows)}
                 variant="destructive"
-                className="gap-2"
+                className="gap-2 dark:bg-red-900 dark:hover:bg-red-800 dark:text-red-100"
               >
                 <Trash2 className="h-4 w-4" />
                 <span className="hidden sm:inline">Supprimer ({selectedRows.length})</span>
               </Button>
             )}
 
-            {/*  Bouton "Valider virement" (vert) — visible si au moins une ligne sélectionnée */}
             {onValidateVirement && selectedRows.length >= 1 && (
               <Button
                 onClick={() => onValidateVirement(selectedRows)}
-                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-700 dark:hover:bg-emerald-800"
               >
                 <Check className="h-4 w-4" />
                 <span className="hidden sm:inline">Valider virement ({selectedRows.length})</span>
               </Button>
             )}
 
-            {/*  Bouton "Valider statut" (vert) — visible si au moins une ligne sélectionnée */}
             {onValidate && selectedRows.length >= 1 && (
               <Button
                 onClick={() => onValidate(selectedRows)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white sm:w-auto sm:px-3 sm:gap-1"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white sm:w-auto sm:px-3 sm:gap-1 dark:bg-emerald-700 dark:hover:bg-emerald-800"
               >
                 <Send className="h-4 w-4" />
                 <span className="hidden sm:inline text-xs">Soumettre ({selectedRows.length})</span>
@@ -342,7 +302,7 @@ export function DataTable({
             {onValidate2 && selectedRows.length >= 1 && (
               <Button
                 onClick={() => onValidate2(selectedRows)}
-                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-700 dark:hover:bg-emerald-800"
               >
                 <CheckCheck className="h-4 w-4" />
                 <span className="hidden sm:inline">Approuver ({selectedRows.length})</span>
@@ -353,41 +313,38 @@ export function DataTable({
               <Button
                 onClick={() => onRejet(selectedRows)}
                 variant="destructive"
-                className="gap-2"
+                className="gap-2 dark:bg-red-900 dark:hover:bg-red-800 dark:text-red-100"
               >
                 <X className="h-4 w-4" />
                 <span className="hidden sm:inline">Rejeter ({selectedRows.length})</span>
               </Button>
             )}
 
-            {/*  Bouton "Mettre à jour statut" (jaune) — visible si au moins une ligne sélectionnée */}
             {onStatusUpdate && selectedRows.length >= 1 && (
               <Button
                 onClick={() => onStatusUpdate(selectedRows)}
-                className="gap-2 bg-amber-400 hover:bg-amber-500 text-black"
+                className="gap-2 bg-amber-400 hover:bg-amber-500 text-black dark:bg-amber-600 dark:hover:bg-amber-700 dark:text-white"
               >
                 <Power className="h-4 w-4" />
                 <span className="hidden sm:inline">Mettre à jour statut ({selectedRows.length})</span>
               </Button>
             )}
 
-            {/*  Bouton "Voir sélection" (bleu) — visible seulement si exactement 1 ligne sélectionnée */}
             {onViews && selectedRows.length === 1 && (
               <Button
                 onClick={() => onViews(selectedRows)}
-                className="gap-2 bg-sky-600 hover:bg-sky-700 text-white"
+                className="gap-2 bg-sky-600 hover:bg-sky-700 text-white dark:bg-sky-700 dark:hover:bg-sky-800"
               >
                 <Eye className="h-4 w-4" />
                 <span className="hidden sm:inline">Voir détails</span>
               </Button>
             )}
 
-            {/*  Bouton "Imprimer" */}
             {onPrint && (
               <Button
                 onClick={onPrint}
                 variant="default"
-                className="gap-2"
+                className="gap-2 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white"
               >
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline text-xs">Exporter</span>
@@ -399,7 +356,7 @@ export function DataTable({
                 onClick={onAdd}
                 size="icon"
                 variant="default"
-                className="sm:w-auto sm:px-3 sm:gap-1"
+                className="sm:w-auto sm:px-3 sm:gap-1 dark:bg-primary-700 dark:hover:bg-primary-800"
               >
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline text-xs">
@@ -412,7 +369,7 @@ export function DataTable({
               <Button
                 onClick={onGenerate}
                 size="icon"
-                className="bg-sky-600 hover:bg-sky-700 text-white sm:w-auto sm:px-3 sm:gap-1"
+                className="bg-sky-600 hover:bg-sky-700 text-white sm:w-auto sm:px-3 sm:gap-1 dark:bg-sky-700 dark:hover:bg-sky-800"
               >
                 <ZapIcon className="h-4 w-4" />
                 <span className="hidden sm:inline text-xs">
@@ -425,53 +382,51 @@ export function DataTable({
       </CardHeader>
 
       <CardContent>
-
-        {/* Tableau principal */}
-        <div className="rounded-md border overflow-hidden">
+        <div className="rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
           {/* Mobile: cards view */}
           <div className="sm:hidden">
             {loading ? (
-              <div className="p-4 text-center">Chargement...</div>
+              <div className="p-4 text-center text-gray-600 dark:text-gray-400">Chargement...</div>
             ) : sortedData.length === 0 ? (
-              <div className="p-4 text-center text-muted-foreground">Aucune donnée trouvée</div>
+              <div className="p-4 text-center text-muted-foreground dark:text-gray-500">Aucune donnée trouvée</div>
               ) : (
               <div
                 className="flex flex-col gap-3 p-2 max-h-[60vh] overflow-y-auto touch-pan-y pb-4"
                 style={{ WebkitOverflowScrolling: "touch" }}
               >
                 {paginatedData.map((row, index) => (
-                  <div key={index} className={`p-3 bg-white rounded-md border ${isRowSelected(row) ? 'ring-2 ring-blue-200' : ''}`} onClick={() => toggleRowSelection(row)}>
+                  <div key={index} className={`p-3 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 ${isRowSelected(row) ? 'ring-2 ring-blue-200 dark:ring-blue-800' : ''}`} onClick={() => toggleRowSelection(row)}>
                     <div className="flex justify-between items-start">
                       <div className="flex items-start gap-3">
                         <input
                           type="checkbox"
                           checked={isRowSelected(row)}
                           onChange={(e) => { e.stopPropagation(); toggleRowSelection(row); }}
-                          className="mt-1"
+                          className="mt-1 dark:bg-gray-700 dark:border-gray-600"
                         />
                         <div>
                           {columns.map((col) => (
                             <div key={col.key} className="text-sm">
-                              <div className="text-xs text-muted-foreground">{col.title}</div>
-                              <div className="font-medium">{col.render ? col.render(row[col.key], row) : String(row[col.key] ?? '—')}</div>
+                              <div className="text-xs text-muted-foreground dark:text-gray-500">{col.title}</div>
+                              <div className="font-medium text-gray-900 dark:text-gray-100">{col.render ? col.render(row[col.key], row) : String(row[col.key] ?? '—')}</div>
                             </div>
                           ))}
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         {onView && (
-                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onView(row); }} title="Détails">
+                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onView(row); }} title="Détails" className="dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-700">
                             <Eye className="h-4 w-4" />
                           </Button>
                         )}
                         {onEdit && (
-                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onEdit(row); }} title="Modifier">
+                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onEdit(row); }} title="Modifier" className="dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-700">
                             <Edit className="h-4 w-4" />
                           </Button>
                         )}
                         {onDelete && (
-                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDelete(row); }} title="Supprimer">
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDelete(row); }} title="Supprimer" className="text-destructive dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-gray-700">
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
                       </div>
@@ -483,9 +438,9 @@ export function DataTable({
           </div>
 
           {/* Desktop / tablet: table view */}
-          <div className="hidden sm:block max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <div className="hidden sm:block max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800">
             <table className="w-full border-collapse">
-              <thead className="sticky top-0 z-10 bg-gray-200/90 backdrop-blur-sm shadow-md text-gray-800">
+              <thead className="sticky top-0 z-10 bg-gray-200/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-md text-gray-800 dark:text-gray-200">
                 <tr>
                   <th className="px-2 py-1">
                     <input
@@ -494,6 +449,7 @@ export function DataTable({
                         paginatedData.length > 0 && paginatedData.every((r) => isRowSelected(r))
                       }
                       onChange={toggleSelectAll}
+                      className="dark:bg-gray-700 dark:border-gray-600"
                     />
                   </th>
                   {columns.map((column) => (
@@ -502,7 +458,7 @@ export function DataTable({
                         <Button
                           variant="ghost"
                           onClick={() => handleSort(column.key)}
-                          className="p-0 h-auto font-semibold hover:bg-transparent"
+                          className="p-0 h-auto font-semibold hover:bg-transparent dark:text-gray-300 dark:hover:text-white"
                         >
                           {column.title}
                           {getSortIcon(column.key)}
@@ -519,12 +475,11 @@ export function DataTable({
               </thead>
 
               <tbody>
-                { /* Desktop table rows */ }
                 {loading ? (
                   <tr>
                     <td
                       colSpan={columns.length + (onEdit || onDelete || onView ? 1 : 0)}
-                      className="text-center py-6"
+                      className="text-center py-6 text-gray-600 dark:text-gray-400"
                     >
                       <div className="animate-pulse-glow">Chargement...</div>
                     </td>
@@ -533,7 +488,7 @@ export function DataTable({
                   <tr>
                     <td
                       colSpan={columns.length + (onEdit || onDelete || onView ? 1 : 0)}
-                      className="text-center py-6 text-muted-foreground"
+                      className="text-center py-6 text-muted-foreground dark:text-gray-500"
                     >
                       Aucune donnée trouvée
                     </td>
@@ -543,10 +498,10 @@ export function DataTable({
                     <tr
                       key={index}
                       onClick={() => toggleRowSelection(row)}
-                      className={`cursor-pointer border-t transition-all ${
+                      className={`cursor-pointer border-t border-gray-200 dark:border-gray-700 transition-all ${
                         isRowSelected(row)
-                          ? "bg-gray-400 hover:bg-blue-50"
-                          : "odd:bg-gray-50 hover:bg-gray-400"
+                          ? "bg-gray-400 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600"
+                          : "odd:bg-gray-50 dark:odd:bg-gray-800/50 hover:bg-gray-400 dark:hover:bg-gray-700"
                       }`}
                     >
                       <td className="px-2 py-1 text-center" onClick={(e) => e.stopPropagation()}>
@@ -554,10 +509,11 @@ export function DataTable({
                           type="checkbox"
                           checked={isRowSelected(row)}
                           onChange={() => toggleRowSelection(row)}
+                          className="dark:bg-gray-700 dark:border-gray-600"
                         />
                       </td>
                       {columns.map((column) => (
-                        <td key={column.key} className="px-2 py-1 text-[12px]">
+                        <td key={column.key} className="px-2 py-1 text-[12px] text-gray-800 dark:text-gray-300">
                           {column.render
                             ? column.render(row[column.key], row)
                             : row[column.key]}
@@ -572,7 +528,7 @@ export function DataTable({
                                 variant="ghost"
                                 size="sm"
                                 onClick={(e) => { e.stopPropagation(); onView(row) }}
-                                className="h-8 w-8 p-0"
+                                className="h-8 w-8 p-0 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-700"
                                 title="Détails"
                               >
                                 <Eye className="h-4 w-4" />
@@ -583,7 +539,7 @@ export function DataTable({
                                 variant="ghost"
                                 size="sm"
                                 onClick={(e) => { e.stopPropagation(); onEdit(row) }}
-                                className="h-8 w-8 p-0"
+                                className="h-8 w-8 p-0 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-700"
                                 title="Modifier"
                               >
                                 <Edit className="h-4 w-4" />
@@ -594,7 +550,7 @@ export function DataTable({
                                 variant="ghost"
                                 size="sm"
                                 onClick={(e) => { e.stopPropagation(); onDelete(row) }}
-                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                className="h-8 w-8 p-0 text-destructive dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-gray-700"
                                 title="Supprimer"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -605,13 +561,13 @@ export function DataTable({
                                 variant={row.UTI_STATUT ? "secondary" : "outline"}
                                 size="sm"
                                 onClick={() => onToggleStatus(row)}
-                                className="h-8 w-8 p-0"
+                                className="h-8 w-8 p-0 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
                                 title={row.UTI_STATUT ? "Désactiver" : "Activer"}
                               >
                                 {row.UTI_STATUT ? (
-                                  <PowerOff className="h-4 w-4 text-red-500" />  // icône pour désactiver
+                                  <PowerOff className="h-4 w-4 text-red-500 dark:text-red-400" />
                                 ) : (
-                                  <Power className="h-4 w-4 text-green-600" /> // icône pour activer
+                                  <Power className="h-4 w-4 text-green-600 dark:text-green-400" />
                                 )}
                               </Button>
                             )}
@@ -620,26 +576,24 @@ export function DataTable({
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => onManageRoles(row)}
-                                className="h-8 px-2 text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                className="h-8 px-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-gray-700 flex items-center gap-1"
                               >
                                 <Tags className="h-4 w-4" />
-                                {/* Le texte est caché sur mobile, visible à partir de lg */}
                                 <span className="text-sm hidden sm:inline lg:inline">Gérer les droits</span>
                               </Button>
                             )}
-                            {/* Activer/Désactiver */}
                             {onStatut && (
                               <Button
                                 variant={row.ECH_STATUT ? "secondary" : "outline"}
                                 size="sm"
                                 onClick={() => onStatut(row)}
-                                className="h-8 w-8 p-0"
+                                className="h-8 w-8 p-0 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
                                 title={row.ECH_STATUT ? "Désactiver" : "Activer"}
                               >
                                 {row.ECH_STATUT ? (
-                                  <PowerOff className="h-4 w-4 text-red-500" />  // icône pour désactiver
+                                  <PowerOff className="h-4 w-4 text-red-500 dark:text-red-400" />
                                 ) : (
-                                  <Power className="h-4 w-4 text-green-600" />  // icône pour activer
+                                  <Power className="h-4 w-4 text-green-600 dark:text-green-400" />
                                 )}
                               </Button>
                             )}
@@ -651,23 +605,22 @@ export function DataTable({
                 )}
               </tbody>
             </table>
-            {/* Pagination (utilisant sortedData.length) */}
-            <div className="flex items-center justify-between mb-4 px-2">
-              {/* Indicateur de page */}
-              <p className="text-sm text-muted-foreground">
+            
+            {/* Pagination */}
+            <div className="flex items-center justify-between mb-4 px-2 py-3 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-sm text-muted-foreground dark:text-gray-500">
                 Page {currentPage} sur {Math.ceil(sortedData.length / rowsPerPage) || 1}
               </p>
 
-              {/* Sélecteur du nombre de lignes (inchangé) */}
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Lignes :</span>
+                <span className="text-sm text-muted-foreground dark:text-gray-500">Lignes :</span>
                 <select
                   value={rowsPerPage}
                   onChange={(e) => {
                     setRowsPerPage(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="border rounded-md px-2 py-1 text-sm"
+                  className="border rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
                 >
                   <option value={5}>5</option>
                   <option value={10}>10</option>
@@ -683,7 +636,6 @@ export function DataTable({
                 </select>
               </div>
 
-              {/* Boutons de navigation (inchangés) */}
               <div className="flex items-center gap-1">
                 <Button
                   variant="outline"
@@ -691,6 +643,7 @@ export function DataTable({
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(1)}
                   title="Première page"
+                  className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700"
                 >
                   <ChevronsLeft className="h-4 w-4" />
                 </Button>
@@ -700,6 +653,7 @@ export function DataTable({
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                   title="Page précédente"
+                  className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -713,6 +667,7 @@ export function DataTable({
                     )
                   }
                   title="Page suivante"
+                  className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -724,6 +679,7 @@ export function DataTable({
                     setCurrentPage(Math.ceil(sortedData.length / rowsPerPage))
                   }
                   title="Dernière page"
+                  className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700"
                 >
                   <ChevronsRight className="h-4 w-4" />
                 </Button>

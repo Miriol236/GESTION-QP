@@ -17,7 +17,6 @@ import PaiementExportModal from "./PaiementExportModal";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-
 import { Button } from "@/components/ui/button";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import PaiementFiltersDialog from "@/components/common/PaiementFiltersDialog";
@@ -57,24 +56,18 @@ export default function Paiements() {
   const [openExportModal, setOpenExportModal] = useState(false);
   const { toast } = useToast();
 
-  // Récupérer l'utilisateur courant pour déterminer les permissions
   const { user } = useAuth();
-  const regCodeUser = user?.REG_CODE || null; // null si l'utilisateur n'est pas rattaché à une régie
+  const regCodeUser = user?.REG_CODE || null;
   const showRegie = !regCodeUser;
-  // Récupérer NIV_CODE du groupe
   const nivCode = user?.groupe?.NIV_CODE || null;
-
-  // Récupérer groupe
   const grpCodeUser = user?.GRP_CODE || null;
 
-  // Permissions par groupe (si besoin on peut externaliser)
   const can = {
-    onAdd: grpCodeUser === "0003",       // seuls les bénéficiaire peuvent ajouter
-    onGenerate: grpCodeUser === "0003",      // idem pour générer
-    onEdit: grpCodeUser === "0003",      // idem pour éditer
-    onDelete: grpCodeUser === "0003",    // idem pour supprimer
-    // onDeleteAll: regCodeUser != null, // idem pour suppression multiple
-    onViews: true,                     // tous peuvent voir leurs paiements
+    onAdd: grpCodeUser === "0003",
+    onGenerate: grpCodeUser === "0003",
+    onEdit: grpCodeUser === "0003",
+    onDelete: grpCodeUser === "0003",
+    onViews: true,
   };
 
   const showRegieFilter = regCodeUser === null;
@@ -97,7 +90,6 @@ export default function Paiements() {
     selectedTypeBen?.TYP_LIBELLE || null
   ].filter(Boolean).join(" | ");
 
-  // Handlers réutilisables (passés au DataTable seulement si permitted)
   const handleAdd = () => {
     setIsEditing(false);
     setEditPaiement(null);
@@ -131,25 +123,17 @@ export default function Paiements() {
     fetchActiveEcheance();
   }, []);
 
-  //  Charger les paiements depuis l’API
   const fetchPaiements = async (ech_code: string | null = null) => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
-
-      // Ajoute le paramètre ech_code si une échéance est sélectionnée
       const url = ech_code
         ? `${API_URL}/paiements?ech_code=${ech_code}`
         : `${API_URL}/paiements`;
 
-        // console.log("Fetching paiements from URL:", url);
-
       const { data } = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      // console.log("Paiements reçus:", data);
-
 
       setPaiements(data);
     } catch (error) {
@@ -164,7 +148,6 @@ export default function Paiements() {
     }
   };
 
-  // Initial
   useEffect(() => {
     fetchPaiements();
     fetchTotals(null);
@@ -194,130 +177,115 @@ export default function Paiements() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const displayedPaiements = paiements.filter((p) => {
-    // Recherche
     const matchesSearch =
       !searchTerm ||
       String(p.BEN_CODE).toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(p.BEN_MATRICULE).toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(p.PAI_BENEFICIAIRE).toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Filtre échéance
     const matchesEcheance = !selectedEcheance || p.ECH_CODE === selectedEcheance.ECH_CODE;
-
-    // Filtre régie
     const matchesRegie = !selectedRegie || p.REG_CODE === selectedRegie.REG_CODE;
-
-    // Filtre statut
-    const matchesStatut =
-      selectedStatut === null || p.PAI_STATUT === selectedStatut;
-
-    // Filtre Type bénéficiaire
+    const matchesStatut = selectedStatut === null || p.PAI_STATUT === selectedStatut;
     const matchesTypeBen = !selectedTypeBen || p.TYP_CODE === selectedTypeBen.TYP_CODE;
 
     return matchesSearch && matchesEcheance && matchesRegie && matchesStatut && matchesTypeBen;
   });
 
-  // Suppression
-    const handleConfirmDelete = async () => {
-      if (!paiementToDelete) return;
-      try {
-        const token = localStorage.getItem("token");
-        await axios.delete(`${API_URL}/paiements/${paiementToDelete.PAI_CODE}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        toast({
-          title: "Succès",
-          description: "Paiement supprimé avec succès !",
-          variant: "success",
-        });
-        fetchPaiements();
-        window.dispatchEvent(new Event("totalUpdated"));
-      } catch (err: any) {
-        toast({
-          title: "Erreur",
-          description: err?.response?.data?.message || "Suppression échouée",
-          variant: "destructive",
-        });
-      } finally {
-        setIsDeleteDialogOpen(false);
-      }
-    };
-
-  const handleConfirmValidateVirement = async () => {
-      if (!selectedRowsForVirement || selectedRowsForVirement.length === 0) return;
-
-      try {
-          const token = localStorage.getItem("token");
-
-          let url = `${API_URL}/paiements/valider-virement`;
-          let body = {};
-
-          if (selectedRowsForVirement.length === 1) {
-              url += `/${selectedRowsForVirement[0].PAI_CODE}`; // route single
-          } else {
-              body = { ids: selectedRowsForVirement.map(r => r.PAI_CODE) }; // route multiple
-          }
-
-          // console.log("envoie", {url, body});
-
-          const { data } = await axios.put(url, body, {
-              headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "application/json"
-              }
-          });
-
-          if (selectedRowsForVirement.length === 1) {
-              // Single validation
-              if (data.message && data.message.includes("Virement validé")) {
-                  toast({
-                    title: "Succès",
-                    description: data?.message || "Virement validé avec succès",
-                    variant: "success",
-                  });
-                  fetchPaiements();
-                  window.dispatchEvent(new Event("totalUpdated"));
-              } else {
-                  toast({
-                    title: "Erreur",
-                    description: data?.message || "Erreur lors de validation du virement.",
-                    variant: "destructive",
-                  });
-              }
-          } else {
-              // Bulk validation
-              if (data.updated > 0) {
-                  toast({
-                    title: "Succès",
-                    description: (`${data.updated} virement(s) validé(s) avec succès.`),
-                    variant: "success",
-                  });
-                  fetchPaiements();
-                  window.dispatchEvent(new Event("totalUpdated"));
-              }
-
-              if (data.failed && data.failed.length > 0) {
-                  const failedMessages = data.failed.map((f: any) => `${f.PAI_CODE}: ${f.reason}`).join(', ');
-                  toast({
-                    title: "Erreur",
-                    description: (`Échecs de validation: ${failedMessages}`),
-                    variant: "destructive",
-                  });
-              }
-          }
-      } catch (err: any) {
-          toast({
-            title: "Erreur",
-            description: err?.response?.data?.message || "Erreur lors de la validation des virements.",
-            variant: "destructive",
-          });
-      } finally {
-          setIsValidateVirementDialogOpen(false);
-          setSelectedRowsForVirement([]);
-      }
+  const handleConfirmDelete = async () => {
+    if (!paiementToDelete) return;
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API_URL}/paiements/${paiementToDelete.PAI_CODE}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast({
+        title: "Succès",
+        description: "Paiement supprimé avec succès !",
+        variant: "success",
+      });
+      fetchPaiements();
+      window.dispatchEvent(new Event("totalUpdated"));
+    } catch (err: any) {
+      toast({
+        title: "Erreur",
+        description: err?.response?.data?.message || "Suppression échouée",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleteDialogOpen(false);
+    }
   };
 
-  // Mettre à jour le statut pour les lignes sélectionnées (appelée depuis DataTable)
+  const handleConfirmValidateVirement = async () => {
+    if (!selectedRowsForVirement || selectedRowsForVirement.length === 0) return;
+
+    try {
+      const token = localStorage.getItem("token");
+
+      let url = `${API_URL}/paiements/valider-virement`;
+      let body = {};
+
+      if (selectedRowsForVirement.length === 1) {
+        url += `/${selectedRowsForVirement[0].PAI_CODE}`;
+      } else {
+        body = { ids: selectedRowsForVirement.map(r => r.PAI_CODE) };
+      }
+
+      const { data } = await axios.put(url, body, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (selectedRowsForVirement.length === 1) {
+        if (data.message && data.message.includes("Virement validé")) {
+          toast({
+            title: "Succès",
+            description: data?.message || "Virement validé avec succès",
+            variant: "success",
+          });
+          fetchPaiements();
+          window.dispatchEvent(new Event("totalUpdated"));
+        } else {
+          toast({
+            title: "Erreur",
+            description: data?.message || "Erreur lors de validation du virement.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        if (data.updated > 0) {
+          toast({
+            title: "Succès",
+            description: (`${data.updated} virement(s) validé(s) avec succès.`),
+            variant: "success",
+          });
+          fetchPaiements();
+          window.dispatchEvent(new Event("totalUpdated"));
+        }
+
+        if (data.failed && data.failed.length > 0) {
+          const failedMessages = data.failed.map((f: any) => `${f.PAI_CODE}: ${f.reason}`).join(', ');
+          toast({
+            title: "Erreur",
+            description: (`Échecs de validation: ${failedMessages}`),
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (err: any) {
+      toast({
+        title: "Erreur",
+        description: err?.response?.data?.message || "Erreur lors de la validation des virements.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsValidateVirementDialogOpen(false);
+      setSelectedRowsForVirement([]);
+    }
+  };
+
   const handleStatusUpdate = (rows: any[]) => {
     if (!rows || rows.length === 0) {
       toast({
@@ -342,9 +310,9 @@ export default function Paiements() {
       let body = {};
 
       if (selectedRowsForStatus.length === 1) {
-        url += `/${selectedRowsForStatus[0].PAI_CODE}`; // route single
+        url += `/${selectedRowsForStatus[0].PAI_CODE}`;
       } else {
-        body = { ids: selectedRowsForStatus.map(r => r.PAI_CODE) }; // route multiple
+        body = { ids: selectedRowsForStatus.map(r => r.PAI_CODE) };
       }
 
       const { data } = await axios.put(url, body, {
@@ -354,27 +322,25 @@ export default function Paiements() {
         }
       });
 
-      // Afficher un toast success pour chaque scénario
       if (selectedRowsForStatus.length === 1) {
         toast({
           title: "Succès",
-          description: (`Soumission du paiement à l'approbation effectuée avec succès.`),
+          description: `Soumission du paiement à l'approbation effectuée avec succès.`,
           variant: "success",
         });
       } else if (data.updated > 0) {
         toast({
           title: "Succès",
-          description: (`${data.updated} Soumission(s) effectuée(s) avec succès.`),
+          description: `${data.updated} Soumission(s) effectuée(s) avec succès.`,
           variant: "success",
         });
       }
 
-      // Gestion des échecs
       if (data.failed && data.failed.length > 0) {
         const failedMessages = data.failed.map((f: any) => `${f.PAI_CODE}: ${f.reason}`).join(', ');
         toast({
           title: "Erreur",
-          description: (`Échecs de soumission: ${failedMessages}`),
+          description: `Échecs de soumission: ${failedMessages}`,
           variant: "destructive",
         });
       }
@@ -395,66 +361,62 @@ export default function Paiements() {
   };
 
   const handleDeleteVirement = (rows: any[]) => {
-      if (!rows || rows.length === 0) {
-          toast({
-            title: "Erreur",
-            description: "Aucun paiement sélectionné !",
-            variant: "destructive",
-          });
-          return;
-      }
+    if (!rows || rows.length === 0) {
+      toast({
+        title: "Erreur",
+        description: "Aucun paiement sélectionné !",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      setSelectedRowsToDelete(rows);
-      setIsDeleteAllDialogOpen(true);
+    setSelectedRowsToDelete(rows);
+    setIsDeleteAllDialogOpen(true);
   };
 
   const handleConfirmDeleteAll = async () => {
-      if (!selectedRowsToDelete || selectedRowsToDelete.length === 0) return;
+    if (!selectedRowsToDelete || selectedRowsToDelete.length === 0) return;
 
-      try {
-          const token = localStorage.getItem("token");
+    try {
+      const token = localStorage.getItem("token");
+      const body = { ids: selectedRowsToDelete.map(r => r.PAI_CODE) };
 
-          const body = { ids: selectedRowsToDelete.map(r => r.PAI_CODE) };
+      const { data } = await axios.delete(`${API_URL}/paiements/supprimer-virements`, {
+        data: body,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
 
-          // console.log("envoie", {url: `${API_URL}/paiements/supprimer-virements`, body});
-
-          const { data } = await axios.delete(`${API_URL}/paiements/supprimer-virements`, {
-              data: body,
-              headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "application/json"
-              }
-          });
-
-          if (data.deleted > 0) {
-              toast({
-                title: "Succès",
-                description: (`${data.deleted} paiement(s) supprimé(s) avec succès.`),
-                variant: "success",
-              });
-              fetchPaiements();
-              window.dispatchEvent(new Event("totalUpdated"));
-          }
-
-          if (data.failed && data.failed.length > 0) {
-              const failedMessages = data.failed.map((f: any) => `${f.PAI_CODE}: ${f.reason}`).join(', ');
-              toast({
-                title: "Erreur",
-                description: (`Échecs de suppression: ${failedMessages}`),
-                variant: "destructive",
-              });
-          }
-      } catch (err: any) {
-          // console.error(err);
-          toast({
-            title: "Erreur",
-            description: err?.response?.data?.message || "Erreur lors de la suppression des virements.",
-            variant: "destructive",
-          });
-      } finally {
-          setIsDeleteAllDialogOpen(false);
-          setSelectedRowsToDelete([]);
+      if (data.deleted > 0) {
+        toast({
+          title: "Succès",
+          description: `${data.deleted} paiement(s) supprimé(s) avec succès.`,
+          variant: "success",
+        });
+        fetchPaiements();
+        window.dispatchEvent(new Event("totalUpdated"));
       }
+
+      if (data.failed && data.failed.length > 0) {
+        const failedMessages = data.failed.map((f: any) => `${f.PAI_CODE}: ${f.reason}`).join(', ');
+        toast({
+          title: "Erreur",
+          description: `Échecs de suppression: ${failedMessages}`,
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Erreur",
+        description: err?.response?.data?.message || "Erreur lors de la suppression des virements.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleteAllDialogOpen(false);
+      setSelectedRowsToDelete([]);
+    }
   };
 
   interface Stat {
@@ -477,14 +439,10 @@ export default function Paiements() {
       if (ech_code) params.ech_code = ech_code;
       if (reg_code) params.reg_code = reg_code;
 
-      // console.log("Fetching paiements from URL:", url);
-
       const { data } = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
-        params, // <-- ici
+        params,
       });
-
-      // console.log("Totaux reçus:", data);
 
       const formatAmount = (a: number) =>
         Number(a).toLocaleString("fr-FR") + " F CFA";
@@ -495,34 +453,32 @@ export default function Paiements() {
           title: "Montant Total Gain",
           value: formatAmount(data.total_gain),
           icon: DollarSign,
-          color: "text-green-600",
-          bgColor: "bg-green-50",
-          taux:""
+          color: "text-green-600 dark:text-green-400",
+          bgColor: "bg-green-50 dark:bg-green-950/30",
+          taux: "",
         },
         {
           title: "Montant Total Retenu",
           value: formatAmount(data.total_retenu),
-          // description: "Total des retenues",
           icon: DollarSign,
-          color: "text-red-600",
-          bgColor: "bg-red-50",
-          taux:""
+          color: "text-red-600 dark:text-red-400",
+          bgColor: "bg-red-50 dark:bg-red-950/30",
+          taux: "",
         },
         {
           title: "Montant Total Net à Payer",
           value: formatAmount(data.total_net),
-          // description: "Somme à payer",
           icon: DollarSign,
-          color: "text-blue-600",
-          bgColor: "bg-blue-50",
-          taux:""
+          color: "text-blue-600 dark:text-blue-400",
+          bgColor: "bg-blue-50 dark:bg-blue-950/30",
+          taux: "",
         },
         {
           title: "Montant déjà Payé",
           value: formatAmount(data.total_paye),
           icon: CheckCheck,
-          color: "text-green-600",
-          bgColor: "bg-green-50",
+          color: "text-green-600 dark:text-green-400",
+          bgColor: "bg-green-50 dark:bg-green-950/30",
           taux: formatPercent(data.taux_paiement),
         },
       ]);
@@ -531,7 +487,6 @@ export default function Paiements() {
     }
   };
 
-  // les totaux lorsque l'échéance change
   useEffect(() => {
     const echCode = selectedEcheance ? selectedEcheance.ECH_CODE : null;
     const regCode = selectedRegie ? selectedRegie.REG_CODE : null;
@@ -551,7 +506,6 @@ export default function Paiements() {
     };
   }, [selectedEcheance]);
 
-  //  Colonnes du tableau
   const columns: Column[] = [
     {
       key: "BEN_CODE",
@@ -559,19 +513,19 @@ export default function Paiements() {
       render: (value: string) => {
         const ben = paiements.find(b => b.BEN_CODE === value);
         return (
-          <div  className="bg-primary/10">
+          <div className="bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary-light px-2 py-1 rounded-md font-mono text-xs">
             {ben ? ben.BEN_CODE : "—"}
           </div>
         );
       },
     },
     {
-        key: "PAI_BENEFICIAIRE",
-        title: "BENEFICIAIRE",
-        render: (value) => (
+      key: "PAI_BENEFICIAIRE",
+      title: "BENEFICIAIRE",
+      render: (value) => (
         <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-primary" />
-          <span>{value}</span>
+          <User className="h-4 w-4 text-primary dark:text-primary-light" />
+          <span className="text-foreground dark:text-foreground">{value}</span>
         </div>
       ),
     },
@@ -580,8 +534,7 @@ export default function Paiements() {
       title: "BANQUE",
       render: (value) => (
         <div className="flex items-center gap-2">
-          {/* <Banknote className="h-4 w-4 text-primary" /> */}
-          <span>{value}</span>
+          <span className="text-foreground dark:text-foreground">{value}</span>
         </div>
       ),
     },
@@ -590,36 +543,36 @@ export default function Paiements() {
       title: "GUICHET",
       render: (value, record) => (
         <div className="flex items-center gap-2">
-          <span>
+          <span className="text-foreground dark:text-foreground">
             {record.GUI_CODE ? `${record.GUI_CODE}` : ''}
           </span>
         </div>
       ),
     },
     {
-        key: "NUMERO_DE_COMPTE",
-        title: "N° COMPTE",
-        render: (value) => (
+      key: "NUMERO_DE_COMPTE",
+      title: "N° COMPTE",
+      render: (value) => (
         <div className="flex items-center gap-2">
-          <span>{value}</span>
+          <span className="text-foreground dark:text-foreground">{value}</span>
         </div>
       ),
     },
     {
-        key: "CLE_RIB",
-        title: "CLE RIB",
-        render: (value) => (
+      key: "CLE_RIB",
+      title: "CLE RIB",
+      render: (value) => (
         <div className="flex items-center gap-2">
-          <span>{value}</span>
+          <span className="text-foreground dark:text-foreground">{value}</span>
         </div>
       ),
     },
     {
-        key: "VIREMENT",
-        title: "VIREMENT",
-        render: (value) => (
+      key: "VIREMENT",
+      title: "VIREMENT",
+      render: (value) => (
         <div className="flex items-center gap-2">
-          <span>{value}</span>
+          <span className="text-foreground dark:text-foreground">{value}</span>
         </div>
       ),
     },
@@ -627,49 +580,28 @@ export default function Paiements() {
       key: "PAI_STATUT",
       title: "STATUT",
       render: (value) => {
-        switch (value) {
-          case 0:
-            return (
-              <Badge className="bg-red-500/20 text-red-700">
-                Rejeté
-              </Badge>
-            );
-
-          case 1:
-            return (
-              <Badge className="bg-blue-500/20 text-blue-700">
-                Non approuvé
-              </Badge>
-            );
-
-          case 2:
-            return (
-              <Badge className="bg-orange-500/20 text-orange-700">
-                En cours d’approbation…
-              </Badge>
-            );
-          
-          case 3:
-            return (
-              <Badge className="bg-gray-500/20 text-gray-700">
-                Non payé
-              </Badge>
-            );
-
-          case 4:
-            return (
-              <Badge className="bg-green-500/20 text-green-700">
-                Payé
-              </Badge>
-            );
-
-          default:
-            return (
-              <Badge className="bg-gray-500/20 text-gray-700">
-                Inconnu
-              </Badge>
-            );
+        const statusConfig = {
+          0: { label: "Rejeté", className: "bg-destructive/10 text-destructive" },
+          1: { label: "Non approuvé", className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+          2: { label: "En cours d’approbation…", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
+          3: { label: "Non payé", className: "bg-gray-500/10 text-gray-600 dark:text-gray-400" },
+          4: { label: "Payé", className: "bg-green-500/10 text-green-600 dark:text-green-400" },
+        };
+        const config = statusConfig[value as keyof typeof statusConfig];
+        
+        if (!config) {
+          return (
+            <Badge className="bg-muted text-muted-foreground">
+              Inconnu
+            </Badge>
+          );
         }
+
+        return (
+          <Badge className={config.className}>
+            {config.label}
+          </Badge>
+        );
       },
     },
     {
@@ -677,7 +609,7 @@ export default function Paiements() {
       title: "MONTANT NET",
       render: (value) => (
         <div className="text-right">
-          <span>
+          <span className="text-foreground dark:text-foreground font-medium">
             {value != null ? Number(value).toLocaleString("fr-FR") : "—"}
           </span>
         </div>
@@ -690,70 +622,65 @@ export default function Paiements() {
   }  
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in bg-background dark:bg-background text-foreground dark:text-foreground">
       {/* En-tête */}
       <div className="flex justify-between items-start">
         <div>
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200">
+            <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-teal-600 dark:from-emerald-500 dark:to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30">
               <DollarSignIcon className="h-5 w-5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-gray-800">
+                <h1 className="text-xl text-foreground dark:text-foreground">
                   Gestion des paiements des quotes-parts
                 </h1>
               </div>
-              <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                 <span className="w-1 h-1 bg-emerald-500 rounded-full"></span>
                 Suivi et validation des paiements
               </p>
             </div>
           </div>
 
-            <div className="flex gap-2">
-              <PaiementExportModal
-                open={openExportModal}
-                onOpenChange={setOpenExportModal}
-                selectedType={selectedTypeBen || null}
-                selectedRegie={selectedRegie || null}
-                echeances={echeances || []}
-                regies={regies || []}
-                userSansRegie={showRegie}
-                onRegieChange={setSelectedRegie}
-                selectedEcheance={selectedEcheance} 
-                onEcheanceChange={setSelectedEcheance}
-              />
-            </div>
+          <div className="flex gap-2">
+            <PaiementExportModal
+              open={openExportModal}
+              onOpenChange={setOpenExportModal}
+              selectedType={selectedTypeBen || null}
+              selectedRegie={selectedRegie || null}
+              echeances={echeances || []}
+              regies={regies || []}
+              userSansRegie={showRegie}
+              onRegieChange={setSelectedRegie}
+              selectedEcheance={selectedEcheance} 
+              onEcheanceChange={setSelectedEcheance}
+            />
+          </div>
         </div>        
         <Dialog
           open={openModal}
           onOpenChange={(open) => {
             setOpenModal(open);
-            // When dialog is closed (either by X button or programmatically), refresh the list and stats
             if (!open) {
               fetchTotals(selectedEcheance ? selectedEcheance.ECH_CODE : null);
             }
           }}
         >
           <DialogContent
-            className="max-w-4xl"
-            // Prevent closing by clicking outside
+            className="max-w-4xl bg-card dark:bg-card border-border dark:border-border"
             onPointerDownOutside={(e: any) => {
               e.preventDefault();
               e.stopPropagation();
             }}
-            // Prevent closing with Escape
             onEscapeKeyDown={(e: any) => e.preventDefault()}
           >
             <PaiementWizard
               paiementData={isEditing ? editPaiement : null}
               onSuccess={() => {
-                // Close dialog; fetch will run via onOpenChange (so X and Terminer behave the same)
                 setOpenModal(false);
               }}
               onFinish={() => {
-                // Close dialog and refresh table and stats when wizard is finished
                 setOpenModal(false);
                 fetchPaiements(selectedEcheance?.ECH_CODE ?? null);
                 fetchTotals(selectedEcheance ? selectedEcheance.ECH_CODE : null);
@@ -764,44 +691,38 @@ export default function Paiements() {
       </div>
 
       {/* Statistiques */}
-      <div className="grid gap-2 
-                grid-cols-1 
-                sm:grid-cols-2 
-                md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]">
-
+      <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card
               key={stat.title}
-              className="bg-sky-100 hover:shadow-sm transition-shadow rounded-xl"
+              className="bg-card dark:bg-card hover:shadow-sm dark:hover:shadow-gray-900/30 transition-shadow rounded-xl border-border dark:border-border"
             >
               <CardHeader className="p-2 pb-0">
                 <div className="flex flex-row items-start justify-between">
                   
-                  {/* Icône + taux */}
                   <div className="flex items-center gap-2">
                     <div className={`${stat.bgColor} p-1.5 rounded-md`}>
                       <Icon className={`h-4 w-4 ${stat.color}`} />
                     </div>
 
                     {stat.taux && (
-                      <span className="text-[14px] font-semibold text-gray-600">
+                      <span className="text-[14px] font-semibold text-muted-foreground dark:text-muted-foreground">
                         {stat.taux}
                       </span>
                     )}
                   </div>
 
-                  {/* Titre */}
-                  <CardTitle className="text-xs font-semibold text-right">
+                  <CardTitle className="text-xs font-semibold text-right text-muted-foreground dark:text-muted-foreground">
                     {stat.title}
                   </CardTitle>
                 </div>
               </CardHeader>
 
               <CardContent className="px-2 pb-2"> 
-                <div className="text-lg font-bold text-right leading-tight">                  
-                    {stat.value} 
+                <div className="text-lg font-bold text-right leading-tight text-foreground dark:text-foreground">                  
+                  {stat.value} 
                 </div> 
               </CardContent>
             </Card>
@@ -810,26 +731,23 @@ export default function Paiements() {
       </div>
 
       {/* Barre de recherche */}
-      <div className="flex gap-4 mb-4 bg-sky-100 p-3 rounded-lg shadow-sm">
+      <div className="flex gap-4 mb-4 bg-primary-light dark:bg-primary-light/10 p-3 rounded-lg shadow-sm border border-border dark:border-border">
         <PaiementFiltersDialog
           echeances={echeances}
           regies={regies}
           types={types}
           statuts={statutOptions}
           showRegie={showRegieFilter}
-
           selectedEcheance={selectedEcheance}
           selectedRegie={selectedRegie}
           selectedStatut={selectedStatut}
           selectedType={selectedTypeBen}
-
           onApply={({ echeance, regie, statut, type }) => {
             setSelectedEcheance(echeance);
             setSelectedRegie(regie);
             setSelectedStatut(statut);
             setSelectedTypeBen(type);
           }}
-
           onReset={() => {
             setSelectedEcheance(null);
             setSelectedRegie(null);
@@ -838,23 +756,21 @@ export default function Paiements() {
           }}
         />
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground dark:text-muted-foreground" />
           <Input
             placeholder="Rechercher (Code bénéficiaire, Matricule solde, Nom et prénom)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-white border border-gray-300 focus:ring-2 focus:ring-blue-500"
+            className="pl-10 bg-card dark:bg-card border-border dark:border-border focus:ring-2 focus:ring-primary dark:focus:ring-primary text-foreground dark:text-foreground"
           />
         </div>        
       </div>
 
       {/* Liste des paiements */}
-      {/* Table */}
       <DataTable
         title={`Effectif (${displayedPaiements.length})`}
         appliedFilter={
           appliedFilterPaiement && (() => {
-            // Crée un tableau des filtres actifs avec leur label et action de suppression
             const filters = [];
 
             if (selectedEcheance) filters.push({ label: selectedEcheance.ECH_LIBELLE, clear: () => setSelectedEcheance(null) });
@@ -868,23 +784,22 @@ export default function Paiements() {
             const activeCount = filters.length;
 
             return (
-              <div className="flex flex-wrap gap-2 mt-2 items-center">
-                {/* Compteur */}
-                <span className="text-xs font-semibold text-gray-600 mr-1">
+              <div className="flex flex-wrap gap-2 mt-2 items-center bg-muted/50 dark:bg-muted/20 p-2 rounded-lg border border-border dark:border-border">
+                <span className="text-xs font-semibold text-muted-foreground dark:text-muted-foreground mr-1">
+                  <Filter className="inline h-3 w-3 mr-1" />
                   Filtres ({activeCount})
                 </span>
 
-                {/* Badges */}
                 {filters.map((f, index) => (
                   <div
                     key={index}
-                    className="flex items-center bg-sky-100 text-black px-2 py-1 rounded-full text-xs font-medium"
+                    className="flex items-center bg-primary-light dark:bg-primary/20 text-foreground dark:text-foreground px-2 py-1 rounded-full text-xs font-medium border border-primary/20"
                   >
                     {f.label}
                     <button
                       type="button"
                       title={`Supprimer le filtre ${f.label}`}
-                      className="ml-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-md p-1 transition-colors"
+                      className="ml-1 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-md p-1 transition-colors"
                       onClick={f.clear}
                     >
                       <X className="h-3.5 w-3.5"/>
@@ -892,11 +807,10 @@ export default function Paiements() {
                   </div>
                 ))}
 
-                {/* Tout effacer → seulement si ≥ 2 filtres */}
                 {activeCount >= 2 && (
                   <button
                     type="button"
-                    className="text-xs text-red-600 hover:text-red-700 underline"
+                    className="text-xs text-destructive hover:text-destructive/80 underline"
                     onClick={() => {
                       setSelectedEcheance(null);
                       setSelectedRegie(null);
@@ -924,48 +838,42 @@ export default function Paiements() {
         onEdit={can.onEdit ? handleEdit : undefined}
         onDelete={can.onDelete ? handleDelete : undefined}
         addButtonText="Nouveau"
-        // onDeleteAll={can.onDeleteAll ? handleDeleteVirement : undefined}
-        // searchPlaceholder="Rechercher (Code, Nom et prénom)."
-        // onSearchChange={(value: string) => setSearchTerm(value)}
         searchable={false}
       />
-      {/* Confirmation suppression */}
-        <ConfirmDeleteDialog
-          open={isDeleteDialogOpen}
-          onClose={() => setIsDeleteDialogOpen(false)}
-          onConfirm={handleConfirmDelete}
-          itemName={paiementToDelete ? `paiement de quôte-part du bénéficiaire ${paiementToDelete.PAI_BENEFICIAIRE}` : ""}
-        />
 
-        {/* Confirmation suppression multiple */}
-        <ConfirmDeleteDialog
-          open={isDeleteAllDialogOpen}
-          onClose={() => setIsDeleteAllDialogOpen(false)}
-          onConfirm={handleConfirmDeleteAll}
-          itemName={selectedRowsToDelete.length > 0 ? `${selectedRowsToDelete.length} paiement(s) sélectionné(s)` : ""}
-        />
+      {/* Modals */}
+      <ConfirmDeleteDialog
+        open={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        itemName={paiementToDelete ? `paiement de quôte-part du bénéficiaire ${paiementToDelete.PAI_BENEFICIAIRE}` : ""}
+      />
 
-        {/* Confirmation validation virement */}
-        <ConfirmValidateDialog
-          open={isValidateVirementDialogOpen}
-          onClose={() => setIsValidateVirementDialogOpen(false)}
-          onConfirm={handleConfirmValidateVirement}
-          itemName={selectedRowsForVirement.length > 0 ? `${selectedRowsForVirement.length} virement(s) sélectionné(s)` : ""}
-        />
+      <ConfirmDeleteDialog
+        open={isDeleteAllDialogOpen}
+        onClose={() => setIsDeleteAllDialogOpen(false)}
+        onConfirm={handleConfirmDeleteAll}
+        itemName={selectedRowsToDelete.length > 0 ? `${selectedRowsToDelete.length} paiement(s) sélectionné(s)` : ""}
+      />
 
-        {/* Confirmation validation statut */}
-        <ConfirmValidateDialog
-          open={isValidateStatusDialogOpen}
-          onClose={() => setIsValidateStatusDialogOpen(false)}
-          onConfirm={handleConfirmValidateStatus}
-          itemName={selectedRowsForStatus.length > 0 ? `${selectedRowsForStatus.length} statut(s) sélectionné(s)` : ""}
-        />
+      <ConfirmValidateDialog
+        open={isValidateVirementDialogOpen}
+        onClose={() => setIsValidateVirementDialogOpen(false)}
+        onConfirm={handleConfirmValidateVirement}
+        itemName={selectedRowsForVirement.length > 0 ? `${selectedRowsForVirement.length} virement(s) sélectionné(s)` : ""}
+      />
+
+      <ConfirmValidateDialog
+        open={isValidateStatusDialogOpen}
+        onClose={() => setIsValidateStatusDialogOpen(false)}
+        onConfirm={handleConfirmValidateStatus}
+        itemName={selectedRowsForStatus.length > 0 ? `${selectedRowsForStatus.length} statut(s) sélectionné(s)` : ""}
+      />
 
       <PaiementPreviewModal
         open={openPreview}
         onClose={() => {
           setOpenPreview(false);
-          // fetchPaiements();
         }}
         paiement={selectedPaiement}
       />
@@ -978,35 +886,36 @@ export default function Paiements() {
           setSelectedEcheanceToGenerate(ech_code);
           setSelectedEcheanceToGenerateLabel(echeance?.ECH_LIBELLE || "");
           setOpenGenerateModal(false);
-          setIsGenerateConfirmOpen(true); // ouvrir le dialog
+          setIsGenerateConfirmOpen(true);
         }}
       />
 
       <Dialog
         open={showIgnoredModal}
         onOpenChange={(open) => {
-          if (!open) return; // empêche fermeture externe
+          if (!open) return;
           setShowIgnoredModal(open);
         }}
       >
         <DialogContent
-          className="sm:max-w-4xl w-11/12 max-h-[80vh] flex flex-col"
+          className="sm:max-w-4xl w-11/12 max-h-[80vh] flex flex-col bg-card dark:bg-card border-border dark:border-border"
           onPointerDownOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle>Paiements ignorés</DialogTitle>
+            <DialogTitle className="text-foreground dark:text-foreground text-lg font-semibold">
+              Paiements ignorés
+            </DialogTitle>
           </DialogHeader>
 
-          {/* Message explicatif dynamique */}
-          <div className="px-4 py-2 text-sm text-gray-700 space-y-2">
+          <div className="px-4 py-2 text-sm text-muted-foreground space-y-2">
             {ignoredDetails.length === 0 && (
               <p>Aucun paiement ignoré.</p>
             )}
 
             {ignoredDetails.some((g) => g.title === "Doublons") && (
               <p>
-                <span className="font-semibold">Doublons :</span> 
+                <span className="font-semibold text-foreground">Doublons :</span> 
                 le ou les bénéficiaires listés ci-dessous apparaissent déjà dans l'échéance active. 
                 Lors de cette génération, un paiement a été enregistré pour chacun, et les doublons ont été ignorés.
               </p>
@@ -1014,24 +923,23 @@ export default function Paiements() {
 
             {ignoredDetails.some((g) => g.title === "Inactifs") && (
               <p>
-                <span className="font-semibold">Inactifs :</span> 
+                <span className="font-semibold text-foreground">Inactifs :</span> 
                 le ou les bénéficiaires listés ci-dessous sont actuellement inactifs. 
                 Ils ne peuvent pas recevoir de paiement et ont donc été ignorés.
               </p>
             )}
           </div>
 
-          {/* Contenu scrollable */}
           <div className="flex-1 overflow-y-auto px-4 py-2">
             <div className={`grid gap-6 ${ignoredDetails.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
               {ignoredDetails.map((group, idx) => (
                 <div key={idx}>
-                  <div className="font-bold text-gray-800 mb-2">
+                  <div className="font-bold text-foreground mb-2">
                     {group.title} ({group.items.length})
                   </div>
                   <ul className="list-disc list-inside space-y-0.5 max-h-[60vh] pr-2">
                     {group.items.map((name: string, i: number) => (
-                      <li key={i} className="text-sm text-gray-700">
+                      <li key={i} className="text-sm text-muted-foreground">
                         {name}
                       </li>
                     ))}
@@ -1042,8 +950,11 @@ export default function Paiements() {
           </div>
 
           <DialogFooter className="mt-2 flex justify-end">
-            <Button onClick={() => setShowIgnoredModal(false)}>
-              <X />
+            <Button 
+              onClick={() => setShowIgnoredModal(false)}
+              className="bg-primary hover:bg-primary-dark text-primary-foreground"
+            >
+              <X className="h-4 w-4 mr-2" />
               Fermer
             </Button>
           </DialogFooter>
@@ -1066,7 +977,6 @@ export default function Paiements() {
 
             const token = localStorage.getItem("token");
 
-            // Progression visuelle
             let fakeProgress = 10;
             const interval = setInterval(() => {
               fakeProgress = Math.min(fakeProgress + 5, 90);
@@ -1082,7 +992,6 @@ export default function Paiements() {
 
             const { message, paiements_copies, paiements_ignores, total } = response.data;
 
-            // Séparer les ignorés
             const doublons: string[] = [];
             const inactifs: string[] = [];
 
@@ -1092,7 +1001,6 @@ export default function Paiements() {
               else doublons.push(item);
             });
 
-            // Préparer le toast
             let toastTitle = "Génération terminée";
             let toastVariant: "success" | "warning" = "success";
             let toastMessage = `${paiements_copies.length} paiement(s) généré(s).`;
@@ -1104,7 +1012,6 @@ export default function Paiements() {
               toastVariant = "success";
               toastMessage = `${paiements_copies.length} paiement(s) généré(s). ${paiements_ignores.length} ignoré(s).`;
 
-              // Préparer le modal
               const ignoredList: { title: string; items: string[] }[] = [];
               if (doublons.length > 0) ignoredList.push({ title: "Doublons", items: doublons });
               if (inactifs.length > 0) ignoredList.push({ title: "Inactifs", items: inactifs });

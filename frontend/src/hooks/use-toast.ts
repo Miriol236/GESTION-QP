@@ -3,13 +3,15 @@ import * as React from "react";
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
 const TOAST_LIMIT = 1;
-const TOAST_REMOVE_DELAY = 1000000;
+const TOAST_REMOVE_DELAY = 3000; // Réduit à 3 secondes pour une fermeture plus rapide
+const TOAST_CLOSE_ANIMATION_DURATION = 300; // Durée de l'animation de fermeture
 
 type ToasterToast = ToastProps & {
   id: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: ToastActionElement;
+  isClosing?: boolean; // Nouveau flag pour indiquer la fermeture
 };
 
 const actionTypes = {
@@ -17,6 +19,7 @@ const actionTypes = {
   UPDATE_TOAST: "UPDATE_TOAST",
   DISMISS_TOAST: "DISMISS_TOAST",
   REMOVE_TOAST: "REMOVE_TOAST",
+  CLOSE_TOAST: "CLOSE_TOAST", // Nouvelle action pour la fermeture avec loader
 } as const;
 
 let count = 0;
@@ -39,6 +42,10 @@ type Action =
     }
   | {
       type: ActionType["DISMISS_TOAST"];
+      toastId?: ToasterToast["id"];
+    }
+  | {
+      type: ActionType["CLOSE_TOAST"]; // Nouvelle action
       toastId?: ToasterToast["id"];
     }
   | {
@@ -68,6 +75,22 @@ const addToRemoveQueue = (toastId: string) => {
   toastTimeouts.set(toastId, timeout);
 };
 
+const addToCloseQueue = (toastId: string) => {
+  // Marquer le toast comme en cours de fermeture
+  dispatch({
+    type: "CLOSE_TOAST",
+    toastId,
+  });
+
+  // Programmer la suppression après l'animation
+  setTimeout(() => {
+    dispatch({
+      type: "REMOVE_TOAST",
+      toastId,
+    });
+  }, TOAST_CLOSE_ANIMATION_DURATION);
+};
+
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "ADD_TOAST":
@@ -85,28 +108,41 @@ export const reducer = (state: State, action: Action): State => {
     case "DISMISS_TOAST": {
       const { toastId } = action;
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
       if (toastId) {
-        addToRemoveQueue(toastId);
+        addToCloseQueue(toastId); // Utiliser la nouvelle queue avec animation
       } else {
         state.toasts.forEach((toast) => {
-          addToRemoveQueue(toast.id);
+          addToCloseQueue(toast.id);
         });
       }
 
       return {
         ...state,
         toasts: state.toasts.map((t) =>
-          t.id === toastId || toastId === undefined
+          toastId === undefined || t.id === toastId
             ? {
                 ...t,
                 open: false,
+                isClosing: true, // Marquer comme en cours de fermeture
               }
             : t,
         ),
       };
     }
+    
+    case "CLOSE_TOAST":
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          t.id === action.toastId
+            ? {
+                ...t,
+                isClosing: true,
+              }
+            : t,
+        ),
+      };
+
     case "REMOVE_TOAST":
       if (action.toastId === undefined) {
         return {
@@ -132,8 +168,7 @@ function dispatch(action: Action) {
   });
 }
 
-type Toast = Omit<ToasterToast, "id">;
-
+type Toast = Omit<ToasterToast, "id" | "isClosing">;
 
 type ToastVariant = "default" | "destructive" | "success" | "warning" | "error";
 
@@ -145,7 +180,18 @@ function toast({ variant = "default", ...props }: Toast & { variant?: ToastVaria
       type: "UPDATE_TOAST",
       toast: { ...props, id },
     });
+  
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id });
+
+  const close = () => {
+    // Animation de fermeture avec loader
+    dispatch({ type: "CLOSE_TOAST", toastId: id });
+    
+    // Suppression après l'animation
+    setTimeout(() => {
+      dispatch({ type: "REMOVE_TOAST", toastId: id });
+    }, TOAST_CLOSE_ANIMATION_DURATION);
+  };
 
   dispatch({
     type: "ADD_TOAST",
@@ -154,6 +200,7 @@ function toast({ variant = "default", ...props }: Toast & { variant?: ToastVaria
       id,
       variant,
       open: true,
+      isClosing: false,
       onOpenChange: (open) => {
         if (!open) dismiss();
       },
@@ -163,6 +210,7 @@ function toast({ variant = "default", ...props }: Toast & { variant?: ToastVaria
   return {
     id: id,
     dismiss,
+    close, // Nouvelle méthode pour fermer avec loader
     update,
   };
 }
@@ -184,6 +232,21 @@ function useToast() {
     ...state,
     toast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+    close: (toastId?: string) => {
+      if (toastId) {
+        dispatch({ type: "CLOSE_TOAST", toastId });
+        setTimeout(() => {
+          dispatch({ type: "REMOVE_TOAST", toastId });
+        }, TOAST_CLOSE_ANIMATION_DURATION);
+      } else {
+        state.toasts.forEach((toast) => {
+          dispatch({ type: "CLOSE_TOAST", toastId: toast.id });
+          setTimeout(() => {
+            dispatch({ type: "REMOVE_TOAST", toastId: toast.id });
+          }, TOAST_CLOSE_ANIMATION_DURATION);
+        });
+      }
+    },
   };
 }
 
