@@ -513,7 +513,7 @@ export default function Paiements() {
       render: (value: string) => {
         const ben = paiements.find(b => b.BEN_CODE === value);
         return (
-          <div className="bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary-light px-2 py-1 rounded-md font-mono text-xs">
+          <div className="bg-primary/10 dark:bg-primary/20 text-foreground dark:text-foreground-light px-2 py-1 rounded-md font-mono text-xs">
             {ben ? ben.BEN_CODE : "—"}
           </div>
         );
@@ -908,39 +908,59 @@ export default function Paiements() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="px-4 py-2 text-sm text-muted-foreground space-y-2">
+          {/* Messages explicatifs */}
+          <div className="px-4 py-2 text-[16px] text-red-600 space-y-2">
             {ignoredDetails.length === 0 && (
               <p>Aucun paiement ignoré.</p>
             )}
 
             {ignoredDetails.some((g) => g.title === "Doublons") && (
               <p>
-                <span className="font-semibold text-foreground">Doublons :</span> 
-                le ou les bénéficiaires listés ci-dessous apparaissent déjà dans l'échéance active. 
-                Lors de cette génération, un paiement a été enregistré pour chacun, et les doublons ont été ignorés.
+                <span className="font-semibold text-red-800">
+                  Doublons :
+                </span>{" "}
+                le ou les bénéficiaires listés ci-dessous apparaissent déjà
+                dans l'échéance active pour votre régie.
+                Lors de cette génération, les doublons ont été ignorés.
               </p>
             )}
 
             {ignoredDetails.some((g) => g.title === "Inactifs") && (
               <p>
-                <span className="font-semibold text-foreground">Inactifs :</span> 
-                le ou les bénéficiaires listés ci-dessous sont actuellement inactifs. 
-                Ils ne peuvent pas recevoir de paiement et ont donc été ignorés.
+                <span className="font-semibold text-red-800">
+                  Inactifs :
+                </span>{" "}
+                le ou les bénéficiaires listés ci-dessous sont actuellement
+                inactifs. Ils ne peuvent pas recevoir de paiement et ont donc
+                été ignorés.
               </p>
             )}
           </div>
 
+          {/* Liste des ignorés */}
           <div className="flex-1 overflow-y-auto px-4 py-2">
-            <div className={`grid gap-6 ${ignoredDetails.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            <div
+              className={`grid gap-6 ${
+                ignoredDetails.length === 1
+                  ? "grid-cols-1"
+                  : "grid-cols-2"
+              }`}
+            >
               {ignoredDetails.map((group, idx) => (
                 <div key={idx}>
                   <div className="font-bold text-foreground mb-2">
                     {group.title} ({group.items.length})
                   </div>
-                  <ul className="list-disc list-inside space-y-0.5 max-h-[60vh] pr-2">
-                    {group.items.map((name: string, i: number) => (
-                      <li key={i} className="text-sm text-muted-foreground">
-                        {name}
+
+                  <ul className="list-disc list-inside space-y-1 max-h-[60vh] pr-2">
+                    {group.items.map((item: string, i: number) => (
+                      <li
+                        key={i}
+                        className="text-sm text-muted-foreground"
+                      >
+                        <span className="font-bold">
+                          {item}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -949,8 +969,9 @@ export default function Paiements() {
             </div>
           </div>
 
-          <DialogFooter className="mt-2 flex justify-end">
-            <Button 
+          <DialogFooter className="mt-2 flex justify-between">
+            {/* Fermer */}
+            <Button
               onClick={() => setShowIgnoredModal(false)}
               className="bg-primary hover:bg-primary-dark text-primary-foreground"
             >
@@ -966,11 +987,13 @@ export default function Paiements() {
         onClose={() => setIsGenerateConfirmOpen(false)}
         echCode={selectedEcheanceToGenerate}
         echLibelle={selectedEcheanceToGenerateLabel}
-        activeEcheance={activeEcheance} 
+        activeEcheance={activeEcheance}
         onConfirm={async (ech_code, onProgress) => {
+
           if (!ech_code) return;
 
           try {
+
             setIsGenerating(true);
             setGenerateProgress(10);
             onProgress?.(10);
@@ -978,6 +1001,7 @@ export default function Paiements() {
             const token = localStorage.getItem("token");
 
             let fakeProgress = 10;
+
             const interval = setInterval(() => {
               fakeProgress = Math.min(fakeProgress + 5, 90);
               setGenerateProgress(fakeProgress);
@@ -987,34 +1011,92 @@ export default function Paiements() {
             const response = await axios.post(
               `${API_URL}/paiements/generate`,
               { ECH_CODE_OLD: ech_code },
-              { headers: { Authorization: `Bearer ${token}` } }
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
             );
 
-            const { message, paiements_copies, paiements_ignores, total } = response.data;
+            const {
+              paiements_copies,
+              paiements_ignores,
+              total,
+            } = response.data;
 
             const doublons: string[] = [];
             const inactifs: string[] = [];
 
             paiements_ignores.forEach((item: string) => {
-              if (item.includes("(Inactif)")) inactifs.push(item.replace(" (Inactif)", ""));
-              else if (item.includes("(Doublon)")) doublons.push(item.replace(" (Doublon)", ""));
-              else doublons.push(item);
+
+              if (item.includes("(Inactif)")) {
+
+                inactifs.push(
+                  item.replace(" (Inactif)", "")
+                );
+
+              } else if (
+                item.includes(
+                  "(Déjà pris en compte dans votre régie)"
+                )
+              ) {
+
+                doublons.push(
+                  item.replace(
+                    " (Déjà pris en compte dans votre régie)",
+                    ""
+                  )
+                );
+
+              } else {
+
+                doublons.push(item);
+
+              }
+
             });
 
             let toastTitle = "Génération terminée";
-            let toastVariant: "success" | "warning" = "success";
-            let toastMessage = `${paiements_copies.length} paiement(s) généré(s).`;
+
+            let toastVariant: "success" | "warning" =
+              "success";
+
+            let toastMessage =
+              `${paiements_copies.length} paiement(s) généré(s).`;
 
             if (paiements_ignores.length === total) {
-              toastVariant = "warning";
-              toastMessage = "Aucun paiement généré : tous sont déjà existants ou inactifs.";
-            } else if (paiements_ignores.length > 0) {
-              toastVariant = "success";
-              toastMessage = `${paiements_copies.length} paiement(s) généré(s). ${paiements_ignores.length} ignoré(s).`;
 
-              const ignoredList: { title: string; items: string[] }[] = [];
-              if (doublons.length > 0) ignoredList.push({ title: "Doublons", items: doublons });
-              if (inactifs.length > 0) ignoredList.push({ title: "Inactifs", items: inactifs });
+              toastVariant = "warning";
+
+              toastMessage =
+                "Aucun paiement généré : tous sont déjà existants ou inactifs.";
+
+            } else if (paiements_ignores.length > 0) {
+
+              toastVariant = "success";
+
+              toastMessage =
+                `${paiements_copies.length} paiement(s) généré(s). ` +
+                `${paiements_ignores.length} ignoré(s).`;
+
+              const ignoredList: {
+                title: string;
+                items: string[];
+              }[] = [];
+
+              if (doublons.length > 0) {
+                ignoredList.push({
+                  title: "Doublons",
+                  items: doublons,
+                });
+              }
+
+              if (inactifs.length > 0) {
+                ignoredList.push({
+                  title: "Inactifs",
+                  items: inactifs,
+                });
+              }
 
               setIgnoredDetails(ignoredList);
               setShowIgnoredModal(true);
@@ -1027,26 +1109,37 @@ export default function Paiements() {
             });
 
             clearInterval(interval);
+
             setGenerateProgress(100);
+
             onProgress?.(100);
 
             fetchPaiements();
             fetchTotals(null);
 
           } catch (err: any) {
+
             toast({
               title: "Erreur",
-              description: err?.response?.data?.message || "Erreur lors de la génération.",
+              description:
+                err?.response?.data?.message ||
+                "Erreur lors de la génération.",
               variant: "destructive",
             });
+
           } finally {
+
             setTimeout(() => {
+
               setIsGenerating(false);
               setGenerateProgress(0);
               setIsGenerateConfirmOpen(false);
               setSelectedEcheanceToGenerate(null);
+
             }, 500);
+
           }
+
         }}
       />
     </div>

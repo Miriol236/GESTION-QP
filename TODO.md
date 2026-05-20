@@ -30,3 +30,6 @@ All files have been updated with dark theme classes:
 - Updated headers to use primary colors
 - Added dark mode support for modals and cards
 
+## Paiements cas par cas et automatique
+ - on vient de me faire savoir qu'un bénéficiaire peut être pris en compte dans deux ou trois régies différentes mais pas dans une même régie donc on va revoir le contrôle si y a le cas d'une autre régie on insère le paiement  mais le cas d'une même régie c'est doublons et inactif on bloque.
+

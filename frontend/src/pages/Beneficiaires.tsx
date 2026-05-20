@@ -249,7 +249,7 @@ export default function Beneficiaires() {
       render: (value: string) => {
         const ben = beneficiaires.find(b => b.BEN_CODE === value);
         return (
-          <div className="bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary-light px-2 py-1 rounded-md font-mono text-xs">
+          <div className="bg-primary/10 dark:bg-primary/20 text-foreground dark:text-foreground-light px-2 py-1 rounded-md font-mono text-xs">
             {ben ? ben.BEN_CODE : "—"}
           </div>
         );

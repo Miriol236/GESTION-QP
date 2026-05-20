@@ -9,6 +9,7 @@ use App\Models\Mouvement;
 use App\Models\HistoriquesValidation;
 use App\Models\Echeance;
 use App\Models\DetailsPaiement;
+use App\Models\Regie;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -360,13 +361,20 @@ class PaiementController extends Controller
 
         $echCode = $echeance->ECH_CODE;
 
-        // Vérifier si le bénéficiaire existe déjà pour cette échéance
+       // Vérifier si le bénéficiaire existe déjà
+        // pour cette échéance DANS LA MÊME RÉGIE
         $exist = Paiement::where('BEN_CODE', $request->BEN_CODE)
             ->where('ECH_CODE', $echCode)
+            ->where('REG_CODE', $user->REG_CODE)
             ->exists();
-        
+
         if ($exist) {
-            return response()->json(['message' => 'Ce bénéficiaire est déjà créé dans le paiement pour cette échéance.'], 409);
+
+            return response()->json([
+                'message' =>
+                    'Ce bénéficiaire est déjà créé dans le paiement pour cette échéance dans votre régie.'
+            ], 409);
+
         }
 
         // Génération automatique du PAI_CODE
@@ -1016,19 +1024,27 @@ class PaiementController extends Controller
                     continue;
                 }
 
-                // Vérifier si le bénéficiaire est actif (POS_CODE = '01')
+                // Vérifier si le bénéficiaire est actif
                 if ($beneficiaire->POS_CODE !== '01') {
-                    $copieResult['ignores'][] = $paiementAncien->PAI_BENEFICIAIRE . " (Inactif)";
-                    continue; // on ignore ce bénéficiaire
+
+                    $copieResult['ignores'][] =
+                        $paiementAncien->PAI_BENEFICIAIRE . " (Inactif)";
+
+                    continue;
                 }
 
-                // Contrôle doublon
-                $exist = Paiement::where('BEN_CODE', $paiementAncien->BEN_CODE)
+                // Contrôle doublon UNIQUEMENT dans la même régie
+                $paiementExisteMemeRegie = Paiement::where('BEN_CODE', $paiementAncien->BEN_CODE)
                     ->where('ECH_CODE', $nouvelleEcheance->ECH_CODE)
+                    ->where('REG_CODE', $user->REG_CODE)
                     ->exists();
 
-                if ($exist) {
-                    $copieResult['ignores'][] = $paiementAncien->PAI_BENEFICIAIRE;
+                if ($paiementExisteMemeRegie) {
+
+                    $copieResult['ignores'][] =
+                        $paiementAncien->PAI_BENEFICIAIRE .
+                        " (Déjà pris en compte dans votre régie)";
+
                     continue;
                 }
 

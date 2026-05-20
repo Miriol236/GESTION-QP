@@ -1017,6 +1017,7 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                   items={elements}
                   value={currentDetailsPaiements.ELT_CODE}
                   onSelect={(v: any) => {
+
                     const selectedElt = elements.find(
                       (e) => String(e.ELT_CODE) === String(v)
                     );
@@ -1026,27 +1027,64 @@ export default function PaiementWizard({ onSuccess, paiementData, onFinish }: { 
                       ELT_CODE: v,
                     });
 
-                    setEltSens(selectedElt ? Number(selectedElt.ELT_SENS) : null);
+                    setEltSens(
+                      selectedElt
+                        ? Number(selectedElt.ELT_SENS)
+                        : null
+                    );
+
                   }}
                   display={(b: any) => `${b.ELT_LIBELLE}`}
                 />
 
                 <div>
-                  <Label className="text-foreground dark:text-foreground">Montant en F CFA</Label>
+                  <Label className="text-foreground dark:text-foreground">
+                    Montant en F CFA
+                  </Label>
+
                   <Input
-                    type="number"
+                    type="text"
                     inputMode="numeric"
-                    pattern="[0-9]*"
-                    min={0}
-                    step={1}
-                    value={currentDetailsPaiements.PAI_MONTANT}
+
+                    disabled={!currentDetailsPaiements.ELT_CODE}
+
+                    value={
+                      currentDetailsPaiements.PAI_MONTANT
+                        ? Number(
+                            currentDetailsPaiements.PAI_MONTANT
+                          ).toLocaleString("fr-FR")
+                        : ""
+                    }
+
                     onChange={(e) => {
-                      const raw = e.target.value;
-                      const sanitized = raw.replace(/[^0-9.-]/g, "");
-                      setCurrentDetailsPaiements({ ...currentDetailsPaiements, PAI_MONTANT: sanitized });
+
+                      // Garder uniquement les chiffres
+                      const rawValue = e.target.value.replace(/\D/g, "");
+
+                      setCurrentDetailsPaiements({
+                        ...currentDetailsPaiements,
+                        PAI_MONTANT: rawValue,
+                      });
+
                     }}
-                    placeholder="Veuillez saisir le montant"
-                    className="h-10 w-full bg-card dark:bg-card border-border dark:border-border text-foreground dark:text-foreground"
+
+                    placeholder={
+                      !currentDetailsPaiements.ELT_CODE
+                        ? "Veuillez d'abord sélectionner un élément"
+                        : "Veuillez saisir le montant"
+                    }
+
+                    className={`
+                      h-10 w-full
+                      border-border dark:border-border
+                      text-foreground dark:text-foreground
+
+                      ${
+                        !currentDetailsPaiements.ELT_CODE
+                          ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-70"
+                          : "bg-card dark:bg-card"
+                      }
+                    `}
                   />
                 </div>
 
